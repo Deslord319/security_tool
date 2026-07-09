@@ -2,7 +2,7 @@ import { usbManager } from '@kit.BasicServicesKit'
 import { SecurityEventResult } from '../../../models/CommonModels'
 import {
   PeripheralDevicePolicy,
-  PeripheralDevicePolicyRecord,
+  PeripheralDevicePolicySnapshotRequest,
   PeripheralTraceRecord,
   PeripheralType,
   UsbStoragePolicy,
@@ -76,7 +76,7 @@ export class PeripheralPolicySnapshotTraceService {
     return PeripheralPolicySnapshotTraceService.appendSnapshotRecords(devices, policy, 'usb_default_policy')
   }
 
-  static async appendDevicePolicySnapshot(record: PeripheralDevicePolicyRecord): Promise<PeripheralTraceMutationResult> {
+  static async appendDevicePolicySnapshot(record: PeripheralDevicePolicySnapshotRequest): Promise<PeripheralTraceMutationResult> {
     const target = parseUsbDeviceId(record.deviceId)
     if (!target) {
       return { success: true, code: 'ok' }

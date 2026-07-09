@@ -1,15 +1,10 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import {
-  normalizeDeviceId,
-  PeripheralDevicePolicy,
-  PeripheralDevicePolicyRecord
-} from '../../../models/PeripheralModels'
+import { PeripheralDevicePolicy } from '../../../models/PeripheralModels'
 import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 
 const TAG = 'PeripheralDevicePolicyRepo'
 const PREF_STORE_NAME = 'peripheral_device_policy'
-const PREF_KEY_DEVICE_POLICIES = 'device_policies'
 const PREF_KEY_USB_DEFAULT_POLICY = 'usb_default_policy'
 
 interface DevicePolicyChangeEvent {
@@ -23,7 +18,6 @@ export class PeripheralDevicePolicyRepository {
   private static context: common.UIAbilityContext | null = null
   private static initPromise: Promise<boolean> | null = null
   private static initialized: boolean = false
-  private static records: PeripheralDevicePolicyRecord[] = []
   private static usbDefaultPolicy: PeripheralDevicePolicy = 'allow'
   private static nextListenerId: number = 1
   private static listeners: Map<number, DevicePolicyChangeListener> = new Map()
@@ -47,7 +41,6 @@ export class PeripheralDevicePolicyRepository {
     PeripheralDevicePolicyRepository.context = null
     PeripheralDevicePolicyRepository.initPromise = null
     PeripheralDevicePolicyRepository.initialized = false
-    PeripheralDevicePolicyRepository.records = []
     PeripheralDevicePolicyRepository.usbDefaultPolicy = 'allow'
     PeripheralDevicePolicyRepository.nextListenerId = 1
     PeripheralDevicePolicyRepository.listeners.clear()
@@ -61,20 +54,6 @@ export class PeripheralDevicePolicyRepository {
 
   static removeChangeListener(listenerId: number): void {
     PeripheralDevicePolicyRepository.listeners.delete(listenerId)
-  }
-
-  static getAll(): PeripheralDevicePolicyRecord[] {
-    return PeripheralDevicePolicyRepository.records.map((item: PeripheralDevicePolicyRecord) => {
-      return PeripheralDevicePolicyRepository.normalizeRecord(item)
-    })
-  }
-
-  static get(deviceId: string): PeripheralDevicePolicyRecord | null {
-    const normalized = normalizeDeviceId(deviceId)
-    const found = PeripheralDevicePolicyRepository.records.find((item: PeripheralDevicePolicyRecord) => {
-      return normalizeDeviceId(item.deviceId) === normalized
-    })
-    return found ? PeripheralDevicePolicyRepository.normalizeRecord(found) : null
   }
 
   static getUsbDefaultPolicy(): PeripheralDevicePolicy {
@@ -101,85 +80,22 @@ export class PeripheralDevicePolicyRepository {
     }
   }
 
-  static async set(record: PeripheralDevicePolicyRecord): Promise<boolean> {
-    try {
-      const normalized = PeripheralDevicePolicyRepository.normalizeRecord(record)
-      const index = PeripheralDevicePolicyRepository.records.findIndex((item: PeripheralDevicePolicyRecord) => {
-        return normalizeDeviceId(item.deviceId) === normalized.deviceId
-      })
-      if (index >= 0) {
-        PeripheralDevicePolicyRepository.records[index] = normalized
-      } else {
-        PeripheralDevicePolicyRepository.records = [normalized, ...PeripheralDevicePolicyRepository.records]
-      }
-      await PeripheralDevicePolicyRepository.saveRecords()
-      PeripheralDevicePolicyRepository.notifyChanged()
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `set failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
-  static async remove(deviceId: string): Promise<boolean> {
-    try {
-      const normalized = normalizeDeviceId(deviceId)
-      PeripheralDevicePolicyRepository.records = PeripheralDevicePolicyRepository.records.filter(
-        (item: PeripheralDevicePolicyRecord) => normalizeDeviceId(item.deviceId) !== normalized
-      )
-      await PeripheralDevicePolicyRepository.saveRecords()
-      PeripheralDevicePolicyRepository.notifyChanged()
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `remove failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
-  static async clearAll(): Promise<boolean> {
-    try {
-      PeripheralDevicePolicyRepository.records = []
-      await PeripheralDevicePolicyRepository.saveRecords()
-      PeripheralDevicePolicyRepository.notifyChanged()
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `clearAll failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
   private static async doInit(): Promise<boolean> {
     if (!PeripheralDevicePolicyRepository.context) {
       return false
     }
     try {
       let pref = PreferencesAccessor.of(PeripheralDevicePolicyRepository.context, PREF_STORE_NAME)
-      const parsed = await pref.getJsonArray<PeripheralDevicePolicyRecord>(PREF_KEY_DEVICE_POLICIES, [])
       const usbDefaultPolicy = await pref.getString(PREF_KEY_USB_DEFAULT_POLICY, 'allow')
-      PeripheralDevicePolicyRepository.records = Array.isArray(parsed)
-        ? parsed.map((item: PeripheralDevicePolicyRecord) => PeripheralDevicePolicyRepository.normalizeRecord(item))
-        : []
       PeripheralDevicePolicyRepository.usbDefaultPolicy =
         PeripheralDevicePolicyRepository.normalizeUsbDefaultPolicy(usbDefaultPolicy)
       PeripheralDevicePolicyRepository.initialized = true
       return true
     } catch (err) {
-      PeripheralDevicePolicyRepository.records = []
       PeripheralDevicePolicyRepository.usbDefaultPolicy = 'allow'
       PeripheralDevicePolicyRepository.initialized = false
       LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
       return false
-    }
-  }
-
-  private static async saveRecords(): Promise<void> {
-    if (!PeripheralDevicePolicyRepository.context) {
-      return
-    }
-    try {
-      let pref = PreferencesAccessor.of(PeripheralDevicePolicyRepository.context, PREF_STORE_NAME)
-      await pref.setJson(PREF_KEY_DEVICE_POLICIES, PeripheralDevicePolicyRepository.records)
-    } catch (err) {
-      LogUtils.error(TAG, `saveRecords failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -196,18 +112,6 @@ export class PeripheralDevicePolicyRepository {
     }
   }
 
-  private static normalizeRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {
-    return {
-      deviceId: normalizeDeviceId(record.deviceId),
-      policy: record.policy === 'deny' ? 'deny' : 'allow',
-      updatedAt: Number.isFinite(record.updatedAt) && record.updatedAt > 0
-        ? Math.floor(record.updatedAt)
-        : PeripheralDevicePolicyRepository.nowProvider(),
-      deviceName: record.deviceName,
-      deviceType: record.deviceType
-    }
-  }
-
   private static normalizeUsbDefaultPolicy(policy: string | PeripheralDevicePolicy): PeripheralDevicePolicy {
     return policy === 'deny' ? 'deny' : 'allow'
   }
@@ -217,7 +121,7 @@ export class PeripheralDevicePolicyRepository {
       return
     }
     const event: DevicePolicyChangeEvent = {
-      totalCount: PeripheralDevicePolicyRepository.records.length,
+      totalCount: 0,
       timestamp: PeripheralDevicePolicyRepository.nowProvider()
     }
     PeripheralDevicePolicyRepository.listeners.forEach((listener: DevicePolicyChangeListener) => {

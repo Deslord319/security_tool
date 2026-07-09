@@ -1,5 +1,4 @@
 import {
-  PeripheralConnectionRecord,
   PeripheralPolicyRecord,
   UsbDevicePolicyStateRecord,
   inferPeripheralTypeFromBaseClass
@@ -10,7 +9,6 @@ import { formatStandardDateTimeOrFallback } from '../../../utils/DateTimeFormatU
 
 export class PeripheralPolicyService {
   static buildPolicyRecords(
-    _connectionRecords: PeripheralConnectionRecord[],
     usbPolicyStates: UsbDevicePolicyStateRecord[] = []
   ): PeripheralPolicyRecord[] {
     const stateItems: PeripheralPolicyRecord[] = usbPolicyStates.map((state: UsbDevicePolicyStateRecord) => {

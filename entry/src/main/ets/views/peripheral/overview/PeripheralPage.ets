@@ -358,7 +358,6 @@ export struct PeripheralPage {
     const success = await this.viewModel.handlePeripheralPolicyChange(
       record.deviceId,
       record.deviceType,
-      record.deviceName,
       policyIndex
     )
     if (!success) {

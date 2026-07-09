@@ -24,7 +24,6 @@ import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
 import { PeripheralViewModel } from '../../main/ets/viewmodels/peripheral/overview/PeripheralViewModel'
 import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralConnectionRecordClearUsecase'
-import { UsbDevicePolicyStateRepository } from '../../main/ets/services/peripheral/device-policy/UsbDevicePolicyStateRepository'
 
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   reloadCount: number = 0
@@ -65,7 +64,6 @@ class FakePolicyViewModel extends PeripheralPolicyViewModel {
   initializeCount: number = 0
   reloadCount: number = 0
   throwOnInitialize: boolean = false
-  lastRecords: PeripheralConnectionRecord[] = []
   exportResult: ExportActionResult = new FakeExportResult(true, 'peripheral_policy_records.csv')
 
   async initialize(_context: common.UIAbilityContext): Promise<boolean> {
@@ -76,9 +74,8 @@ class FakePolicyViewModel extends PeripheralPolicyViewModel {
     return true
   }
 
-  async reloadRecords(connectionRecords: PeripheralConnectionRecord[]): Promise<void> {
+  async reloadRecords(): Promise<void> {
     this.reloadCount++
-    this.lastRecords = connectionRecords.slice()
     this.state.records = []
   }
 
@@ -122,14 +119,10 @@ export default function peripheralViewModelTest() {
     mockKit = new MockKit()
     let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
     let clearMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.clearAll)
-    let usbStateInitMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.init)
-    let usbStateDeleteAbsentMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.deleteAbsentStates)
     let initResult: PeripheralTraceInitializeResult = { success: true, code: 'ok' }
     let clearResult: PeripheralTraceClearResult = { success: true, code: 'ok' }
     when(initMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(initResult))
     when(clearMock)().afterReturn(Promise.resolve(clearResult))
-    when(usbStateInitMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
-    when(usbStateDeleteAbsentMock)().afterReturn(Promise.resolve(true))
   })
 
   afterEach(() => {
@@ -182,7 +175,6 @@ export default function peripheralViewModelTest() {
     let traceRemoveListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.removeChangeListener)
     let deviceAddListenerMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.addChangeListener)
     let deviceRemoveListenerMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.removeChangeListener)
-    let deviceClearAllMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.clearAll)
     when(probeActivationMock)().afterReturn(inactiveAdminState)
     let traceInitResult: PeripheralTraceInitializeResult = { success: true, code: 'ok' }
     when(traceInitMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(traceInitResult))
@@ -199,12 +191,6 @@ export default function peripheralViewModelTest() {
     })
     when(deviceRemoveListenerMock)(ArgumentMatchers.any).afterAction(() => {
       devicePolicyListener = null
-    })
-    when(deviceClearAllMock)().afterAction(() => {
-      if (devicePolicyListener) {
-        devicePolicyListener()
-      }
-      return Promise.resolve(true)
     })
   })
 
@@ -230,7 +216,7 @@ export default function peripheralViewModelTest() {
     }
     await flushAsyncWork()
     expect(fakeRecords.reloadCount).assertEqual(2)
-    expect(fakePolicy.reloadCount).assertEqual(2)
+    expect(fakePolicy.reloadCount).assertEqual(1)
 
     viewModel.destroy()
     if (traceListener) {
@@ -238,7 +224,7 @@ export default function peripheralViewModelTest() {
     }
     await flushAsyncWork()
     expect(fakeRecords.reloadCount).assertEqual(2)
-    expect(fakePolicy.reloadCount).assertEqual(2)
+    expect(fakePolicy.reloadCount).assertEqual(1)
     done()
   })
 
@@ -252,14 +238,13 @@ export default function peripheralViewModelTest() {
     done()
   })
 
-  it('U-PVM-003 should reload device records, sync policy records and notify refresh', 0, async () => {
+  it('U-PVM-003 should reload device records without rebuilding policy records', 0, async () => {
     fakeRecords.nextRecords = [createConnectionRecord('record-1', 1700000000000)]
 
     await viewModel.reloadDeviceRecords()
 
     expect(fakeRecords.reloadCount).assertEqual(1)
-    expect(fakePolicy.reloadCount).assertEqual(1)
-    expect(fakePolicy.lastRecords.length).assertEqual(1)
+    expect(fakePolicy.reloadCount).assertEqual(0)
   })
 
   it('U-PVM-004 should open detail dialog and notify refresh', 0, () => {
@@ -315,7 +300,7 @@ export default function peripheralViewModelTest() {
     expect(viewModel.currentTab).assertEqual(2)
   })
 
-  it('U-PVM-010 should refresh records and policy when trace listener fires', 0, async (done: Function) => {
+  it('U-PVM-010 should refresh records only when trace listener fires', 0, async (done: Function) => {
     fakeRecords.nextRecords = [createConnectionRecord('record-1', 1700000000000)]
 
     await viewModel.initialize({} as common.UIAbilityContext)
@@ -328,7 +313,7 @@ export default function peripheralViewModelTest() {
     await flushAsyncWork()
 
     expect(fakeRecords.reloadCount).assertEqual(1)
-    expect(fakePolicy.reloadCount).assertEqual(1)
+    expect(fakePolicy.reloadCount).assertEqual(0)
     done()
   })
 

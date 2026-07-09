@@ -1,13 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
-  PeripheralDevicePolicyRecord,
   PeripheralType,
   UsbDevicePolicyStateRecord
 } from '../../main/ets/models/PeripheralModels'
-import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import {
   PeripheralDevicePolicyDispatchService,
   PeripheralPolicyDispatchRequest,
@@ -22,21 +19,6 @@ import { PeripheralPolicySnapshotTraceService } from '../../main/ets/services/pe
 import { PeripheralTraceMutationResult } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { UsbDevicePolicyStateRepository } from '../../main/ets/services/peripheral/device-policy/UsbDevicePolicyStateRepository'
 import { UsbDevicePolicyStateService } from '../../main/ets/services/peripheral/device-policy/UsbDevicePolicyStateService'
-
-function clonePolicyRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {
-  let cloned: PeripheralDevicePolicyRecord = {
-    deviceId: record.deviceId,
-    policy: record.policy,
-    updatedAt: record.updatedAt
-  }
-  if (record.deviceName !== undefined) {
-    cloned.deviceName = record.deviceName
-  }
-  if (record.deviceType !== undefined) {
-    cloned.deviceType = record.deviceType
-  }
-  return cloned
-}
 
 function cloneUsbState(record: UsbDevicePolicyStateRecord): UsbDevicePolicyStateRecord {
   return {
@@ -74,18 +56,12 @@ export default function peripheralPolicyViewModelTest() {
   describe('PeripheralPolicyViewModel', () => {
     let viewModel: PeripheralPolicyViewModel
     let mockKit: MockKit
-    let records: PeripheralDevicePolicyRecord[]
     let usbStates: UsbDevicePolicyStateRecord[]
 
     beforeEach(async () => {
       viewModel = new PeripheralPolicyViewModel()
       mockKit = new MockKit()
-      records = []
       usbStates = []
-      let getAllMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.getAll)
-      let getMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.get)
-      let setMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.set)
-      let clearAllMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.clearAll)
       let listUsbStateMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.listAll)
       let getUsbStateMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.get)
       let setUsbStatePolicyMock = mockKit.mockFunc(UsbDevicePolicyStateService, UsbDevicePolicyStateService.setPolicy)
@@ -97,26 +73,6 @@ export default function peripheralPolicyViewModelTest() {
         PeripheralPolicySnapshotTraceService.appendDevicePolicySnapshot
       )
 
-      when(getAllMock)().afterAction(() => {
-        return records.map((item: PeripheralDevicePolicyRecord) => clonePolicyRecord(item))
-      })
-      when(getMock)(ArgumentMatchers.any).afterAction((deviceId: string) => {
-        let found = records.find((item: PeripheralDevicePolicyRecord) => item.deviceId === deviceId)
-        return found ? clonePolicyRecord(found) : null
-      })
-      when(setMock)(ArgumentMatchers.any).afterAction((record: PeripheralDevicePolicyRecord) => {
-        let index = records.findIndex((item: PeripheralDevicePolicyRecord) => item.deviceId === record.deviceId)
-        if (index >= 0) {
-          records[index] = clonePolicyRecord(record)
-        } else {
-          records = [clonePolicyRecord(record)].concat(records)
-        }
-        return Promise.resolve(true)
-      })
-      when(clearAllMock)().afterAction(() => {
-        records = []
-        return Promise.resolve(true)
-      })
       when(listUsbStateMock)().afterAction(() => Promise.resolve(
         usbStates.map((item: UsbDevicePolicyStateRecord) => cloneUsbState(item))
       ))
@@ -161,18 +117,7 @@ export default function peripheralPolicyViewModelTest() {
         updatedAt: 201
       }]
 
-      await viewModel.reloadRecords([{
-        id: 'record-1',
-        timestamp: 200,
-        deviceId: 'VID:1234 PID:5678',
-        deviceName: 'USB Device',
-        deviceType: PeripheralType.USB_STORAGE,
-        source: 'runtime_event',
-        action: 'connect',
-        result: SecurityEventResult.SUCCESS,
-        policyHit: 'allow',
-        summary: 'connected'
-      }])
+      await viewModel.reloadRecords()
 
       expect(viewModel.state.records.length).assertEqual(1)
       expect(viewModel.state.records[0].policyIndex).assertEqual(1)
@@ -180,29 +125,7 @@ export default function peripheralPolicyViewModelTest() {
     })
 
     it('should not expose connection records as policy candidates', 0, async () => {
-      await viewModel.reloadRecords([{
-        id: 'record-usb-1',
-        timestamp: 300,
-        deviceId: 'VID:1234 PID:5678',
-        deviceName: 'USB Device',
-        deviceType: PeripheralType.USB_STORAGE,
-        source: 'runtime_event',
-        action: 'connect',
-        result: SecurityEventResult.SUCCESS,
-        policyHit: 'allow',
-        summary: 'connected'
-      }, {
-        id: 'record-bt-1',
-        timestamp: 400,
-        deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
-        deviceName: 'Bluetooth Device',
-        deviceType: PeripheralType.BLUETOOTH,
-        source: 'runtime_event',
-        action: 'connect',
-        result: SecurityEventResult.SUCCESS,
-        policyHit: 'allow',
-        summary: 'connected'
-      }])
+      await viewModel.reloadRecords()
 
       expect(viewModel.state.records.length).assertEqual(0)
     })
@@ -222,44 +145,31 @@ export default function peripheralPolicyViewModelTest() {
         lastSeenAt: 300,
         updatedAt: 301
       }]
-      await viewModel.reloadRecords([{
-        id: 'record-2',
-        timestamp: 300,
-        deviceId: 'VID:1234 PID:5678',
-        deviceName: 'USB Device',
-        deviceType: PeripheralType.USB_STORAGE,
-        source: 'runtime_event',
-        action: 'connect',
-        result: SecurityEventResult.SUCCESS,
-        policyHit: 'allow',
-        summary: 'connected'
-      }])
+      await viewModel.reloadRecords()
 
       expect(viewModel.state.records.length).assertEqual(1)
       expect(viewModel.state.records[0].policyIndex).assertEqual(0)
     })
 
     it('should reject invalid device ids when changing policy', 0, async () => {
-      const reason = await viewModel.setDevicePolicy('', 'USB Device', PeripheralType.USB_STORAGE, 0)
+      const reason = await viewModel.setDevicePolicy('', PeripheralType.USB_STORAGE, 0)
       expect(reason).assertEqual('invalid_device_id')
     })
 
     it('should reject bluetooth device policies without saving local policy', 0, async () => {
       const reason = await viewModel.setDevicePolicy(
         'MAC: AA:BB:CC:DD:EE:FF',
-        'Bluetooth Device',
         PeripheralType.BLUETOOTH,
         1
       )
 
       expect(reason).assertEqual('unsupported_device_type')
-      expect(records.length).assertEqual(0)
+      expect(usbStates.length).assertEqual(0)
     })
 
     it('should reject legacy VID PID policy ids', 0, async () => {
       const reason = await viewModel.setDevicePolicy(
         'VID:1234 PID:5678',
-        'USB Device',
         PeripheralType.USB_STORAGE,
         1
       )
@@ -285,7 +195,6 @@ export default function peripheralPolicyViewModelTest() {
 
       const reason = await viewModel.setDevicePolicy(
         'USB-WEAK:1234:5678:ABCDEF01',
-        'USB Device',
         PeripheralType.USB_STORAGE,
         1
       )

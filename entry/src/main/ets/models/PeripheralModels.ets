@@ -92,7 +92,7 @@ export interface UsbDevicePolicyStateRecord extends UsbDeviceIdentity {
   updatedAt: number
 }
 
-export interface PeripheralDevicePolicyRecord {
+export interface PeripheralDevicePolicySnapshotRequest {
   deviceId: string
   policy: PeripheralDevicePolicy
   updatedAt: number

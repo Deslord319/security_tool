@@ -107,25 +107,7 @@ export default function peripheralRecordViewDataUtilsTest() {
     })
 
     it('should build usb policy records only from usb policy state records', 0, () => {
-      const olderRecord = createConnectionRecord('record-1', 100)
-      olderRecord.deviceName = 'Older USB Device'
-      olderRecord.summary = 'older'
-      const latestRecord = createConnectionRecord('record-2', 200)
-      latestRecord.deviceName = 'Latest USB Device'
-      latestRecord.summary = 'latest'
-      const bluetoothRecord = createConnectionRecord('record-3', 150)
-      bluetoothRecord.deviceId = 'MAC: AA:BB:CC:DD:EE:FF'
-      bluetoothRecord.deviceName = 'Bluetooth Device'
-      bluetoothRecord.deviceType = PeripheralType.BLUETOOTH
-      bluetoothRecord.summary = 'bt'
-      const bluetoothDuplicate = createConnectionRecord('record-4', 250)
-      bluetoothDuplicate.deviceId = 'aa-bb-cc-dd-ee-ff'
-      bluetoothDuplicate.deviceName = 'Bluetooth Device Latest'
-      bluetoothDuplicate.deviceType = PeripheralType.BLUETOOTH
-      bluetoothDuplicate.summary = 'bt-latest'
-      const records: PeripheralConnectionRecord[] = [olderRecord, latestRecord, bluetoothRecord, bluetoothDuplicate]
-
-      const defaultPolicyRecords = PeripheralPolicyService.buildPolicyRecords(records, [])
+      const defaultPolicyRecords = PeripheralPolicyService.buildPolicyRecords([])
       expect(defaultPolicyRecords.length).assertEqual(0)
 
       const states: UsbDevicePolicyStateRecord[] = [{
@@ -142,7 +124,7 @@ export default function peripheralRecordViewDataUtilsTest() {
         lastSeenAt: 200,
         updatedAt: 201
       }]
-      const policyRecords = PeripheralPolicyService.buildPolicyRecords(records, states)
+      const policyRecords = PeripheralPolicyService.buildPolicyRecords(states)
 
       expect(policyRecords.length).assertEqual(1)
       expect(policyRecords[0].deviceName).assertEqual('Latest USB Device')

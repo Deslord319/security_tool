@@ -10,7 +10,6 @@ import { DeviceTypeLabels,
 } from '../../../constants/modules/PeripheralStrings'
 import { ExportActionResult } from '../../../models/CommonModels'
 import {
-  PeripheralConnectionRecord,
   PeripheralPolicyRecord,
   PeripheralType,
   formatUsbDeviceId,
@@ -46,12 +45,9 @@ export class PeripheralPolicyViewModel {
     return devicePolicyReady && usbStateReady
   }
 
-  async reloadRecords(connectionRecords: PeripheralConnectionRecord[]): Promise<void> {
+  async reloadRecords(): Promise<void> {
     const usbPolicyStates = await UsbDevicePolicyStateRepository.listAll()
-    this.state.records = PeripheralPolicyService.buildPolicyRecords(
-      connectionRecords,
-      usbPolicyStates
-    )
+    this.state.records = PeripheralPolicyService.buildPolicyRecords(usbPolicyStates)
   }
 
   isUpdating(deviceId: string): boolean {
@@ -76,7 +72,6 @@ export class PeripheralPolicyViewModel {
 
   async setDevicePolicy(
     deviceId: string,
-    deviceName: string,
     deviceType: PeripheralType,
     policyIndex: number
   ): Promise<string | null> {

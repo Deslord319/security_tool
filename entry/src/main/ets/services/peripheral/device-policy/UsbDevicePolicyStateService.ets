@@ -1,4 +1,3 @@
-import { PeripheralPolicyOptionIndexes } from '../../../constants/modules/PeripheralStrings'
 import {
   PeripheralDevicePolicy,
   PeripheralType,
@@ -82,10 +81,7 @@ export class UsbDevicePolicyStateService {
   ): Promise<UsbPolicyStateProcessResult> {
     const existing = await UsbDevicePolicyStateRepository.get(identity.fingerprintKey)
     if (!existing) {
-      const allowState = UsbDevicePolicyStateService.buildState(identity, undefined, 'allow', false, 'none', occurAt)
-      await UsbDevicePolicyStateRepository.upsert(allowState)
       return {
-        state: allowState,
         desiredPolicy: 'allow',
         activePolicy: 'none',
         autoDenyApplied: false,
@@ -170,7 +166,7 @@ export class UsbDevicePolicyStateService {
   static async clearAllPolicies(): Promise<boolean> {
     const records = await UsbDevicePolicyStateRepository.listAll()
     for (const record of records) {
-      if (!record.present || record.activePolicy !== 'deny') {
+      if (record.activePolicy !== 'deny') {
         continue
       }
       const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
@@ -184,10 +180,6 @@ export class UsbDevicePolicyStateService {
       }
     }
     return UsbDevicePolicyStateRepository.clearAll()
-  }
-
-  static resolvePolicyIndex(policy: PeripheralDevicePolicy): number {
-    return policy === 'deny' ? PeripheralPolicyOptionIndexes.DENY : PeripheralPolicyOptionIndexes.ALLOW
   }
 
   static resolveDeviceType(baseClass: number): PeripheralType {

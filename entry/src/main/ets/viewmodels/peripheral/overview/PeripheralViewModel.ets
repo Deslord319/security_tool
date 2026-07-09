@@ -94,7 +94,7 @@ export class PeripheralViewModel {
     this.refreshAdminActivationState()
     this.interfaceControl.reloadState()
     await this.records.reloadRecords()
-    await this.policy.reloadRecords(this.records.state.records)
+    await this.policy.reloadRecords()
     this.notifyRefresh('reloadAllData')
   }
 
@@ -113,18 +113,16 @@ export class PeripheralViewModel {
 
   async reloadDeviceRecords(): Promise<void> {
     await this.records.reloadRecords()
-    await this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('reloadDeviceRecords')
   }
 
   private async refreshTraceDrivenData(): Promise<void> {
     await this.records.reloadRecords()
-    await this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('refreshTraceDrivenData')
   }
 
   private async refreshPolicyDrivenData(): Promise<void> {
-    await this.policy.reloadRecords(this.records.state.records)
+    await this.policy.reloadRecords()
     this.notifyRefresh('refreshPolicyDrivenData')
   }
 
@@ -155,7 +153,6 @@ export class PeripheralViewModel {
   async handlePeripheralPolicyChange(
     deviceId: string,
     deviceType: PeripheralType,
-    deviceName: string,
     policyIndex: number
   ): Promise<boolean> {
     if (!this.ensureAdminReady()) {
@@ -164,12 +161,12 @@ export class PeripheralViewModel {
     this.policy.startUpdate(deviceId)
     this.notifyRefresh('policyChangeStart')
     try {
-      this.reasonCode = await this.policy.setDevicePolicy(deviceId, deviceName, deviceType, policyIndex)
+      this.reasonCode = await this.policy.setDevicePolicy(deviceId, deviceType, policyIndex)
       if (this.reasonCode !== null) {
         return false
       }
       await this.records.reloadRecords()
-      await this.policy.reloadRecords(this.records.state.records)
+      await this.policy.reloadRecords()
       this.notifyRefresh('policyChangeSuccess')
       return true
     } finally {
@@ -197,7 +194,7 @@ export class PeripheralViewModel {
         return false
       }
       this.policy.resetUpdatingState()
-      await this.policy.reloadRecords(this.records.state.records)
+      await this.policy.reloadRecords()
       this.notifyRefresh('clearPeripheralPolicyRecords')
       return true
     } catch (err) {

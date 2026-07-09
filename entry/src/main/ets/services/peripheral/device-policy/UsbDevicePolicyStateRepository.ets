@@ -101,36 +101,12 @@ class UsbDevicePolicyStateRdbRepository extends RdbRepository<UsbDevicePolicySta
     return count > 0
   }
 
-  async delete(fingerprintKey: string): Promise<boolean> {
-    const deleted = await this.executeSql(
-      `DELETE FROM ${TABLE_NAME} WHERE fingerprint_key = ?`,
-      [fingerprintKey],
-      'delete'
-    )
-    if (deleted) {
-      this.notifyChanged()
-    }
-    return deleted
-  }
-
   async clearAll(): Promise<boolean> {
     const cleared = await this.clearAllRows()
     if (cleared) {
       this.notifyChanged()
     }
     return cleared
-  }
-
-  async deleteAbsentStates(): Promise<boolean> {
-    const deleted = await this.executeSql(
-      `DELETE FROM ${TABLE_NAME} WHERE present = 0`,
-      [],
-      'deleteAbsentStates'
-    )
-    if (deleted) {
-      this.notifyChanged()
-    }
-    return deleted
   }
 
   private buildArgs(record: UsbDevicePolicyStateRecord): Array<relationalStore.ValueType> {
