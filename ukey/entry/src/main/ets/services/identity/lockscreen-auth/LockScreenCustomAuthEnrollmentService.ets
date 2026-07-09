@@ -31,6 +31,7 @@ import {
 const TAG = 'LockScreenCustomAuth.Enroll'
 const LOCKSCREEN_CUSTOM_AUTH_TYPE = 128
 const LOCKSCREEN_CUSTOM_AUTH_SUB_TYPE = 0
+const CUSTOM_AUTH_EMPTY_LIST_ERROR_CODE = 12300002
 const CUSTOM_AUTH_VERIFY_CHALLENGE_LENGTH = 16
 const CUSTOM_AUTH_VERIFY_TIMEOUT_MS = 15000
 type StoredUKeyCredentialLifecycle = 'active' | 'inactive' | 'failed'
@@ -503,6 +504,14 @@ export class OsAccountCustomAuthCredentialManager implements CustomAuthCredentia
     } catch (err) {
       let errorCode = OsAccountCustomAuthCredentialManager.getErrorCode(err)
       let errorMessage = OsAccountCustomAuthCredentialManager.getErrorMessage(err)
+      if (OsAccountCustomAuthCredentialManager.isEmptyCustomAuthListError(errorCode)) {
+        LogUtils.info(TAG, `[LIST_CUSTOM_CRED_EMPTY] userId=${userId}, code=${errorCode}, message=${errorMessage}`)
+        return {
+          success: true,
+          userId: userId,
+          credentials: []
+        }
+      }
       LogUtils.error(TAG, `[LIST_CUSTOM_CRED_FAIL] userId=${userId}, code=${errorCode}, message=${errorMessage}`)
       return {
         success: false,
@@ -702,6 +711,10 @@ export class OsAccountCustomAuthCredentialManager implements CustomAuthCredentia
       return error.message
     }
     return 'unknown'
+  }
+
+  static isEmptyCustomAuthListError(errorCode: number): boolean {
+    return errorCode === CUSTOM_AUTH_EMPTY_LIST_ERROR_CODE
   }
 }
 
