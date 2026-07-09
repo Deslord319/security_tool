@@ -166,7 +166,7 @@ export struct PolicyList {
         controlHeight: 32,
         radius: 8,
         fontSize: AppStyles.FONT_SIZE_CAPTION,
-        enabledValue: this.isPolicyEditable(record),
+        enabledValue: true,
         opacityValue: this.isPolicyEditable(record) ? 1 : 0.6,
         currentTheme: this.currentTheme,
         onSelect: (selectIndex: number) => {
@@ -175,6 +175,7 @@ export struct PolicyList {
           }
         }
       })
+        .hitTestBehavior(this.isPolicyEditable(record) ? HitTestMode.Default : HitTestMode.None)
         .layoutWeight(1.4)
     }
     .width('100%')
