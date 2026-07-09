@@ -182,7 +182,7 @@ export default function entryAbilityTest() {
     })
 
     it('should load main page when startup auth is disabled', 0, async (done: Function) => {
-      let loadConfigMock = mockKit.mockFunc(repository, repository.loadConfig)
+      let loadConfigMock = mockKit.mockFunc(repository, repository.loadConfigStrict)
       when(loadConfigMock)(context as never).afterReturn(new DisabledStartupAuthConfig() as never as ToolSettingsConfigLike)
 
       ability.onWindowStageCreate(windowStage as never)
@@ -193,8 +193,8 @@ export default function entryAbilityTest() {
       done()
     })
 
-    it('should fallback to main page when startup auth becomes unavailable', 0, async (done: Function) => {
-      let loadConfigMock = mockKit.mockFunc(repository, repository.loadConfig)
+    it('should terminate self when startup auth becomes unavailable', 0, async (done: Function) => {
+      let loadConfigMock = mockKit.mockFunc(repository, repository.loadConfigStrict)
       when(loadConfigMock)(context as never).afterReturn(new EnabledStartupAuthConfig(AuthMethod.FINGERPRINT) as never as ToolSettingsConfigLike)
       let availabilityMock = mockKit.mockFunc(AuthService, AuthService.checkAuthMethodAvailability)
       let unavailable = new FakeAuthAvailability()
@@ -207,8 +207,8 @@ export default function entryAbilityTest() {
       await Promise.resolve()
       await Promise.resolve()
 
-      expect(windowStage.loadedPath).assertEqual('pages/MainPage')
-      expect(windowStage.loadCalls).assertEqual(1)
+      expect(context.terminated).assertTrue()
+      expect(windowStage.loadCalls).assertEqual(0)
       done()
     })
 
@@ -217,7 +217,7 @@ export default function entryAbilityTest() {
       context = new FakeAbilityContext()
       setAbilityContext(ability, context)
 
-      let loadConfigMock = mockKit.mockFunc(repository, repository.loadConfig)
+      let loadConfigMock = mockKit.mockFunc(repository, repository.loadConfigStrict)
       when(loadConfigMock)(context as never).afterReturn(new EnabledStartupAuthConfig(AuthMethod.PIN) as never as ToolSettingsConfigLike)
       let availabilityMock = mockKit.mockFunc(AuthService, AuthService.checkAuthMethodAvailability)
       let available = new FakeAuthAvailability()
@@ -238,6 +238,32 @@ export default function entryAbilityTest() {
       terminated = context.terminated
       expect(terminated).assertTrue()
       expect(windowStage.loadCalls).assertEqual(0)
+      done()
+    })
+
+    it('should fallback to PIN auth when startup config read fails', 0, async (done: Function) => {
+      let loadConfigMock = mockKit.mockFunc(repository, repository.loadConfigStrict)
+      when(loadConfigMock)(context as never).afterAction((): ToolSettingsConfigLike => {
+        throw new Error('read failed')
+      })
+      let availabilityMock = mockKit.mockFunc(AuthService, AuthService.checkAuthMethodAvailability)
+      let available = new FakeAuthAvailability()
+      available.available = true
+      available.message = 'available'
+      when(availabilityMock)(AuthMethod.PIN).afterReturn(available)
+      let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
+      let success = new FakeAuthExecution()
+      success.success = true
+      when(authenticateMock)(AuthMethod.PIN).afterReturn(Promise.resolve(success))
+
+      ability.onWindowStageCreate(windowStage as never)
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(windowStage.loadedPath).assertEqual('pages/MainPage')
+      expect(windowStage.loadCalls).assertEqual(1)
+      expect(context.terminated).assertFalse()
       done()
     })
 

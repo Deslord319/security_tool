@@ -23,17 +23,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
   async loadConfig(context: common.UIAbilityContext): Promise<ToolSettingsConfig> {
     LogUtils.info(TAG, `[LOAD_START] loadConfig | store=${PREF_STORE_NAME_TOOL}`)
     try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_TOOL)
-      let config: ToolSettingsConfig = {
-        startupAuthEnabled: await pref.getBoolean(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled),
-        authMethod: this.normalizeAuthMethod(
-          await pref.getNumber(PREF_KEY_AUTH_METHOD, DEFAULT_TOOL_SETTINGS.authMethod)
-        )
-      }
-      LogUtils.info(TAG,
-        `[LOAD_SUCCESS] loadConfig | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
-      )
-      return config
+      return await this.loadConfigStrict(context)
     } catch (err) {
       let error = err as Error
       let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
@@ -43,6 +33,29 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
         startupAuthEnabled: DEFAULT_TOOL_SETTINGS.startupAuthEnabled,
         authMethod: DEFAULT_TOOL_SETTINGS.authMethod
       }
+    }
+  }
+
+  async loadConfigStrict(context: common.UIAbilityContext): Promise<ToolSettingsConfig> {
+    LogUtils.info(TAG, `[LOAD_STRICT_START] loadConfigStrict | store=${PREF_STORE_NAME_TOOL}`)
+    try {
+      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_TOOL)
+      let config: ToolSettingsConfig = {
+        startupAuthEnabled: await pref.getBoolean(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled),
+        authMethod: this.normalizeAuthMethod(
+          await pref.getNumber(PREF_KEY_AUTH_METHOD, DEFAULT_TOOL_SETTINGS.authMethod)
+        )
+      }
+      LogUtils.info(TAG,
+        `[LOAD_STRICT_SUCCESS] loadConfigStrict | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
+      )
+      return config
+    } catch (err) {
+      let error = err as Error
+      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
+      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
+      LogUtils.error(TAG, `[LOAD_STRICT_FAIL] loadConfigStrict | code=${errorCode}, message=${errorMessage}`)
+      throw new Error(errorMessage)
     }
   }
 

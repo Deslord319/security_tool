@@ -71,7 +71,7 @@ export default class EntryAbility extends UIAbility {
   // 检查启动校验配置并决定是否拦截
   private async checkStartupAuth(windowStage: window.WindowStage): Promise<void> {
     try {
-      let config = await this.toolSettingsRepository.loadConfig(this.context)
+      let config = await this.toolSettingsRepository.loadConfigStrict(this.context)
       if (!config.startupAuthEnabled) {
         LogUtils.info(ENTRYABILITY_TAG, '[STARTUP_AUTH_RESULT] startup auth disabled | fallback=false')
         this.loadMainPage(windowStage);
@@ -83,10 +83,9 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       let error = err as EntryLoggableError
       LogUtils.error(ENTRYABILITY_TAG,
-        `[STARTUP_AUTH_READ] load startup auth config failed | code=${error?.code ?? 'unknown'}, message=${error?.message ?? 'unknown'}, fallback=true`
+        `[STARTUP_AUTH_READ] load startup auth config failed | code=${error?.code ?? 'unknown'}, message=${error?.message ?? 'unknown'}, fallback=pin_auth`
       )
-      // 异常时降级：直接加载主页面
-      this.loadMainPage(windowStage);
+      await this.performStartupAuth(windowStage, AuthMethod.PIN);
     }
   }
 
@@ -99,11 +98,10 @@ export default class EntryAbility extends UIAbility {
     )
 
     if (!checkResult.available) {
-      // 认证方式不可用时优雅降级：直接加载主页面，不阻断启动
       LogUtils.warn(ENTRYABILITY_TAG,
-        `auth unavailable | authMethod=${authMethod}, errorCode=${checkResult.errorCode ?? 0}, fallback=true`
+        `auth unavailable | authMethod=${authMethod}, errorCode=${checkResult.errorCode ?? 0}, fallback=false`
       )
-      this.loadMainPage(windowStage, `启动校验跳过：${checkResult.message}`);
+      await this.terminateForStartupAuth('auth_unavailable')
       return;
     }
 
@@ -114,13 +112,18 @@ export default class EntryAbility extends UIAbility {
       this.loadMainPage(windowStage);
     } else if (authResult.reason === 'unavailable') {
       LogUtils.warn(ENTRYABILITY_TAG, 'authenticate unavailable');
-      this.loadMainPage(windowStage, authResult.message);
+      await this.terminateForStartupAuth('authenticate_unavailable')
     } else {
-      try {
-        this.context.terminateSelf();
-      } catch (err) {
-        LogUtils.error(ENTRYABILITY_TAG, 'terminateSelf failed: %{public}s', JSON.stringify(err));
-      }
+      await this.terminateForStartupAuth('auth_failed')
+    }
+  }
+
+  private async terminateForStartupAuth(reason: string): Promise<void> {
+    try {
+      LogUtils.warn(ENTRYABILITY_TAG, `terminate startup because auth gate failed | reason=${reason}`)
+      await this.context.terminateSelf();
+    } catch (err) {
+      LogUtils.error(ENTRYABILITY_TAG, 'terminateSelf failed: %{public}s', JSON.stringify(err));
     }
   }
 
