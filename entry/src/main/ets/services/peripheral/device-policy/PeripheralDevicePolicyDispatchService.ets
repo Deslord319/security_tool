@@ -12,6 +12,7 @@ import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { LogUtils } from '../../../utils/LogUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
+import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 
 export type PeripheralPolicyDispatchReason =
   'unsupported_device_type' |
@@ -37,14 +38,18 @@ const TAG = 'PeripheralDevicePolicyDispatchService'
 export class PeripheralDevicePolicyDispatchService {
   static async dispatch(request: PeripheralPolicyDispatchRequest): Promise<PeripheralPolicyDispatchResult> {
     if (!PeripheralDevicePolicyDispatchService.isSupportedPolicy(request.policy)) {
-      return PeripheralDevicePolicyDispatchService.buildFailureResult('unsupported_policy')
+      return PeripheralDevicePolicyDispatchService.buildFailureResult(
+        PeripheralReasonCodes.UNSUPPORTED_POLICY_DISPATCH as PeripheralPolicyDispatchReason
+      )
     }
 
     if (isUsbPeripheralType(request.deviceType)) {
       return PeripheralDevicePolicyDispatchService.dispatchUsbPolicy(request)
     }
 
-    return PeripheralDevicePolicyDispatchService.buildFailureResult('unsupported_device_type')
+    return PeripheralDevicePolicyDispatchService.buildFailureResult(
+      PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH as PeripheralPolicyDispatchReason
+    )
   }
 
   private static isSupportedPolicy(policy: PeripheralDevicePolicy): boolean {
@@ -57,10 +62,15 @@ export class PeripheralDevicePolicyDispatchService {
     if (request.deviceType === PeripheralType.USB_STORAGE) {
       const storagePolicyResult = PeripheralDevicePolicyDispatchService.getUsbStoragePolicy()
       if (!storagePolicyResult.success) {
-        return PeripheralDevicePolicyDispatchService.copyFailureResult(storagePolicyResult, 'usb_dispatch_failed')
+        return PeripheralDevicePolicyDispatchService.copyFailureResult(
+          storagePolicyResult,
+          PeripheralReasonCodes.USB_DISPATCH_FAILED as PeripheralPolicyDispatchReason
+        )
       }
       if (storagePolicyResult.data === usbManager.UsbPolicy.DISABLED) {
-        return PeripheralDevicePolicyDispatchService.buildFailureResult('usb_conflict_account_storage')
+        return PeripheralDevicePolicyDispatchService.buildFailureResult(
+          PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE as PeripheralPolicyDispatchReason
+        )
       }
     }
 
@@ -81,7 +91,7 @@ export class PeripheralDevicePolicyDispatchService {
           }
         },
         'usb',
-        'usb_dispatch_conflict_unresolved'
+        PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED as PeripheralPolicyDispatchReason
       )
     }
 
@@ -91,7 +101,9 @@ export class PeripheralDevicePolicyDispatchService {
   private static dispatchUsbDeny(request: PeripheralPolicyDispatchRequest): PeripheralPolicyDispatchResult {
     const usbDeviceType = PeripheralDevicePolicyDispatchService.toUsbDeviceType(request.deviceType)
     if (!usbDeviceType) {
-      return PeripheralDevicePolicyDispatchService.buildFailureResult('unsupported_device_type')
+      return PeripheralDevicePolicyDispatchService.buildFailureResult(
+        PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH as PeripheralPolicyDispatchReason
+      )
     }
 
     return PeripheralDevicePolicyDispatchService.tryRunOperation(
@@ -99,7 +111,7 @@ export class PeripheralDevicePolicyDispatchService {
         usbManager.addDisallowedUsbDevices(ADMIN_WANT, [usbDeviceType])
       },
       'usb',
-      'usb_dispatch_conflict_unresolved'
+      PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED as PeripheralPolicyDispatchReason
     )
   }
 
@@ -160,7 +172,9 @@ export class PeripheralDevicePolicyDispatchService {
       LogUtils.error(TAG, `${channel} dispatch failed: code=${code ?? -1}, message=${CommonErrorUtils.extractErrorMessage(error)}`)
       return {
         success: false,
-        reason: code === PeripheralErrorCodes.POLICY_CONFLICT ? conflictReason : 'usb_dispatch_failed',
+        reason: code === PeripheralErrorCodes.POLICY_CONFLICT
+          ? conflictReason
+          : PeripheralReasonCodes.USB_DISPATCH_FAILED as PeripheralPolicyDispatchReason,
         errorCode: code,
         errorMessage: CommonErrorUtils.extractErrorMessage(error),
         isAdminMissing: adminMissing,

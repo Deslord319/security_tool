@@ -12,6 +12,7 @@ import {
   PeripheralPolicyDispatchResult
 } from './PeripheralDevicePolicyDispatchService'
 import { UsbDevicePolicyStateRepository } from './UsbDevicePolicyStateRepository'
+import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 
 const TAG = 'UsbDevicePolicyStateService'
 
@@ -143,7 +144,10 @@ export class UsbDevicePolicyStateService {
   ): Promise<PeripheralPolicyDispatchResult> {
     const existing = await UsbDevicePolicyStateRepository.get(fingerprintKey)
     if (!existing) {
-      return UsbDevicePolicyStateService.buildFailureResult('usb_dispatch_failed', 'device_state_not_found')
+      return UsbDevicePolicyStateService.buildFailureResult(
+        PeripheralReasonCodes.USB_DISPATCH_FAILED as 'usb_dispatch_failed',
+        'device_state_not_found'
+      )
     }
     if (!existing.present) {
       return UsbDevicePolicyStateService.buildFailureResult('device_offline', 'device_offline')
@@ -160,7 +164,10 @@ export class UsbDevicePolicyStateService {
 
     const nextState: UsbDevicePolicyStateRecord = UsbDevicePolicyStateService.copyStateWithPolicy(existing, policy)
     const saved = await UsbDevicePolicyStateRepository.upsert(nextState)
-    return saved ? dispatchResult : UsbDevicePolicyStateService.buildFailureResult('usb_dispatch_failed', 'state_save_failed')
+    return saved ? dispatchResult : UsbDevicePolicyStateService.buildFailureResult(
+      PeripheralReasonCodes.USB_DISPATCH_FAILED as 'usb_dispatch_failed',
+      'state_save_failed'
+    )
   }
 
   static async clearAllPolicies(): Promise<boolean> {
