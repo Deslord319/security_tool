@@ -2,8 +2,8 @@ import { describe, expect, it } from '@ohos/hypium'
 import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
   PeripheralConnectionRecord,
-  PeripheralDevicePolicyRecord,
-  PeripheralType
+  PeripheralType,
+  UsbDevicePolicyStateRecord
 } from '../../main/ets/models/PeripheralModels'
 import {
   buildConnectionHistoryItems,
@@ -106,7 +106,7 @@ export default function peripheralRecordViewDataUtilsTest() {
       expect(label).assertEqual('已禁用')
     })
 
-    it('should build latest usb policy records and ignore bluetooth connection candidates by default', 0, () => {
+    it('should build usb policy records only from usb policy state records', 0, () => {
       const olderRecord = createConnectionRecord('record-1', 100)
       olderRecord.deviceName = 'Older USB Device'
       olderRecord.summary = 'older'
@@ -126,28 +126,28 @@ export default function peripheralRecordViewDataUtilsTest() {
       const records: PeripheralConnectionRecord[] = [olderRecord, latestRecord, bluetoothRecord, bluetoothDuplicate]
 
       const defaultPolicyRecords = PeripheralPolicyService.buildPolicyRecords(records, [])
-      expect(defaultPolicyRecords.length).assertEqual(1)
-      expect(defaultPolicyRecords[0].deviceName).assertEqual('Latest USB Device')
-      expect(defaultPolicyRecords[0].policyIndex).assertEqual(0)
+      expect(defaultPolicyRecords.length).assertEqual(0)
 
-      const policies: PeripheralDevicePolicyRecord[] = [
-        {
-          deviceId: 'VID:1234 PID:5678',
-          policy: 'deny',
-          updatedAt: Date.now()
-        },
-        {
-          deviceId: 'aa-bb-cc-dd-ee-ff',
-          deviceType: PeripheralType.BLUETOOTH,
-          policy: 'deny',
-          updatedAt: Date.now()
-        }
-      ]
-      const policyRecords = PeripheralPolicyService.buildPolicyRecords(records, policies)
+      const states: UsbDevicePolicyStateRecord[] = [{
+        fingerprintKey: 'USB-WEAK:1234:5678:ABCDEF01',
+        fingerprintType: 'weak',
+        vendorId: 0x1234,
+        productId: 0x5678,
+        description: 'storage',
+        baseClass: 0x08,
+        deviceName: 'Latest USB Device',
+        desiredPolicy: 'deny',
+        present: true,
+        activePolicy: 'deny',
+        lastSeenAt: 200,
+        updatedAt: 201
+      }]
+      const policyRecords = PeripheralPolicyService.buildPolicyRecords(records, states)
 
       expect(policyRecords.length).assertEqual(1)
       expect(policyRecords[0].deviceName).assertEqual('Latest USB Device')
       expect(policyRecords[0].policyIndex).assertEqual(1)
+      expect(policyRecords[0].editable).assertTrue()
     })
   })
 }

@@ -11,15 +11,16 @@ import { DeviceTypeLabels,
 import { ExportActionResult } from '../../../models/CommonModels'
 import {
   PeripheralConnectionRecord,
-  PeripheralDevicePolicyRecord,
   PeripheralPolicyRecord,
   PeripheralType,
+  formatUsbDeviceId,
   isUsbPeripheralType
 } from '../../../models/PeripheralModels'
 import { getPeripheralTypeLabel } from '../connection-record/PeripheralRecordPresentationMapper'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { UsbDevicePolicyStateRepository } from '../../../services/peripheral/device-policy/UsbDevicePolicyStateRepository'
+import { UsbDevicePolicyStateService } from '../../../services/peripheral/device-policy/UsbDevicePolicyStateService'
 import {
-  PeripheralDevicePolicyDispatchService,
   PeripheralPolicyDispatchReason,
   PeripheralPolicyDispatchResult
 } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyDispatchService'
@@ -40,13 +41,16 @@ export class PeripheralPolicyViewModel {
   @Trace state: PeripheralPolicyState = new PeripheralPolicyState()
 
   async initialize(context: common.UIAbilityContext): Promise<boolean> {
-    return PeripheralDevicePolicyRepository.init(context)
+    const devicePolicyReady = await PeripheralDevicePolicyRepository.init(context)
+    const usbStateReady = await UsbDevicePolicyStateRepository.init(context)
+    return devicePolicyReady && usbStateReady
   }
 
-  reloadRecords(connectionRecords: PeripheralConnectionRecord[]): void {
+  async reloadRecords(connectionRecords: PeripheralConnectionRecord[]): Promise<void> {
+    const usbPolicyStates = await UsbDevicePolicyStateRepository.listAll()
     this.state.records = PeripheralPolicyService.buildPolicyRecords(
       connectionRecords,
-      PeripheralDevicePolicyRepository.getAll()
+      usbPolicyStates
     )
   }
 
@@ -80,36 +84,31 @@ export class PeripheralPolicyViewModel {
       return PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH
     }
 
-    const normalizedDeviceId = PeripheralPolicyService.normalizeDeviceIdForPolicy(deviceId, deviceType)
+    const normalizedDeviceId = PeripheralPolicyService.normalizeDeviceIdForPolicy(deviceId)
     if (normalizedDeviceId.length === 0) {
+      return PeripheralReasonCodes.INVALID_DEVICE_ID
+    }
+    if (!normalizedDeviceId.startsWith('USB-SN:') && !normalizedDeviceId.startsWith('USB-WEAK:')) {
       return PeripheralReasonCodes.INVALID_DEVICE_ID
     }
 
     try {
       const policy = policyIndex === PeripheralPolicyOptionIndexes.DENY ? 'deny' : 'allow'
-      if (this.shouldDispatchBeforeSave(deviceType)) {
-        const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
-          deviceId: normalizedDeviceId,
-          deviceType: deviceType,
-          policy: policy
+      const stateDispatchResult = await UsbDevicePolicyStateService.setPolicy(normalizedDeviceId, policy)
+      if (!stateDispatchResult.success) {
+        return this.resolveDispatchFailure(stateDispatchResult)
+      }
+      const stateRecord = await UsbDevicePolicyStateRepository.get(normalizedDeviceId)
+      if (stateRecord) {
+        await PeripheralPolicySnapshotTraceService.appendDevicePolicySnapshot({
+          deviceId: formatUsbDeviceId(stateRecord.vendorId, stateRecord.productId),
+          deviceName: stateRecord.deviceName,
+          deviceType: UsbDevicePolicyStateService.resolveDeviceType(stateRecord.baseClass),
+          policy: policy,
+          updatedAt: Date.now()
         })
-        if (!dispatchResult.success) {
-          return this.resolveDispatchFailure(dispatchResult)
-        }
       }
-
-      const record: PeripheralDevicePolicyRecord = {
-        deviceId: normalizedDeviceId,
-        deviceName: deviceName,
-        deviceType: deviceType,
-        policy: policy,
-        updatedAt: Date.now()
-      }
-      const success = await PeripheralDevicePolicyRepository.set(record)
-      if (success) {
-        await PeripheralPolicySnapshotTraceService.appendDevicePolicySnapshot(record)
-      }
-      return success ? null : PeripheralReasonCodes.POLICY_CHANGE_FAILED
+      return null
     } catch (err) {
       LogUtils.error(TAG, `setDevicePolicy failed: ${JSON.stringify(err)}`)
       return PeripheralReasonCodes.POLICY_CHANGE_FAILED
@@ -117,34 +116,13 @@ export class PeripheralPolicyViewModel {
   }
 
   async clearAllPolicies(): Promise<boolean> {
-    const records = PeripheralDevicePolicyRepository.getAll()
-    if (records.length === 0) {
+    const stateRecords = await UsbDevicePolicyStateRepository.listAll()
+    if (stateRecords.length === 0) {
       return true
     }
 
-    LogUtils.info(TAG, `clearAllPolicies start: total=${records.length}`)
-    const revertedRecords: PeripheralDevicePolicyRecord[] = []
-    for (const record of records) {
-      const clearResult = await this.dispatchPolicyRecord(record, 'allow')
-      if (!clearResult.success) {
-        LogUtils.error(
-          TAG,
-          `clearAllPolicies dispatch failed: deviceId=${record.deviceId}, deviceType=${record.deviceType}, reason=${clearResult.reason ?? 'unknown'}`
-        )
-        const rollbackSuccess = await this.rollbackClearedPolicies(revertedRecords)
-        LogUtils.warn(TAG, `clearAllPolicies rollback result: success=${rollbackSuccess}, reverted=${revertedRecords.length}`)
-        return false
-      }
-      revertedRecords.push(record)
-    }
-
-    const cleared = await PeripheralDevicePolicyRepository.clearAll()
-    if (cleared) {
-      LogUtils.info(TAG, `clearAllPolicies completed: total=${records.length}`)
-    } else {
-      LogUtils.error(TAG, `clearAllPolicies repository clear failed: total=${records.length}`)
-    }
-    return cleared
+    LogUtils.info(TAG, `clearAllPolicies start: usbStates=${stateRecords.length}`)
+    return await UsbDevicePolicyStateService.clearAllPolicies()
   }
 
   async exportRecords(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
@@ -171,44 +149,6 @@ export class PeripheralPolicyViewModel {
     return PeripheralPolicyService.normalizeDeviceIdForPolicy(deviceId)
   }
 
-  private async dispatchPolicyRecord(
-    record: PeripheralDevicePolicyRecord,
-    policy: 'allow' | 'deny'
-  ): Promise<PeripheralPolicyDispatchResult> {
-    if (!record.deviceType || !this.shouldDispatchBeforeSave(record.deviceType)) {
-      return { success: true } as PeripheralPolicyDispatchResult
-    }
-    return PeripheralDevicePolicyDispatchService.dispatch({
-      deviceId: record.deviceId,
-      deviceType: record.deviceType,
-      policy: policy
-    })
-  }
-
-  private async rollbackClearedPolicies(records: PeripheralDevicePolicyRecord[]): Promise<boolean> {
-    if (records.length === 0) {
-      return true
-    }
-
-    LogUtils.warn(TAG, `rollbackClearedPolicies start: total=${records.length}`)
-    for (let index = records.length - 1; index >= 0; index--) {
-      const record = records[index]
-      const rollbackResult = await this.dispatchPolicyRecord(record, record.policy)
-      if (!rollbackResult.success) {
-        LogUtils.error(
-          TAG,
-          `rollbackClearedPolicies failed: deviceId=${record.deviceId}, deviceType=${record.deviceType}, reason=${rollbackResult.reason ?? 'unknown'}`
-        )
-        return false
-      }
-    }
-    return true
-  }
-
-  private shouldDispatchBeforeSave(deviceType: PeripheralType): boolean {
-    return isUsbPeripheralType(deviceType)
-  }
-
   private resolveDispatchFailure(result: PeripheralPolicyDispatchResult | null | undefined): string {
     return this.mapDispatchReason(result?.reason)
   }
@@ -227,6 +167,8 @@ export class PeripheralPolicyViewModel {
         return PeripheralReasonCodes.USB_DISPATCH_FAILED
       case 'usb_dispatch_conflict_unresolved':
         return PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED
+      case 'device_offline':
+        return PeripheralReasonCodes.DEVICE_POLICY_OFFLINE
       default:
         return PeripheralReasonCodes.POLICY_CHANGE_FAILED
     }

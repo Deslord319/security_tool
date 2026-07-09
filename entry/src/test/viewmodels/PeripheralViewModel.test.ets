@@ -24,6 +24,7 @@ import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
 import { PeripheralViewModel } from '../../main/ets/viewmodels/peripheral/overview/PeripheralViewModel'
 import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralConnectionRecordClearUsecase'
+import { UsbDevicePolicyStateRepository } from '../../main/ets/services/peripheral/device-policy/UsbDevicePolicyStateRepository'
 
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   reloadCount: number = 0
@@ -75,7 +76,7 @@ class FakePolicyViewModel extends PeripheralPolicyViewModel {
     return true
   }
 
-  reloadRecords(connectionRecords: PeripheralConnectionRecord[]): void {
+  async reloadRecords(connectionRecords: PeripheralConnectionRecord[]): Promise<void> {
     this.reloadCount++
     this.lastRecords = connectionRecords.slice()
     this.state.records = []
@@ -121,10 +122,14 @@ export default function peripheralViewModelTest() {
     mockKit = new MockKit()
     let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
     let clearMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.clearAll)
+    let usbStateInitMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.init)
+    let usbStateDeleteAbsentMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.deleteAbsentStates)
     let initResult: PeripheralTraceInitializeResult = { success: true, code: 'ok' }
     let clearResult: PeripheralTraceClearResult = { success: true, code: 'ok' }
     when(initMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(initResult))
     when(clearMock)().afterReturn(Promise.resolve(clearResult))
+    when(usbStateInitMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
+    when(usbStateDeleteAbsentMock)().afterReturn(Promise.resolve(true))
   })
 
   afterEach(() => {
@@ -337,6 +342,7 @@ export default function peripheralViewModelTest() {
     if (devicePolicyListener) {
       devicePolicyListener()
     }
+    await flushAsyncWork()
 
     expect(fakeRecords.reloadCount).assertEqual(0)
     expect(fakePolicy.reloadCount).assertEqual(1)

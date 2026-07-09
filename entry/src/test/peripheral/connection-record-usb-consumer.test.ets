@@ -5,6 +5,7 @@ import { OperationResult, SecurityEventResult } from '../../main/ets/models/Comm
 import {
   PeripheralDevicePolicyRecord,
   PeripheralType,
+  UsbDeviceIdentity,
   UsbStoragePolicy
 } from '../../main/ets/models/PeripheralModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
@@ -15,6 +16,10 @@ import {
   PeripheralDevicePolicyDispatchService,
   PeripheralPolicyDispatchResult
 } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyDispatchService'
+import {
+  UsbDevicePolicyStateService,
+  UsbPolicyStateProcessResult
+} from '../../main/ets/services/peripheral/device-policy/UsbDevicePolicyStateService'
 
 interface UsbEventParameters {
   vendorId: number
@@ -80,6 +85,10 @@ function createDispatchResult(success: boolean, reason?: string): PeripheralPoli
     result.reason = reason as never
   }
   return result
+}
+
+function formatTestUsbDeviceId(identity: UsbDeviceIdentity): string {
+  return `VID:${identity.vendorId.toString(16).toUpperCase().padStart(4, '0')} PID:${identity.productId.toString(16).toUpperCase().padStart(4, '0')}`
 }
 
 function buildUsbEventParameters(overrides?: UsbEventParameterOverrides): UsbEventParameters {
@@ -168,6 +177,10 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
         mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
       let dispatchMock: Function =
         mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+      let handleConnectMock: Function =
+        mockKit.mockFunc(UsbDevicePolicyStateService, UsbDevicePolicyStateService.handleConnect)
+      let handleDisconnectMock: Function =
+        mockKit.mockFunc(UsbDevicePolicyStateService, UsbDevicePolicyStateService.handleDisconnect)
       let isUsbDefaultDenyMock: Function =
         mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.isUsbDefaultDeny)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
@@ -175,12 +188,65 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
         dispatchCount += 1
         return Promise.resolve(dispatchResult)
       })
+      when(handleConnectMock)(ArgumentMatchers.any).afterAction(async (
+        identity: UsbDeviceIdentity,
+        _occurAt: number,
+        skipDeviceDenyDispatch: boolean
+      ): Promise<UsbPolicyStateProcessResult> => {
+        const deviceId = formatTestUsbDeviceId(identity)
+        const existingPolicy = PeripheralDevicePolicyRepository.get(deviceId)
+        if (existingPolicy) {
+          return {
+            desiredPolicy: existingPolicy.policy,
+            activePolicy: existingPolicy.policy === 'deny' ? 'deny' : 'none',
+            autoDenyApplied: false,
+            internalAllowRestored: false
+          } as UsbPolicyStateProcessResult
+        }
+        if (usbDefaultDeny && !skipDeviceDenyDispatch) {
+          dispatchCount += 1
+          if (dispatchResult.success) {
+            await PeripheralDevicePolicyRepository.set({
+              deviceId: deviceId,
+              policy: 'deny',
+              updatedAt: Date.now(),
+              deviceName: identity.deviceName,
+              deviceType: PeripheralType.USB_HID
+            })
+          }
+          return {
+            desiredPolicy: 'deny',
+            activePolicy: dispatchResult.success ? 'deny' : 'none',
+            dispatchResult: dispatchResult,
+            autoDenyApplied: dispatchResult.success,
+            internalAllowRestored: false
+          } as UsbPolicyStateProcessResult
+        }
+        return {
+          desiredPolicy: 'allow',
+          activePolicy: 'none',
+          autoDenyApplied: false,
+          internalAllowRestored: false
+        } as UsbPolicyStateProcessResult
+      })
+      when(handleDisconnectMock)(ArgumentMatchers.any).afterAction((
+        identity: UsbDeviceIdentity
+      ): Promise<UsbPolicyStateProcessResult> => {
+        const existingPolicy = PeripheralDevicePolicyRepository.get(formatTestUsbDeviceId(identity))
+        return Promise.resolve({
+          desiredPolicy: existingPolicy?.policy ?? 'allow',
+          activePolicy: 'none',
+          autoDenyApplied: false,
+          internalAllowRestored: false
+        } as UsbPolicyStateProcessResult)
+      })
       when(isUsbDefaultDenyMock)().afterAction(() => usbDefaultDeny)
     })
 
     afterEach(async () => {
       mockKit.clear(PeripheralService)
       mockKit.clear(PeripheralDevicePolicyDispatchService)
+      mockKit.clear(UsbDevicePolicyStateService)
       mockKit.clearAll()
       await PeripheralDevicePolicyRepository.clearAll()
       PeripheralDevicePolicyRepository.resetForTest()

@@ -12,6 +12,7 @@ import {
 } from '../../../models/PeripheralModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { UsbDevicePolicyStateRepository } from '../../../services/peripheral/device-policy/UsbDevicePolicyStateRepository'
 import { PeripheralTraceEntryRepository } from '../../../services/peripheral/connection-record/PeripheralTraceEntryRepository'
 import { PeripheralTraceMaintenanceService } from '../../../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { InterfaceControlViewModel } from '../interface-control/InterfaceControlViewModel'
@@ -38,6 +39,7 @@ export class PeripheralViewModel {
 
   private traceStorageListenerId: number = -1
   private devicePolicyListenerId: number = -1
+  private usbPolicyStateListenerId: number = -1
   private appContext: common.UIAbilityContext | null = null
   private connectionRecordClearUsecase: PeripheralConnectionRecordClearUsecase =
     new PeripheralConnectionRecordClearUsecase()
@@ -61,6 +63,9 @@ export class PeripheralViewModel {
       this.devicePolicyListenerId = PeripheralDevicePolicyRepository.addChangeListener(() => {
         this.refreshPolicyDrivenData()
       })
+      this.usbPolicyStateListenerId = UsbDevicePolicyStateRepository.addChangeListener(() => {
+        this.refreshPolicyDrivenData()
+      })
       this.reasonCode = null
     } catch (err) {
       this.reasonCode = PeripheralReasonCodes.INIT_FAILED
@@ -79,13 +84,17 @@ export class PeripheralViewModel {
       PeripheralDevicePolicyRepository.removeChangeListener(this.devicePolicyListenerId)
       this.devicePolicyListenerId = -1
     }
+    if (this.usbPolicyStateListenerId > 0) {
+      UsbDevicePolicyStateRepository.removeChangeListener(this.usbPolicyStateListenerId)
+      this.usbPolicyStateListenerId = -1
+    }
   }
 
   async reloadAllData(): Promise<void> {
     this.refreshAdminActivationState()
     this.interfaceControl.reloadState()
     await this.records.reloadRecords()
-    this.policy.reloadRecords(this.records.state.records)
+    await this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('reloadAllData')
   }
 
@@ -104,18 +113,18 @@ export class PeripheralViewModel {
 
   async reloadDeviceRecords(): Promise<void> {
     await this.records.reloadRecords()
-    this.policy.reloadRecords(this.records.state.records)
+    await this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('reloadDeviceRecords')
   }
 
   private async refreshTraceDrivenData(): Promise<void> {
     await this.records.reloadRecords()
-    this.policy.reloadRecords(this.records.state.records)
+    await this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('refreshTraceDrivenData')
   }
 
-  private refreshPolicyDrivenData(): void {
-    this.policy.reloadRecords(this.records.state.records)
+  private async refreshPolicyDrivenData(): Promise<void> {
+    await this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('refreshPolicyDrivenData')
   }
 
@@ -160,7 +169,7 @@ export class PeripheralViewModel {
         return false
       }
       await this.records.reloadRecords()
-      this.policy.reloadRecords(this.records.state.records)
+      await this.policy.reloadRecords(this.records.state.records)
       this.notifyRefresh('policyChangeSuccess')
       return true
     } finally {
@@ -188,7 +197,7 @@ export class PeripheralViewModel {
         return false
       }
       this.policy.resetUpdatingState()
-      this.policy.reloadRecords(this.records.state.records)
+      await this.policy.reloadRecords(this.records.state.records)
       this.notifyRefresh('clearPeripheralPolicyRecords')
       return true
     } catch (err) {

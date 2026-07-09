@@ -69,6 +69,29 @@ export type PeripheralMatchedPolicyKind =
 
 export type PeripheralDevicePolicy = 'allow' | 'deny'
 
+export type UsbDeviceFingerprintType = 'serial' | 'weak'
+
+export type UsbDeviceActivePolicy = 'none' | 'deny'
+
+export interface UsbDeviceIdentity {
+  fingerprintKey: string
+  fingerprintType: UsbDeviceFingerprintType
+  vendorId: number
+  productId: number
+  baseClass: number
+  deviceName: string
+  serialNumber?: string
+  description?: string
+}
+
+export interface UsbDevicePolicyStateRecord extends UsbDeviceIdentity {
+  desiredPolicy: PeripheralDevicePolicy
+  present: boolean
+  activePolicy: UsbDeviceActivePolicy
+  lastSeenAt: number
+  updatedAt: number
+}
+
 export interface PeripheralDevicePolicyRecord {
   deviceId: string
   policy: PeripheralDevicePolicy
@@ -164,6 +187,8 @@ export interface PeripheralPolicyRecord {
   lastSeenAt: number
   lastSeenLabel: string
   policyIndex: number
+  present?: boolean
+  editable?: boolean
 }
 
 export function isUsbPeripheralType(type: PeripheralType): boolean {
