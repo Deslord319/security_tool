@@ -35,6 +35,10 @@ const PERMISSION_RENDER_READY_DELAY_MS = 32
 export class PermissionViewModel {
   @Trace state: PermissionPageState = new PermissionPageState()
   private permissionProfileRequestSeq: number = 0
+  private dataRefreshPromise: Promise<boolean> | null = null
+  private dataRefreshIncludesAccounts: boolean = false
+  private accountChangeRefreshPromise: Promise<boolean> | null = null
+  private accountChangeRefreshPending: boolean = false
 
   async loadInitialState(): Promise<void> {
     if (this.state.loading || this.state.initialized) {
@@ -55,51 +59,96 @@ export class PermissionViewModel {
   }
 
   async refreshForAccountChange(): Promise<boolean> {
-    if (this.state.loading) {
-      return false
-    }
     if (!this.state.initialized) {
       await this.loadInitialState()
       return this.state.initialized
     }
-    return await this.refreshAccountsAndApplicationList()
+    this.accountChangeRefreshPending = true
+    if (this.accountChangeRefreshPromise !== null) {
+      return await this.accountChangeRefreshPromise
+    }
+    let refreshPromise = this.runAccountChangeRefreshLoop()
+    this.accountChangeRefreshPromise = refreshPromise
+    try {
+      return await refreshPromise
+    } finally {
+      if (this.accountChangeRefreshPromise === refreshPromise) {
+        this.accountChangeRefreshPromise = null
+      }
+    }
   }
 
   async refreshApplications(): Promise<boolean> {
-    if (this.state.loading) {
-      return false
-    }
-    this.state.loading = true
-    this.state.errorMessage = ''
-    try {
-      let previousSelectedSnapshot = this.getSelectedAppSnapshot()
-      let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
-      this.applyInventory(inventory)
-      this.reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot)
-      return true
-    } catch (err) {
-      LogUtils.warn(TAG, `refreshApplications failed: ${JSON.stringify(err)}`)
-      this.state.errorMessage = MessageText.RETRY_LATER
-      return false
-    } finally {
-      this.state.loading = false
-    }
+    return await this.runCurrentAccountRefresh(async (): Promise<boolean> =>
+      await this.executeApplicationRefresh(true)
+    )
   }
 
   async refreshApplicationList(): Promise<boolean> {
-    if (this.state.loading) {
-      return false
+    return await this.runCurrentAccountRefresh(async (): Promise<boolean> =>
+      await this.executeApplicationRefresh(false)
+    )
+  }
+
+  private async runCurrentAccountRefresh(task: () => Promise<boolean>): Promise<boolean> {
+    if (this.dataRefreshPromise !== null) {
+      return await this.dataRefreshPromise
     }
+    return await this.startDataRefresh(false, task)
+  }
+
+  private async startDataRefresh(
+    includesAccounts: boolean,
+    task: () => Promise<boolean>
+  ): Promise<boolean> {
+    this.dataRefreshIncludesAccounts = includesAccounts
+    let refreshPromise = task()
+    this.dataRefreshPromise = refreshPromise
+    try {
+      return await refreshPromise
+    } finally {
+      if (this.dataRefreshPromise === refreshPromise) {
+        this.dataRefreshPromise = null
+        this.dataRefreshIncludesAccounts = false
+      }
+    }
+  }
+
+  private async runAccountChangeRefreshLoop(): Promise<boolean> {
+    while (this.accountChangeRefreshPending) {
+      await this.waitForActiveDataRefresh()
+      this.accountChangeRefreshPending = false
+      let success = await this.startDataRefresh(true, async (): Promise<boolean> =>
+        await this.executeAccountsAndApplicationRefresh()
+      )
+      if (!success) {
+        return false
+      }
+    }
+    return true
+  }
+
+  private async waitForActiveDataRefresh(): Promise<void> {
+    while (this.dataRefreshPromise !== null) {
+      await this.dataRefreshPromise
+    }
+  }
+
+  private async executeApplicationRefresh(replaceEmptyInventory: boolean): Promise<boolean> {
     this.state.loading = true
     this.state.errorMessage = ''
     try {
       let previousSelectedSnapshot = this.getSelectedAppSnapshot()
       let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
-      this.applyApplicationList(inventory)
+      if (replaceEmptyInventory) {
+        this.applyInventory(inventory)
+      } else {
+        this.applyApplicationList(inventory)
+      }
       this.reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot)
       return true
     } catch (err) {
-      LogUtils.warn(TAG, `refreshApplicationList failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `executeApplicationRefresh failed: ${JSON.stringify(err)}`)
       this.state.errorMessage = MessageText.RETRY_LATER
       return false
     } finally {
@@ -148,9 +197,18 @@ export class PermissionViewModel {
   }
 
   async refreshAccountsAndApplicationList(): Promise<boolean> {
-    if (this.state.loading) {
-      return false
+    while (this.dataRefreshPromise !== null) {
+      if (this.dataRefreshIncludesAccounts) {
+        return await this.dataRefreshPromise
+      }
+      await this.dataRefreshPromise
     }
+    return await this.startDataRefresh(true, async (): Promise<boolean> =>
+      await this.executeAccountsAndApplicationRefresh()
+    )
+  }
+
+  private async executeAccountsAndApplicationRefresh(): Promise<boolean> {
     this.state.loading = true
     this.state.errorMessage = ''
     try {

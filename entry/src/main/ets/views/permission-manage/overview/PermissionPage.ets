@@ -69,8 +69,8 @@ export struct PermissionPage {
       })
       return
     }
-    this.viewModel.refreshAccountsAndApplicationList().catch((err: Error) => {
-      LogUtils.warn(TAG, `refreshAccountsAndApplicationList on appear failed: ${JSON.stringify(err)}`)
+    this.viewModel.refreshApplicationList().catch((err: Error) => {
+      LogUtils.warn(TAG, `refreshApplicationList on appear failed: ${JSON.stringify(err)}`)
     })
   }
 
@@ -427,8 +427,11 @@ export struct PermissionPage {
         options: this.getAccountOptions(),
         selectedIndex: this.getSelectedAccountIndex(),
         selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
-        processing: this.viewModel.state.loading || this.viewModel.state.accounts.length === 0,
-        enabledValue: !this.hasProcessingAction() && !this.viewModel.state.loadingSelectedApp,
+        processing: false,
+        enabledValue: !this.viewModel.state.loading &&
+          this.viewModel.state.accounts.length > 0 &&
+          !this.hasProcessingAction() &&
+          !this.viewModel.state.loadingSelectedApp,
         currentTheme: this.currentTheme,
         onSelectAsync: async (index: number): Promise<boolean> => {
           return await this.switchAccountByIndex(index)

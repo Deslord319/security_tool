@@ -37,23 +37,19 @@ export function loadAccountPolicySnapshotTask(accountId: number): PermissionAcco
 
 export class PermissionAccountPolicyTaskRunner {
   static async loadSnapshot(accountId: number): Promise<PermissionAccountPolicySnapshotTaskData> {
+    let result: PermissionAccountPolicySnapshotTaskResult | undefined
     try {
-      let result = await taskpool.execute(loadAccountPolicySnapshotTask, accountId) as
+      result = await taskpool.execute(loadAccountPolicySnapshotTask, accountId) as
         PermissionAccountPolicySnapshotTaskResult | undefined
-      if (result?.success && result.data !== undefined) {
-        return result.data
-      }
-      LogUtils.warn(TAG, `taskpool loadSnapshot returned failure: ${result?.message ?? 'empty result'}`)
     } catch (err) {
-      LogUtils.warn(TAG, `taskpool loadSnapshot failed, fallback to sync read: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `taskpool loadSnapshot failed: ${JSON.stringify(err)}`)
+      throw new Error('Failed to load account policy snapshot in taskpool')
     }
-    return PermissionAccountPolicyTaskRunner.loadSnapshotSync(accountId)
-  }
-
-  static loadSnapshotSync(accountId: number): PermissionAccountPolicySnapshotTaskData {
-    return {
-      controlLists: ApplicationControlRepository.loadControlListsStrict(accountId),
-      restrictedAppUids: ApplicationNetworkPolicyRepository.loadRestrictedAppUidsStrict()
-    } as PermissionAccountPolicySnapshotTaskData
+    if (result?.success && result.data !== undefined) {
+      return result.data
+    }
+    let message = result?.message ?? 'empty result'
+    LogUtils.warn(TAG, `taskpool loadSnapshot returned failure: ${message}`)
+    throw new Error(`Failed to load account policy snapshot: ${message}`)
   }
 }

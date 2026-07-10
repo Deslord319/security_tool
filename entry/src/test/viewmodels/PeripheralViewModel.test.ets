@@ -235,7 +235,6 @@ export default function peripheralViewModelTest() {
     expect(fakeRecords.reloadCount).assertEqual(1)
     expect(fakePolicy.reloadCount).assertEqual(1)
     expect(viewModel.reasonCode).assertNull()
-    expect(viewModel.isLoading).assertFalse()
 
     if (traceListener) {
       traceListener()
@@ -260,7 +259,6 @@ export default function peripheralViewModelTest() {
     await viewModel.initialize({} as common.UIAbilityContext)
 
     expect(viewModel.reasonCode).assertEqual(PeripheralReasonCodes.INIT_FAILED)
-    expect(viewModel.isLoading).assertFalse()
     done()
   })
 

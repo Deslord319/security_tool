@@ -33,7 +33,6 @@ export class PeripheralViewModel {
     adminType: EnterpriseAdminService.DEFAULT_ADMIN_TYPE
   }
 
-  @Trace isLoading: boolean = false
   @Trace reasonCode: string | null = null
   @Trace currentTab: number = PeripheralTabIndexes.INTERFACE_CONTROL
   @Trace interfaceControl: InterfaceControlViewModel = new InterfaceControlViewModel()
@@ -48,7 +47,6 @@ export class PeripheralViewModel {
     new PeripheralConnectionRecordClearUsecase()
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
-    this.isLoading = true
     this.appContext = context
     try {
       this.destroy()
@@ -73,8 +71,6 @@ export class PeripheralViewModel {
     } catch (err) {
       this.reasonCode = PeripheralReasonCodes.INIT_FAILED
       LogUtils.error(TAG, `initialize failed: ${JSON.stringify(err)}`)
-    } finally {
-      this.isLoading = false
     }
   }
 

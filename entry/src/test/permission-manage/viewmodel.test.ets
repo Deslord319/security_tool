@@ -107,15 +107,30 @@ export default function permissionViewModelTest() {
     })
 
     it('should load initial skeleton state without system side effects', 0, async (done: Function) => {
-      let viewModel = new PermissionViewModel()
-      await viewModel.loadInitialState()
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let loadInitialStateMock = mockKit.mockFunc(PermissionService, PermissionService.loadInitialState)
+        when(loadInitialStateMock)().afterReturn(Promise.resolve({
+          selectedAccountId: 100,
+          selectedAppKey: '',
+          inventoryMessage: '',
+          accounts: [buildPermissionAccount(100, true)],
+          appSnapshots: [],
+          installPolicies: []
+        } as PermissionInitialData))
 
-      expect(viewModel.state.initialized).assertTrue()
-      expect(viewModel.state.loading).assertFalse()
-      expect(viewModel.state.accounts.length >= 0).assertTrue()
-      expect(viewModel.state.summary.appCount).assertEqual(0)
-      expect(viewModel.state.summary.managedCount).assertEqual(0)
-      done()
+        await viewModel.loadInitialState()
+
+        expect(viewModel.state.initialized).assertTrue()
+        expect(viewModel.state.loading).assertFalse()
+        expect(viewModel.state.accounts.length).assertEqual(1)
+        expect(viewModel.state.summary.appCount).assertEqual(0)
+        expect(viewModel.state.summary.managedCount).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
     })
 
     it('should apply account install policies from initial state', 0, async (done: Function) => {
@@ -281,6 +296,193 @@ export default function permissionViewModelTest() {
         expect(loadedAccountId).assertEqual(101)
         expect(viewModel.state.selectedAppKey).assertEqual('')
         expect(viewModel.state.policyRecords.length).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should finish current-account refresh before processing an account change', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        let applicationLoadCount = 0
+        let accountLoadCount = 0
+        let resolveCurrentRefresh: (value: ApplicationInventoryResult) => void =
+          (_value: ApplicationInventoryResult): void => {}
+        let currentRefreshResult = new Promise<ApplicationInventoryResult>((resolve) => {
+          resolveCurrentRefresh = resolve
+        })
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterAction((): Promise<PermissionAccountListResult> => {
+          accountLoadCount++
+          return Promise.resolve(buildPermissionAccountListResult(100))
+        })
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterAction((
+          _accountId: number
+        ): Promise<ApplicationInventoryResult> => {
+          applicationLoadCount++
+          if (applicationLoadCount === 1) {
+            return currentRefreshResult
+          }
+          return Promise.resolve({
+            appSnapshots: [buildAppSnapshot(app)],
+            installPolicies: []
+          } as ApplicationInventoryResult)
+        })
+
+        let pageRefresh = viewModel.refreshApplicationList()
+        let accountRefresh = viewModel.refreshForAccountChange()
+
+        expect(applicationLoadCount).assertEqual(1)
+        expect(accountLoadCount).assertEqual(0)
+        resolveCurrentRefresh({
+          appSnapshots: [buildAppSnapshot(app)],
+          installPolicies: []
+        } as ApplicationInventoryResult)
+        expect(await pageRefresh).assertTrue()
+        expect(await accountRefresh).assertTrue()
+        expect(applicationLoadCount).assertEqual(2)
+        expect(accountLoadCount).assertEqual(1)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should coalesce account events into one trailing refresh after an in-flight account refresh', 0,
+      async (done: Function) => {
+        let mockKit = new MockKit()
+        try {
+          let viewModel = new PermissionViewModel()
+          let app = buildManagedApplication(100, 'com.example.mail', 'Mail')
+          viewModel.state.initialized = true
+          viewModel.state.selectedAccountId = 100
+          viewModel.state.accounts = [buildPermissionAccount(100, true)]
+          let accountLoadCount = 0
+          let applicationLoadCount = 0
+          let resolveFirstRefresh: (value: ApplicationInventoryResult) => void =
+            (_value: ApplicationInventoryResult): void => {}
+          let firstRefreshResult = new Promise<ApplicationInventoryResult>((resolve) => {
+            resolveFirstRefresh = resolve
+          })
+          let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+          let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+          when(loadAccountsMock)().afterAction((): Promise<PermissionAccountListResult> => {
+            accountLoadCount++
+            return Promise.resolve(buildPermissionAccountListResult(100))
+          })
+          when(loadApplicationsMock)(ArgumentMatchers.any).afterAction((
+            _accountId: number
+          ): Promise<ApplicationInventoryResult> => {
+            applicationLoadCount++
+            if (applicationLoadCount === 1) {
+              return firstRefreshResult
+            }
+            return Promise.resolve({
+              appSnapshots: [buildAppSnapshot(app)],
+              installPolicies: []
+            } as ApplicationInventoryResult)
+          })
+
+          let firstAccountEvent = viewModel.refreshForAccountChange()
+          await Promise.resolve()
+          await Promise.resolve()
+          await Promise.resolve()
+          await Promise.resolve()
+          expect(accountLoadCount).assertEqual(1)
+          expect(applicationLoadCount).assertEqual(1)
+
+          let secondAccountEvent = viewModel.refreshForAccountChange()
+          let thirdAccountEvent = viewModel.refreshForAccountChange()
+          resolveFirstRefresh({
+            appSnapshots: [buildAppSnapshot(app)],
+            installPolicies: []
+          } as ApplicationInventoryResult)
+
+          expect(await firstAccountEvent).assertTrue()
+          expect(await secondAccountEvent).assertTrue()
+          expect(await thirdAccountEvent).assertTrue()
+          expect(accountLoadCount).assertEqual(2)
+          expect(applicationLoadCount).assertEqual(2)
+        } finally {
+          mockKit.clearAll()
+          done()
+        }
+      })
+
+    it('should reuse an in-flight current-account refresh', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        let applicationLoadCount = 0
+        let resolveRefresh: (value: ApplicationInventoryResult) => void =
+          (_value: ApplicationInventoryResult): void => {}
+        let refreshResult = new Promise<ApplicationInventoryResult>((resolve) => {
+          resolveRefresh = resolve
+        })
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterAction((
+          _accountId: number
+        ): Promise<ApplicationInventoryResult> => {
+          applicationLoadCount++
+          return refreshResult
+        })
+
+        let firstRefresh = viewModel.refreshApplicationList()
+        let secondRefresh = viewModel.refreshApplicationList()
+
+        expect(applicationLoadCount).assertEqual(1)
+        resolveRefresh({
+          appSnapshots: [buildAppSnapshot(app)],
+          installPolicies: []
+        } as ApplicationInventoryResult)
+        expect(await firstRefresh).assertTrue()
+        expect(await secondRefresh).assertTrue()
+        expect(applicationLoadCount).assertEqual(1)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should preserve confirmed state when current-account refresh fails', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        let confirmedSnapshot = buildAppSnapshot(app, true, true, true)
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = app.appKey
+        viewModel.state.appSnapshots = [confirmedSnapshot]
+        viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(
+          viewModel.state.appSnapshots,
+          []
+        )
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(
+          Promise.reject(new Error('taskpool snapshot failed'))
+        )
+
+        let success = await viewModel.refreshApplicationList()
+
+        expect(success).assertFalse()
+        expect(viewModel.state.loading).assertFalse()
+        expect(viewModel.state.selectedAppKey).assertEqual(app.appKey)
+        expect(viewModel.state.appSnapshots.length).assertEqual(1)
+        expect(viewModel.state.appSnapshots[0].runningBlocked).assertTrue()
+        expect(viewModel.state.policyRecords.length).assertEqual(3)
       } finally {
         mockKit.clearAll()
         done()
