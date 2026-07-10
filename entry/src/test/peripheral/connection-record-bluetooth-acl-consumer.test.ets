@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it } from '@ohos/hypium'
-import { commonEventManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import { PeripheralTraceRecord, PeripheralType } from '../../main/ets/models/PeripheralModels'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordBluetoothAclConsumer'
-import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordProducerContract'
+import {
+  PeripheralBluetoothAclProducerPayload,
+  PeripheralConnectionAction,
+  PeripheralConnectionRecordProducerEvent
+} from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordProducerContract'
 import {
   BluetoothConnectedDeviceSnapshot,
   BluetoothPolicySnapshotTraceService
@@ -14,91 +17,24 @@ import {
   PeripheralTraceMutationResult
 } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 
-interface BluetoothAclParameters {
-  deviceId: string
-  deviceName: string
-  stateName: string
-  reason: string
-  timestamp: number
-  deviceAddr?: string
-  address?: string
-  connectionState?: number
-  linktype?: number
-}
-
-interface BluetoothAclParameterOverrides {
+interface BluetoothAclOverrides {
   deviceId?: string
-  deviceName?: string
-  stateName?: string
-  reason?: string
-  timestamp?: number
-  deviceAddr?: string
-  address?: string
-  connectionState?: number
-  linktype?: number
+  action?: PeripheralConnectionAction
+  occurAt?: number
 }
 
-class BluetoothAclRawData {
-  event: string
-  parameters: Object
-  constructor(event: string, parameters: Object) {
-    this.event = event
-    this.parameters = parameters
+function buildBluetoothAclEvent(overrides?: BluetoothAclOverrides): PeripheralConnectionRecordProducerEvent {
+  const payload: PeripheralBluetoothAclProducerPayload = {
+    deviceId: overrides?.deviceId ?? '11:22:33:44:55:66',
+    action: overrides?.action ?? 'connect',
+    occurAt: overrides?.occurAt ?? 200
   }
-}
-
-function buildBluetoothAclParameters(overrides?: BluetoothAclParameterOverrides): BluetoothAclParameters {
-  let parameters: BluetoothAclParameters = {
-    deviceId: '11:22:33:44:55:66',
-    deviceName: 'Bluetooth Keyboard',
-    stateName: 'STATE_CONNECTED',
-    reason: 'SUCCESS',
-    timestamp: 200
-  }
-  if (!overrides) {
-    return parameters
-  }
-  if (overrides.deviceId !== undefined) {
-    parameters.deviceId = overrides.deviceId
-  }
-  if (overrides.deviceName !== undefined) {
-    parameters.deviceName = overrides.deviceName
-  }
-  if (overrides.stateName !== undefined) {
-    parameters.stateName = overrides.stateName
-  }
-  if (overrides.reason !== undefined) {
-    parameters.reason = overrides.reason
-  }
-  if (overrides.timestamp !== undefined) {
-    parameters.timestamp = overrides.timestamp
-  }
-  if (overrides.deviceAddr !== undefined) {
-    parameters.deviceAddr = overrides.deviceAddr
-  }
-  if (overrides.address !== undefined) {
-    parameters.address = overrides.address
-  }
-  if (overrides.connectionState !== undefined) {
-    parameters.connectionState = overrides.connectionState
-  }
-  if (overrides.linktype !== undefined) {
-    parameters.linktype = overrides.linktype
-  }
-  return parameters
-}
-
-function buildBluetoothAclEvent(
-  parameterOverrides?: BluetoothAclParameterOverrides
-): PeripheralConnectionRecordProducerEvent {
-  let rawData = new BluetoothAclRawData('usual.event.BLUETOOTH_ACL', buildBluetoothAclParameters(parameterOverrides) as Object)
-  let event: PeripheralConnectionRecordProducerEvent = {
+  return {
     source: 'runtime',
     channel: 'bluetooth_acl',
-    eventName: 'usual.event.BLUETOOTH_ACL',
-    rawData: rawData as commonEventManager.CommonEventData
+    eventName: 'bluetooth_acl_state_change',
+    bluetoothAcl: payload
   }
-  return event
 }
 
 export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
@@ -108,7 +44,8 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(null)
     })
 
-    it('U-BT-001 should map bluetooth acl connect event to allow record', 0, async () => {
+    it('U-BT-001 should map real mac connect event to allow record', 0, async () => {
+      PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(() => 'Bluetooth Keyboard')
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
       const record = await consumer.consume(buildBluetoothAclEvent())
@@ -121,268 +58,110 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
       expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(record?.deviceType).assertEqual(PeripheralType.BLUETOOTH)
-      expect(record?.detail).assertEqual('aclState=STATE_CONNECTED, reason=SUCCESS')
+      expect(record?.deviceName).assertEqual('Bluetooth Keyboard')
+      expect(record?.deviceId).assertEqual('MAC: 11:22:33:44:55:66')
+      expect(record?.detail).assertEqual('aclState=STATE_CONNECTED, reason=--')
     })
 
-    it('U-BT-001A should cache acl connected device for bluetooth policy snapshot diff', 0, async () => {
+    it('U-BT-002 should cache connected real mac for bluetooth policy snapshot', 0, async () => {
+      PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(() => 'Cached Headset')
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
-      await consumer.consume(buildBluetoothAclEvent({
-        deviceName: 'Cached Headset',
-        deviceId: 'AA:BB:CC:DD:EE:FF'
-      }))
+      await consumer.consume(buildBluetoothAclEvent({ deviceId: 'AA:BB:CC:DD:EE:FF' }))
       const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
 
       expect(snapshots.length).assertEqual(1)
       expect(snapshots[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
-      expect(snapshots[0].deviceName).assertEqual('未命名蓝牙设备')
+      expect(snapshots[0].deviceName).assertEqual('Cached Headset')
     })
 
-    it('U-BT-002 should map bluetooth acl disconnect event to disconnect record', 0, async () => {
+    it('U-BT-003 should map real mac disconnect and remove connected cache', 0, async () => {
+      PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(() => 'Bluetooth Keyboard')
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      let disconnectOverrides: BluetoothAclParameterOverrides = {
-        stateName: 'STATE_DISCONNECTED',
-        reason: 'REMOTE_DISCONNECT'
-      }
+      await consumer.consume(buildBluetoothAclEvent())
 
-      const record = await consumer.consume(buildBluetoothAclEvent(disconnectOverrides))
+      const record = await consumer.consume(buildBluetoothAclEvent({ action: 'disconnect' }))
+      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
 
       expect(record !== null).assertTrue()
       expect(record?.action).assertEqual('disconnect')
-      expect(record?.decision).assertEqual('allow')
-      expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
       expect(record?.summary).assertEqual('蓝牙设备已断开')
-      expect(record?.effectivePolicyLabel).assertEqual('已启用')
-      expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=REMOTE_DISCONNECT')
+      expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=--')
+      expect(snapshots.length).assertEqual(0)
     })
 
-    it('U-BT-003 should ignore bluetooth acl events with unknown state', 0, async () => {
+    it('U-BT-004 should reject missing or invalid normalized bluetooth payload', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      let unknownStateOverrides: BluetoothAclParameterOverrides = {
-        stateName: 'STATE_IDLE'
+      const missingPayload: PeripheralConnectionRecordProducerEvent = {
+        source: 'runtime',
+        channel: 'bluetooth_acl',
+        eventName: 'bluetooth_acl_state_change'
       }
 
-      const record = await consumer.consume(buildBluetoothAclEvent(unknownStateOverrides))
+      const missingRecord = await consumer.consume(missingPayload)
+      const missingIdRecord = await consumer.consume(buildBluetoothAclEvent({ deviceId: '' }))
+      const unknownActionRecord = await consumer.consume(buildBluetoothAclEvent({ action: 'unknown' }))
 
-      expect(record === null).assertTrue()
+      expect(missingRecord === null).assertTrue()
+      expect(missingIdRecord === null).assertTrue()
+      expect(unknownActionRecord === null).assertTrue()
     })
 
-    it('U-BT-003A should ignore bluetooth acl transition state labels', 0, async () => {
+    it('U-BT-005 should keep unnamed real mac event when name cannot be resolved', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
-      const connectingRecord = await consumer.consume(buildBluetoothAclEvent({
-        stateName: 'STATE_CONNECTING'
-      }))
-      const disconnectingRecord = await consumer.consume(buildBluetoothAclEvent({
-        stateName: 'STATE_DISCONNECTING'
-      }))
-
-      expect(connectingRecord === null).assertTrue()
-      expect(disconnectingRecord === null).assertTrue()
-    })
-
-    it('U-BT-003B should only map numeric final acl states', 0, async () => {
-      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-
-      const connectedRecord = await consumer.consume(buildBluetoothAclEvent({
-        stateName: '',
-        connectionState: 1
-      }))
-      const disconnectedRecord = await consumer.consume(buildBluetoothAclEvent({
-        stateName: '',
-        connectionState: 0
-      }))
-      const connectingRecord = await consumer.consume(buildBluetoothAclEvent({
-        stateName: '',
-        connectionState: 2
-      }))
-      const disconnectingRecord = await consumer.consume(buildBluetoothAclEvent({
-        stateName: '',
-        connectionState: 3
-      }))
-
-      expect(connectedRecord !== null).assertTrue()
-      expect(connectedRecord?.action).assertEqual('connect')
-      expect(connectedRecord?.detail).assertEqual('aclState=STATE_CONNECTED, reason=SUCCESS')
-      expect(disconnectedRecord !== null).assertTrue()
-      expect(disconnectedRecord?.action).assertEqual('disconnect')
-      expect(disconnectedRecord?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=SUCCESS')
-      expect(connectingRecord === null).assertTrue()
-      expect(disconnectingRecord === null).assertTrue()
-    })
-
-    it('U-BT-004 should ignore bluetooth acl events without deviceId', 0, async () => {
-      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      let missingDeviceIdOverrides: BluetoothAclParameterOverrides = {
-        stateName: 'STATE_CONNECTED',
-        deviceId: '',
-        deviceAddr: '',
-        address: ''
-      }
-      const event = buildBluetoothAclEvent(missingDeviceIdOverrides)
-
-      const record = await consumer.consume(event)
-
-      expect(record === null).assertTrue()
-    })
-
-    it('U-BT-005 should ignore payload device name when remote name is unavailable', 0, async () => {
-      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      let payloadNameOverrides: BluetoothAclParameterOverrides = {
-        deviceName: 'Payload Device Name'
-      }
-
-      const record = await consumer.consume(buildBluetoothAclEvent(payloadNameOverrides))
+      const record = await consumer.consume(buildBluetoothAclEvent())
 
       expect(record !== null).assertTrue()
       expect(record?.deviceName).assertEqual('未命名蓝牙设备')
+      expect(record?.deviceId).assertEqual('MAC: 11:22:33:44:55:66')
     })
 
-    it('U-BT-006 should use fallback bluetooth name when no name can be resolved', 0, async () => {
+    it('U-BT-006 should normalize real bluetooth mac format', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      let fallbackNameOverrides: BluetoothAclParameterOverrides = {
-        deviceName: ''
-      }
 
-      const record = await consumer.consume(buildBluetoothAclEvent(fallbackNameOverrides))
-
-      expect(record !== null).assertTrue()
-      expect(record?.deviceName).assertEqual('未命名蓝牙设备')
-    })
-
-    it('U-BT-007 should normalize bluetooth device id format', 0, async () => {
-      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      let normalizeIdOverrides: BluetoothAclParameterOverrides = {
-        deviceId: 'aa-bb-cc-dd-ee-ff'
-      }
-
-      const record = await consumer.consume(buildBluetoothAclEvent(normalizeIdOverrides))
+      const record = await consumer.consume(buildBluetoothAclEvent({ deviceId: 'aa-bb-cc-dd-ee-ff' }))
 
       expect(record !== null).assertTrue()
       expect(record?.deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
     })
 
-    it('U-BT-008 should serialize raw bluetooth payload into rawPayload', 0, async () => {
+    it('U-BT-007 should serialize normalized callback payload', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      const event = buildBluetoothAclEvent()
 
-      const record = await consumer.consume(event)
+      const record = await consumer.consume(buildBluetoothAclEvent())
 
-      expect(record !== null).assertTrue()
       expect((record?.rawPayload?.length ?? 0) > 0).assertTrue()
       expect(record?.rawPayload?.includes('"deviceId":"11:22:33:44:55:66"')).assertTrue()
-      expect(record?.rawPayload?.includes('"stateName":"STATE_CONNECTED"')).assertTrue()
+      expect(record?.rawPayload?.includes('"action":"connect"')).assertTrue()
     })
 
-    it('U-BT-009 should keep bluetooth disconnect events as allow records without policy details', 0, async () => {
-      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      let disconnectOverrides: BluetoothAclParameterOverrides = {
-        stateName: 'STATE_DISCONNECTED',
-        reason: 'REMOTE_DISCONNECT'
-      }
-
-      const record = await consumer.consume(buildBluetoothAclEvent(disconnectOverrides))
-
-      expect(record !== null).assertTrue()
-      expect(record?.action).assertEqual('disconnect')
-      expect(record?.decision).assertEqual('allow')
-      expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
-      expect(record?.effectivePolicyLabel).assertEqual('已启用')
-      expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
-      expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=REMOTE_DISCONNECT')
-    })
-
-    it('U-BT-010 should keep unnamed linktype zero acl final events in connection records and snapshot cache', 0, async () => {
+    it('U-BT-008 should reuse real mac name cache when disconnect lookup is unavailable', 0, async () => {
+      let queryCount = 0
+      PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(() => {
+        queryCount++
+        return queryCount === 1 ? 'Cached Headset' : ''
+      })
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
-      const record = await consumer.consume(buildBluetoothAclEvent({
-        linktype: 0
-      }))
-      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
-
-      expect(record !== null).assertTrue()
-      expect(record?.action).assertEqual('connect')
-      expect(record?.deviceName).assertEqual('未命名蓝牙设备')
-      expect(snapshots.length).assertEqual(1)
-      expect(snapshots[0].deviceId).assertEqual('MAC: 11:22:33:44:55:66')
-    })
-
-    it('U-BT-011 should drop unnamed linktype one acl connect events and skip snapshot cache', 0, async () => {
-      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-
-      const record = await consumer.consume(buildBluetoothAclEvent({
-        linktype: 1
-      }))
-      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
-
-      expect(record === null).assertTrue()
-      expect(snapshots.length).assertEqual(0)
-    })
-
-    it('U-BT-012 should drop unnamed linktype one acl disconnect events', 0, async () => {
-      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-
-      const record = await consumer.consume(buildBluetoothAclEvent({
-        stateName: 'STATE_DISCONNECTED',
-        reason: 'REMOTE_DISCONNECT',
-        linktype: 1
+      const connectRecord = await consumer.consume(buildBluetoothAclEvent({ deviceId: 'AA:BB:CC:DD:EE:FF' }))
+      const disconnectRecord = await consumer.consume(buildBluetoothAclEvent({
+        deviceId: 'AA:BB:CC:DD:EE:FF',
+        action: 'disconnect'
       }))
 
-      expect(record === null).assertTrue()
+      expect(connectRecord?.deviceName).assertEqual('Cached Headset')
+      expect(disconnectRecord?.deviceName).assertEqual('Cached Headset')
     })
 
-    it('U-BT-013 should keep named linktype one acl final events', 0, async () => {
-      try {
-        PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(() => 'Named BLE Device')
-        const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-
-        const record = await consumer.consume(buildBluetoothAclEvent({
-          linktype: 1
-        }))
-        const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
-
-        expect(record !== null).assertTrue()
-        expect(record?.deviceName).assertEqual('Named BLE Device')
-        expect(snapshots.length).assertEqual(1)
-      } finally {
-        PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(null)
-      }
-    })
-
-    it('U-BT-013A should reuse cached bluetooth name when disconnect remote name is unavailable', 0, async () => {
-      try {
-        let queryCount = 0
-        PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(() => {
-          queryCount++
-          return queryCount === 1 ? 'Cached Headset' : ''
-        })
-        const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-
-        const connectRecord = await consumer.consume(buildBluetoothAclEvent({
-          deviceId: 'AA:BB:CC:DD:EE:FF',
-          stateName: 'STATE_CONNECTED'
-        }))
-        const disconnectRecord = await consumer.consume(buildBluetoothAclEvent({
-          deviceId: 'AA:BB:CC:DD:EE:FF',
-          stateName: 'STATE_DISCONNECTED',
-          reason: 'POLICY_DISABLED'
-        }))
-
-        expect(connectRecord !== null).assertTrue()
-        expect(connectRecord?.deviceName).assertEqual('Cached Headset')
-        expect(disconnectRecord !== null).assertTrue()
-        expect(disconnectRecord?.action).assertEqual('disconnect')
-        expect(disconnectRecord?.deviceName).assertEqual('Cached Headset')
-      } finally {
-        PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(null)
-      }
-    })
-
-    it('U-BT-014 should keep bluetooth disconnect after policy snapshot', 0, async () => {
+    it('U-BT-009 should keep real disconnect after policy snapshot', 0, async () => {
       const mockKit = new MockKit()
       try {
         BluetoothPolicySnapshotTraceService.setNowProviderForTest(() => 1700000000000)
-        let appendMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.appendEntries)
+        const appendMock = mockKit.mockFunc(
+          PeripheralTraceMaintenanceService,
+          PeripheralTraceMaintenanceService.appendEntries
+        )
         when(appendMock)(ArgumentMatchers.any).afterAction((_records: PeripheralTraceRecord[]) => {
           return Promise.resolve({ success: true, code: 'ok' } as PeripheralTraceMutationResult)
         })
@@ -394,16 +173,12 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
         } as BluetoothConnectedDeviceSnapshot])
         const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
-        const record = await consumer.consume(buildBluetoothAclEvent({
-          stateName: 'STATE_DISCONNECTED',
-          reason: 'POLICY_DISABLED'
-        }))
+        const record = await consumer.consume(buildBluetoothAclEvent({ action: 'disconnect' }))
 
         expect(record !== null).assertTrue()
         expect(record?.action).assertEqual('disconnect')
         expect(record?.summary).assertEqual('蓝牙设备已断开')
         expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
-        expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=POLICY_DISABLED')
       } finally {
         BluetoothPolicySnapshotTraceService.resetForTest()
         mockKit.clearAll()

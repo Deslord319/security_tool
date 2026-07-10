@@ -47,14 +47,7 @@
         }
       },
       {
-        "name": "ohos.permission.PERSISTENT_BLUETOOTH_PEERS_MAC",
-        "reason": "$string:bluetooth_persistent_mac_reason",
-        "usedScene": {
-          "abilities": [
-            "EntryAbility"
-          ],
-          "when": "always"
-        }
+        "name": "ohos.permission.GET_BLUETOOTH_PEERS_MAC"
       },
       {
         "name": "ohos.permission.ENTERPRISE_GET_DEVICE_INFO"

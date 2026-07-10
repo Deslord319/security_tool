@@ -12,12 +12,21 @@ export interface PeripheralConnectionRecordProducerStatus {
   capabilities: PeripheralConnectionRecordProducerCapabilities
 }
 
+export type PeripheralConnectionAction = 'connect' | 'disconnect' | 'unknown'
+
+export interface PeripheralBluetoothAclProducerPayload {
+  deviceId: string
+  action: PeripheralConnectionAction
+  occurAt: number
+}
+
 export interface PeripheralConnectionRecordProducerEvent {
   source: 'runtime'
   channel: 'usb' | 'bluetooth_acl'
   eventName: string
   payload?: Object
   rawData?: commonEventManager.CommonEventData
+  bluetoothAcl?: PeripheralBluetoothAclProducerPayload
 }
 
 export type PeripheralConnectionRecordProducerListener = (event: PeripheralConnectionRecordProducerEvent) => void
@@ -32,8 +41,6 @@ export interface PeripheralConnectionRecordProducer {
 }
 
 export type PeripheralConnectionRecordConsumeResult = PeripheralTraceRecord | null
-
-export type PeripheralConnectionAction = 'connect' | 'disconnect' | 'unknown'
 
 export interface PeripheralConnectionRecordConsumer {
   canHandle(event: PeripheralConnectionRecordProducerEvent): boolean

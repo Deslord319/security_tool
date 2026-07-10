@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
+import { connection } from '@kit.ConnectivityKit'
 import { MockKit } from '@ohos/hamock'
-import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordRuntimeProducerAdapter'
+import {
+  mapBluetoothAclStateToAction,
+  PeripheralConnectionRecordRuntimeProducerAdapter
+} from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordRuntimeProducerAdapter'
 
 export default function runtimeProducerAdapterTest() {
   describe('PeripheralConnectionRecordRuntimeProducerAdapter', () => {
@@ -22,6 +26,11 @@ export default function runtimeProducerAdapterTest() {
 
     it('should create adapter instance', 0, () => {
       expect(adapter !== undefined).assertTrue()
+    })
+
+    it('should map api 26 acl final states without using legacy numeric semantics', 0, () => {
+      expect(mapBluetoothAclStateToAction(connection.AclState.STATE_CONNECTED)).assertEqual('connect')
+      expect(mapBluetoothAclStateToAction(connection.AclState.STATE_DISCONNECTED)).assertEqual('disconnect')
     })
 
     it('should bind context', 0, () => {
