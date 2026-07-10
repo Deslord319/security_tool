@@ -10,10 +10,11 @@ import {
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
+import { BluetoothPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
 import {
   BluetoothConnectedDeviceSnapshot,
-  BluetoothPolicySnapshotTraceService
-} from '../../../services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
+  BluetoothRuntimeConnectionStore
+} from '../../../services/peripheral/connection-record/BluetoothRuntimeConnectionStore'
 
 const TAG = 'InterfaceControlViewModel'
 const USB_STORAGE_POLICY_INDEX_READ_ONLY = 0
@@ -101,14 +102,14 @@ export class InterfaceControlViewModel {
 
       const bluetoothSnapshots: BluetoothConnectedDeviceSnapshot[] =
         feature === PeripheralInterfaceFeatures.BLUETOOTH && disallow
-          ? BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+          ? BluetoothRuntimeConnectionStore.captureConnectedDevices()
           : []
       const result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
       if (!result.success) {
         return this.normalizeReason(result.stage, PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
       }
       if (feature === PeripheralInterfaceFeatures.BLUETOOTH && disallow) {
-        await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshotForCachedDevices(bluetoothSnapshots)
+        await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot(bluetoothSnapshots)
       }
       this.updateInterfaceState(feature, disallow)
       return null

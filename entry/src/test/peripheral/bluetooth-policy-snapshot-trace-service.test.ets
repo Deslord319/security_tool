@@ -8,6 +8,7 @@ import {
 import {
   BluetoothPolicySnapshotTraceService
 } from '../../main/ets/services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
+import { BluetoothRuntimeConnectionStore } from '../../main/ets/services/peripheral/connection-record/BluetoothRuntimeConnectionStore'
 import {
   PeripheralTraceMaintenanceService,
   PeripheralTraceMutationResult
@@ -35,17 +36,18 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
 
     afterEach(() => {
       BluetoothPolicySnapshotTraceService.resetForTest()
+      BluetoothRuntimeConnectionStore.resetForTest()
       mockKit.clearAll()
     })
 
     it('should append blocked bluetooth policy snapshot for cached connected devices', 0, async () => {
-      BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
+      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
         '11:22:33:44:55:66',
         '{"source":"acl"}'
       )
-      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+      const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
 
-      const result = await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshotForCachedDevices(snapshots)
+      const result = await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot(snapshots)
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(1)
@@ -61,38 +63,38 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
     })
 
     it('should deduplicate current bluetooth connection snapshots by normalized mac', 0, () => {
-      BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
+      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
         '11:22:33:44:55:66',
         '{"source":"first"}'
       )
-      BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
+      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
         '11-22-33-44-55-66',
         '{"source":"second"}'
       )
 
-      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+      const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
 
       expect(snapshots.length).assertEqual(1)
       expect(snapshots[0].deviceId).assertEqual('MAC: 11:22:33:44:55:66')
     })
 
     it('should avoid appending when no connected bluetooth devices are captured', 0, async () => {
-      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+      const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
 
-      const result = await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshotForCachedDevices(snapshots)
+      const result = await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot(snapshots)
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(0)
     })
 
     it('should use runtime acl connected cache as the snapshot source', 0, async () => {
-      BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
+      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
         'AA:BB:CC:DD:EE:FF',
         '{"source":"acl"}'
       )
-      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+      const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
 
-      const result = await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshotForCachedDevices(snapshots)
+      const result = await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot(snapshots)
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(1)
@@ -101,11 +103,11 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
     })
 
     it('should keep snapshot append independent from disconnect filtering', 0, async () => {
-      BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
+      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
         'AA:BB:CC:DD:EE:FF',
         '{}'
       )
-      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+      const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
 
       await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot(snapshots)
 

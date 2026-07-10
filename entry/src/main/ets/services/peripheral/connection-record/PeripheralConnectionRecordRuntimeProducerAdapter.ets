@@ -8,7 +8,7 @@ import {
   PeripheralConnectionRecordProducerEvent,
   PeripheralConnectionRecordProducerListener,
   PeripheralConnectionRecordProducerStatus,
-  PeripheralConnectionAction
+  PeripheralBluetoothAclAction
 } from './PeripheralConnectionRecordProducerContract'
 
 const TAG = 'ConnectionRecordProducer'
@@ -16,14 +16,14 @@ const BLUETOOTH_RUNTIME_PERMISSION: Permissions = 'ohos.permission.ACCESS_BLUETO
 const BLUETOOTH_PEER_MAC_PERMISSION: Permissions = 'ohos.permission.GET_BLUETOOTH_PEERS_MAC'
 const BLUETOOTH_ACL_EVENT_NAME = 'bluetooth_acl_state_change'
 
-export function mapBluetoothAclStateToAction(state: connection.AclState): PeripheralConnectionAction {
+export function mapBluetoothAclStateToAction(state: connection.AclState): PeripheralBluetoothAclAction | null {
   switch (state) {
     case connection.AclState.STATE_CONNECTED:
       return 'connect'
     case connection.AclState.STATE_DISCONNECTED:
       return 'disconnect'
     default:
-      return 'unknown'
+      return null
   }
 }
 
@@ -171,7 +171,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
       const listener = (result: connection.AclStateResult): void => {
         const action = mapBluetoothAclStateToAction(result.state)
         const deviceId = (result.deviceId ?? '').trim()
-        if (action === 'unknown' || deviceId.length === 0) {
+        if (action === null || deviceId.length === 0) {
           LogUtils.warn(TAG, `skip bluetooth acl callback: state=${result.state}, deviceIdPresent=${deviceId.length > 0}`)
           return
         }
@@ -365,10 +365,6 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
       channel: 'usb',
       eventName: data.event ?? '',
       rawData: data
-    }
-    const payload = data.parameters as Object | undefined
-    if (payload !== undefined) {
-      event.payload = payload
     }
     return event
   }

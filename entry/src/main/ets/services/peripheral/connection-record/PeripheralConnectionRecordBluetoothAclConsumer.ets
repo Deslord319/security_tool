@@ -1,5 +1,3 @@
-import { BusinessError } from '@kit.BasicServicesKit'
-import { connection } from '@kit.ConnectivityKit'
 import { SecurityEventResult } from '../../../models/CommonModels'
 import { PeripheralType, formatBluetoothDeviceId } from '../../../models/PeripheralModels'
 import { LogUtils } from '../../../utils/LogUtils'
@@ -7,12 +5,12 @@ import { PLACEHOLDER_TEXT, StatusText } from '../../../constants/StringCatalog'
 import { PeripheralConnectionRecordStrings } from '../../../constants/modules/PeripheralStrings'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 import {
-  PeripheralConnectionAction,
+  PeripheralBluetoothAclAction,
   PeripheralConnectionRecordConsumeResult,
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordProducerEvent
 } from './PeripheralConnectionRecordProducerContract'
-import { BluetoothPolicySnapshotTraceService } from './BluetoothPolicySnapshotTraceService'
+import { BluetoothRuntimeConnectionStore } from './BluetoothRuntimeConnectionStore'
 
 const TAG = 'ConnectionRecordBtConsumer'
 
@@ -20,19 +18,12 @@ interface BluetoothAclEventInfo {
   occurAt: number
   deviceId: string
   rawDeviceId: string
-  deviceName: string
-  action: PeripheralConnectionAction
+  action: PeripheralBluetoothAclAction
   stateLabel: string
   rawPayload: string
 }
 
 export class PeripheralConnectionRecordBluetoothAclConsumer implements PeripheralConnectionRecordConsumer {
-  private static remoteDeviceNameProviderForTest: ((deviceId: string) => string) | null = null
-
-  static setRemoteDeviceNameProviderForTest(provider: ((deviceId: string) => string) | null): void {
-    PeripheralConnectionRecordBluetoothAclConsumer.remoteDeviceNameProviderForTest = provider
-  }
-
   canHandle(event: PeripheralConnectionRecordProducerEvent): boolean {
     return event.channel === 'bluetooth_acl'
   }
@@ -46,21 +37,23 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     if (!eventInfo) {
       return null
     }
+    let deviceName = ''
     if (eventInfo.action === 'connect') {
-      BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
+      const snapshot = BluetoothRuntimeConnectionStore.rememberConnectedDevice(
         eventInfo.rawDeviceId,
-        eventInfo.rawPayload,
-        eventInfo.deviceName
+        eventInfo.rawPayload
       )
+      deviceName = snapshot?.deviceName ?? PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
     } else {
-      BluetoothPolicySnapshotTraceService.forgetRuntimeConnectedDevice(eventInfo.deviceId)
+      deviceName = BluetoothRuntimeConnectionStore.resolveDeviceName(eventInfo.rawDeviceId)
+      BluetoothRuntimeConnectionStore.forgetConnectedDevice(eventInfo.deviceId)
     }
 
     return {
       recordId: `runtime_bt_acl_${eventInfo.occurAt}_${generateRandomSuffix()}`,
       occurAt: eventInfo.occurAt,
       collectAt: Date.now(),
-      deviceName: eventInfo.deviceName,
+      deviceName: deviceName,
       deviceType: PeripheralType.BLUETOOTH,
       deviceId: eventInfo.deviceId,
       action: eventInfo.action,
@@ -75,7 +68,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       rawPayload: eventInfo.rawPayload,
       detail: `aclState=${eventInfo.stateLabel}, reason=${PLACEHOLDER_TEXT}`,
       effectivePolicyLabel: StatusText.ENABLED,
-      matchedPolicyKind: 'bluetooth_connection_event'
+      matchedPolicyKind: 'bluetooth_connection'
     }
   }
 
@@ -102,49 +95,10 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       occurAt: Number.isFinite(payload.occurAt) && payload.occurAt > 0 ? payload.occurAt : Date.now(),
       deviceId: formatBluetoothDeviceId(rawDeviceId),
       rawDeviceId: rawDeviceId,
-      deviceName: PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothDeviceName(rawDeviceId),
       action: payload.action,
       stateLabel: payload.action === 'connect' ? 'STATE_CONNECTED' : 'STATE_DISCONNECTED',
       rawPayload: rawPayload
     }
   }
 
-  private static resolveBluetoothDeviceName(deviceId: string): string {
-    const remoteName = PeripheralConnectionRecordBluetoothAclConsumer.queryRemoteDeviceName(deviceId)
-    if (remoteName.length > 0) {
-      BluetoothPolicySnapshotTraceService.rememberBluetoothDeviceName(deviceId, remoteName)
-      return remoteName
-    }
-
-    const cachedName = BluetoothPolicySnapshotTraceService.resolveCachedBluetoothDeviceName(deviceId)
-    if (cachedName.length > 0) {
-      return cachedName
-    }
-    return PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
-  }
-
-  private static queryRemoteDeviceName(deviceId: string): string {
-    try {
-      const provider = PeripheralConnectionRecordBluetoothAclConsumer.remoteDeviceNameProviderForTest
-      if (provider) {
-        return provider(deviceId)?.trim() ?? ''
-      }
-      return connection.getRemoteDeviceName(deviceId, false)?.trim() ?? ''
-    } catch (err) {
-      const error = err as BusinessError
-      LogUtils.warn(
-        TAG,
-        `getRemoteDeviceName failed: deviceId=${PeripheralConnectionRecordBluetoothAclConsumer.maskBluetoothIdentifier(deviceId)}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
-      )
-      return ''
-    }
-  }
-
-  private static maskBluetoothIdentifier(deviceId: string): string {
-    const segments = deviceId.trim().replace(/-/g, ':').split(':').filter((item: string) => item.length > 0)
-    if (segments.length < 2) {
-      return 'unknown'
-    }
-    return `**:**:**:**:${segments[segments.length - 2]}:${segments[segments.length - 1]}`
-  }
 }

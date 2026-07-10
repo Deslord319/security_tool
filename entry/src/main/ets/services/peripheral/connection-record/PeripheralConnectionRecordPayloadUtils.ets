@@ -93,9 +93,6 @@ export function readDeviceField(source: EventPayloadRecord | undefined): EventPa
     return undefined
   }
   return readObjectField(source, 'device') ||
-    readObjectField(source, 'remoteDevice') ||
-    readObjectField(source, 'remote_device') ||
-    readObjectField(source, 'bluetoothDevice') ||
     readObjectField(source, 'usbDevice') ||
     readObjectField(source, 'usb_device')
 }

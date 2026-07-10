@@ -51,8 +51,7 @@ export default function peripheralRecordDisplayUtilsTest() {
       expect(getPeripheralMatchedPolicyKindLabel('usb_storage_read_only')).assertEqual('USB 存储只读')
       expect(getPeripheralMatchedPolicyKindLabel('device_deny')).assertEqual('命中单设备禁止接入')
       expect(getPeripheralMatchedPolicyKindLabel('bluetooth_disabled')).assertEqual('蓝牙已禁用')
-      expect(getPeripheralMatchedPolicyKindLabel('bluetooth_connection_event')).assertEqual('蓝牙连接事件')
-      expect(getPeripheralMatchedPolicyKindLabel('bluetooth_discovery')).assertEqual('蓝牙运行期发现')
+      expect(getPeripheralMatchedPolicyKindLabel('bluetooth_connection')).assertEqual('蓝牙连接事件')
       expect(getPeripheralMatchedPolicyKindLabel('default_allow')).assertEqual('默认允许接入')
       expect(getPeripheralMatchedPolicyKindLabel('disconnect_event')).assertEqual('设备断开连接')
       expect(getPeripheralMatchedPolicyKindLabel('unknown')).assertEqual('--')
@@ -123,22 +122,6 @@ export default function peripheralRecordDisplayUtilsTest() {
       expect(getPeripheralConnectionActionLabel(enabledRecord)).assertEqual('策略变更')
     })
 
-    it('should render bluetooth discovery labels', 0, () => {
-      const record = createConnectionRecord()
-      record.id = 'runtime-bt-1'
-      record.deviceName = 'Bluetooth Headset'
-      record.deviceType = PeripheralType.BLUETOOTH
-      record.deviceId = 'MAC: AA:BB:CC:DD:EE:FF'
-      record.action = 'discover'
-      record.policyHit = 'unknown'
-      record.summary = '发现蓝牙设备'
-      record.matchedPolicyKind = 'bluetooth_discovery'
-
-      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('蓝牙运行期发现')
-      expect(getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)).assertEqual('蓝牙运行期发现')
-      expect(getPeripheralConnectionResultLabel(record)).assertEqual('成功')
-    })
-
     it('should render bluetooth acl connection labels', 0, () => {
       const record = createConnectionRecord()
       record.id = 'runtime-bt-acl-1'
@@ -147,7 +130,7 @@ export default function peripheralRecordDisplayUtilsTest() {
       record.deviceId = 'MAC: 11:22:33:44:55:66'
       record.policyHit = 'unknown'
       record.summary = '蓝牙设备已连接'
-      record.matchedPolicyKind = 'bluetooth_connection_event'
+      record.matchedPolicyKind = 'bluetooth_connection'
 
       expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('蓝牙连接事件')
       expect(getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)).assertEqual('蓝牙连接事件')

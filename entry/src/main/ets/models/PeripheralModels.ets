@@ -61,8 +61,7 @@ export type PeripheralMatchedPolicyKind =
   'usb_storage_read_only' |
   'device_deny' |
   'bluetooth_disabled' |
-  'bluetooth_connection_event' |
-  'bluetooth_discovery' |
+  'bluetooth_connection' |
   'default_allow' |
   'disconnect_event' |
   'unknown'
