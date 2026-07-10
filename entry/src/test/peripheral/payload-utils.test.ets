@@ -26,8 +26,6 @@ class TestRecord {
   empty?: LooseValue
   obj?: LooseValue
   device?: LooseValue
-  remoteDevice?: LooseValue
-  bluetoothDevice?: LooseValue
   usbDevice?: LooseValue
   other?: LooseValue
   id?: LooseValue
@@ -130,20 +128,14 @@ export default function peripheralPayloadUtilsTest() {
       expect(parseJsonObjectField(undefined, 'any')).assertEqual(undefined)
     })
 
-    it('should read device field from various keys', 0, () => {
+    it('should read generic and usb device fields', 0, () => {
       let device1 = asRecord(new TestRecord()); (device1 as TestRecord).id = 'dev1'
       let device2 = asRecord(new TestRecord()); (device2 as TestRecord).id = 'dev2'
-      let device3 = asRecord(new TestRecord()); (device3 as TestRecord).id = 'dev3'
-      let device4 = asRecord(new TestRecord()); (device4 as TestRecord).id = 'dev4'
       let record1 = asRecord(new TestRecord()); (record1 as TestRecord).device = device1
-      let record2 = asRecord(new TestRecord()); (record2 as TestRecord).remoteDevice = device2
-      let record3 = asRecord(new TestRecord()); (record3 as TestRecord).bluetoothDevice = device3
-      let record4 = asRecord(new TestRecord()); (record4 as TestRecord).usbDevice = device4
+      let record2 = asRecord(new TestRecord()); (record2 as TestRecord).usbDevice = device2
 
       expect(readDeviceField(record1)!.id).assertEqual('dev1')
       expect(readDeviceField(record2)!.id).assertEqual('dev2')
-      expect(readDeviceField(record3)!.id).assertEqual('dev3')
-      expect(readDeviceField(record4)!.id).assertEqual('dev4')
     })
 
     it('should return undefined when no device field found', 0, () => {

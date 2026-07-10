@@ -30,11 +30,14 @@ class FixedEvent implements PeripheralConnectionRecordProducerEvent {
   source: 'runtime' = 'runtime'
   channel: 'usb' | 'bluetooth_acl'
   eventName: string
-  rawData?: commonEventManager.CommonEventData = new EmptyRawData() as commonEventManager.CommonEventData
+  rawData?: commonEventManager.CommonEventData
 
   constructor(channel: 'usb' | 'bluetooth_acl', eventName: string) {
     this.channel = channel
     this.eventName = eventName
+    if (channel === 'usb') {
+      this.rawData = new EmptyRawData() as commonEventManager.CommonEventData
+    }
   }
 }
 
@@ -162,7 +165,7 @@ function buildBluetoothRecord(): PeripheralTraceRecord {
     result: SecurityEventResult.SUCCESS,
     source: 'runtime_event',
     summary: 'bt',
-    rawEventName: 'usual.event.BLUETOOTH_ACL'
+    rawEventName: 'bluetooth_acl_state_change'
   }
 }
 
@@ -176,7 +179,7 @@ function createUsbEvent(eventName: string = 'usual.event.USB_ATTACHED'): Periphe
 }
 
 function createBluetoothEvent(): PeripheralConnectionRecordProducerEvent {
-  return new FixedEvent('bluetooth_acl', 'usual.event.BLUETOOTH_ACL')
+  return new FixedEvent('bluetooth_acl', 'bluetooth_acl_state_change')
 }
 
 export default function peripheralConnectionRecordPipelineTest() {

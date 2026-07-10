@@ -11,10 +11,11 @@ import { PeripheralService } from '../../main/ets/services/peripheral/interface-
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralPolicySnapshotTraceService } from '../../main/ets/services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
+import { BluetoothPolicySnapshotTraceService } from '../../main/ets/services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
 import {
   BluetoothConnectedDeviceSnapshot,
-  BluetoothPolicySnapshotTraceService
-} from '../../main/ets/services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
+  BluetoothRuntimeConnectionStore
+} from '../../main/ets/services/peripheral/connection-record/BluetoothRuntimeConnectionStore'
 import { PeripheralTraceMutationResult } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 
 class VoidOperationResult implements OperationResult<void> {
@@ -64,12 +65,12 @@ export default function interfaceControlViewModelTest() {
       return Promise.resolve(successTraceMutationResult())
     })
     let captureBluetoothSnapshotMock = mockKit.mockFunc(
-      BluetoothPolicySnapshotTraceService,
-      BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices
+      BluetoothRuntimeConnectionStore,
+      BluetoothRuntimeConnectionStore.captureConnectedDevices
     )
     let appendBluetoothSnapshotMock = mockKit.mockFunc(
       BluetoothPolicySnapshotTraceService,
-      BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshotForCachedDevices
+      BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot
     )
     when(captureBluetoothSnapshotMock)().afterReturn([{
       rawDeviceId: '11:22:33:44:55:66',

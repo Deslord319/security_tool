@@ -122,7 +122,6 @@ export class PeripheralMatchedPolicyStrings {
   static readonly DEVICE_DENY: string = '命中单设备禁止接入'
   static readonly BLUETOOTH_DISABLED: string = '蓝牙已禁用'
   static readonly BLUETOOTH_CONNECTION: string = '蓝牙连接事件'
-  static readonly BLUETOOTH_DISCOVERY: string = '蓝牙运行期发现'
   static readonly DEFAULT_ALLOW: string = '默认允许接入'
   static readonly DISCONNECT_EVENT: string = '设备断开连接'
   static readonly PENDING: string = '待判定'

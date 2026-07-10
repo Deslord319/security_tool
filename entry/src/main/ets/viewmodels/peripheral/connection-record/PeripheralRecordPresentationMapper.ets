@@ -90,10 +90,8 @@ export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPoli
       return PeripheralMatchedPolicyStrings.DEVICE_DENY
     case 'bluetooth_disabled':
       return PeripheralMatchedPolicyStrings.BLUETOOTH_DISABLED
-    case 'bluetooth_connection_event':
+    case 'bluetooth_connection':
       return PeripheralMatchedPolicyStrings.BLUETOOTH_CONNECTION
-    case 'bluetooth_discovery':
-      return PeripheralMatchedPolicyStrings.BLUETOOTH_DISCOVERY
     case 'default_allow':
       return PeripheralMatchedPolicyStrings.DEFAULT_ALLOW
     case 'disconnect_event':

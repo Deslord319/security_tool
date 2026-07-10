@@ -13,8 +13,7 @@ import { PeripheralService } from '../interface-control/PeripheralService'
 import {
   PeripheralConnectionRecordConsumeResult,
   PeripheralConnectionRecordConsumer,
-  PeripheralConnectionRecordProducerEvent,
-  PeripheralConnectionAction
+  PeripheralConnectionRecordProducerEvent
 } from './PeripheralConnectionRecordProducerContract'
 import {
   EventPayloadRecord,
@@ -38,6 +37,7 @@ import {
 } from '../device-policy/UsbDevicePolicyStateService'
 
 const TAG = 'ConnectionRecordUsbConsumer'
+type UsbConnectionAction = 'connect' | 'disconnect' | 'unknown'
 
 interface ResolvedUsbEventInfo {
   vendorId: number
@@ -137,7 +137,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     }
   }
 
-  private static resolveAction(eventName: string): PeripheralConnectionAction {
+  private static resolveAction(eventName: string): UsbConnectionAction {
     switch (eventName) {
       case commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED:
         return 'connect'
@@ -154,7 +154,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
   private static evaluateUsbEventPolicy(
     info: ResolvedUsbEventInfo,
-    action: PeripheralConnectionAction,
+    action: UsbConnectionAction,
     snapshot: UsbPolicySnapshot,
     stateResult: UsbPolicyStateProcessResult | null
   ): UsbEventPolicyEvaluation {
@@ -245,7 +245,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
   private static async updateUsbPolicyState(
     info: ResolvedUsbEventInfo,
-    action: PeripheralConnectionAction,
+    action: UsbConnectionAction,
     skipDeviceDenyDispatch: boolean
   ): Promise<UsbPolicyStateProcessResult | null> {
     if (!info.identity) {

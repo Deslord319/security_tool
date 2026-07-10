@@ -60,16 +60,16 @@ export default function peripheralConnectionRecordServiceTest() {
       expect(records[1].deviceName).assertEqual('Older Device')
     })
 
-    it('should map bluetooth discovery records', 0, async () => {
+    it('should map bluetooth acl connection records', 0, async () => {
       const base = Date.now()
       let record = buildTraceRecord('runtime_bt_1', base + 300)
       record.deviceName = 'Bluetooth Mouse'
       record.deviceType = PeripheralType.BLUETOOTH
       record.deviceId = 'MAC: AA:BB:CC:DD:EE:FF'
-      record.action = 'discover'
-      record.decision = 'unknown'
-      record.summary = 'discover bluetooth device'
-      record.matchedPolicyKind = 'bluetooth_discovery'
+      record.action = 'connect'
+      record.decision = 'allow'
+      record.summary = 'bluetooth device connected'
+      record.matchedPolicyKind = 'bluetooth_connection'
 
       let listMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.listByQuery)
       when(listMock)(ArgumentMatchers.any).afterReturn(Promise.resolve([record]))
@@ -78,8 +78,8 @@ export default function peripheralConnectionRecordServiceTest() {
 
       expect(records.length).assertEqual(1)
       expect(records[0].deviceType).assertEqual(PeripheralType.BLUETOOTH)
-      expect(records[0].action).assertEqual('discover')
-      expect(records[0].matchedPolicyKind).assertEqual('bluetooth_discovery')
+      expect(records[0].action).assertEqual('connect')
+      expect(records[0].matchedPolicyKind).assertEqual('bluetooth_connection')
     })
 
     it('should keep extended metadata', 0, async () => {

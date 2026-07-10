@@ -394,8 +394,7 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
       case 'usb_storage_read_only':
       case 'device_deny':
       case 'bluetooth_disabled':
-      case 'bluetooth_connection_event':
-      case 'bluetooth_discovery':
+      case 'bluetooth_connection':
       case 'default_allow':
       case 'disconnect_event':
       case 'unknown':
