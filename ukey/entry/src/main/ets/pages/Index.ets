@@ -48,6 +48,7 @@ struct Index {
   @State private systemPinInput: string = ''
   @State private ukeyPasswordInput: string = ''
   @State private verifyUKeyPasswordInput: string = ''
+  @State private credentialOperationInputResetKey: number = 0
   private runtimeStateRefreshInFlight: boolean = false
   private pageActive: boolean = false
   private runtimeStateRefreshTimerIds: number[] = []
@@ -267,8 +268,27 @@ struct Index {
     return this.hasOperableUKey() || this.hasVisibleCredential()
   }
 
+  private hasCredentialOperationSystemPin(): boolean {
+    return this.systemPinInput.trim().length > 0
+  }
+
+  private hasCredentialOperationUKeyPassword(): boolean {
+    return this.ukeyPasswordInput.trim().length > 0
+  }
+
+  private canAddCredential(): boolean {
+    return this.hasOperableUKey() && this.hasCredentialOperationSystemPin() &&
+      this.hasCredentialOperationUKeyPassword()
+  }
+
   private hasDeletableCredential(): boolean {
-    return this.hasVisibleCredential()
+    return this.hasVisibleCredential() && this.hasCredentialOperationSystemPin()
+  }
+
+  private clearCredentialOperationInputs(): void {
+    this.systemPinInput = ''
+    this.ukeyPasswordInput = ''
+    this.credentialOperationInputResetKey++
   }
 
   private async handleEnabledChange(value: boolean): Promise<void> {
@@ -357,8 +377,7 @@ struct Index {
       LogUtils.warn(TAG, `handleAddCredential failed: ${JSON.stringify(err)}`)
       this.statusMessage = 'UKEY解锁凭据添加失败'
     } finally {
-      this.systemPinInput = ''
-      this.ukeyPasswordInput = ''
+      this.clearCredentialOperationInputs()
       this.credentialSubmitting = false
     }
   }
@@ -387,7 +406,7 @@ struct Index {
       LogUtils.warn(TAG, `handleDeleteCredential failed: ${JSON.stringify(err)}`)
       this.statusMessage = 'UKEY解锁凭据删除失败'
     } finally {
-      this.systemPinInput = ''
+      this.clearCredentialOperationInputs()
       this.credentialSubmitting = false
     }
   }
@@ -512,6 +531,7 @@ struct Index {
   private credentialOperationCardContent() {
     Column({ space: 12 }) {
       TextInput({ text: this.systemPinInput, placeholder: '系统 PIN' })
+        .id(`credential-operation-system-pin-${this.credentialOperationInputResetKey}`)
         .type(InputType.Password)
         .height(36)
         .width('100%')
@@ -531,6 +551,7 @@ struct Index {
         })
 
       TextInput({ text: this.ukeyPasswordInput, placeholder: 'UKey 密码' })
+        .id(`credential-operation-ukey-password-${this.credentialOperationInputResetKey}`)
         .type(InputType.Password)
         .height(36)
         .width('100%')
@@ -560,8 +581,8 @@ struct Index {
           .height(36)
           .width(112)
           .stateEffect(true)
-          .enabled(this.hasOperableUKey() && !this.loading && !this.saving && !this.credentialSubmitting)
-          .opacity(this.hasOperableUKey() && !this.loading && !this.saving && !this.credentialSubmitting ? 1 : 0.56)
+          .enabled(this.canAddCredential() && !this.loading && !this.saving && !this.credentialSubmitting)
+          .opacity(this.canAddCredential() && !this.loading && !this.saving && !this.credentialSubmitting ? 1 : 0.56)
           .onClick(() => {
             this.handleAddCredential()
           })
