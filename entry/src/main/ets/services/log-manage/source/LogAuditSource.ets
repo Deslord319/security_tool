@@ -1,5 +1,5 @@
 import { securityAudit } from '@kit.DeviceSecurityKit'
-import osAccount from '@ohos.account.osAccount'
+import { osAccount } from '@kit.BasicServicesKit'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogPathUtils } from '../../../utils/LogPathUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'

@@ -1,4 +1,4 @@
-import osAccount from '@ohos.account.osAccount'
+import { osAccount } from '@kit.BasicServicesKit'
 
 import { UserFirewallListResult, UserFirewallOption } from '../FirewallModels'
 import { FirewallUserStrings, buildFirewallUserLabel } from '../../../constants/modules/FirewallStrings'
