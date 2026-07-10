@@ -77,7 +77,6 @@ export class PeripheralPolicyOptionIndexes {
 }
 
 export class PeripheralLoadingStrings {
-  static readonly INTERFACE_STATUS: string = '正在读取接口状态，请稍候...'
   static readonly USB_INTERFACE: string = '正在设置 USB 接口策略，请稍候...'
   static readonly USB_STORAGE: string = '正在设置 USB 存储策略，请稍候...'
 }

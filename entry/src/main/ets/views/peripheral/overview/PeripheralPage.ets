@@ -1,7 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
-import { LoadingStatePanel } from '../../../components/LoadingStatePanel'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import { ConnectionDetailDialog } from '../../../components/peripheral/connection-record/ConnectionDetailDialog'
 import { DeviceRecordList } from '../../../components/peripheral/connection-record/DeviceRecordList'
@@ -213,13 +212,7 @@ export struct PeripheralPage {
   @Builder
   private interfaceTab() {
     Column() {
-      if (!this.interfaceControlReady) {
-        LoadingStatePanel({
-          message: PeripheralLoadingStrings.INTERFACE_STATUS,
-          currentTheme: this.currentTheme
-        })
-          .layoutWeight(1)
-      } else {
+      if (this.interfaceControlReady) {
         InterfaceControlTab({
           usbDisabled: this.viewModel.interfaceControl.state.usbDisabled,
           btDisabled: this.viewModel.interfaceControl.state.btDisabled,
