@@ -172,7 +172,7 @@ export class FirewallPresetRuleNameStrings {
   static readonly PUBLIC_DENY_SMB: string = '阻止 SMB 共享'
   static readonly PUBLIC_DENY_NETBIOS: string = '阻止 NetBIOS'
   static readonly PRIVATE_ALLOW_ICMP: string = '允许 ICMP'
-  static readonly PRIVATE_ALLOW_REMOTE_MANAGE: string = '允许内网远程'
+  static readonly PRIVATE_ALLOW_REMOTE_MANAGE: string = '允许内网服务访问'
   static readonly PRIVATE_ALLOW_SHARE: string = '允许内网共享'
   static readonly PRIVATE_ALLOW_DISCOVERY: string = '允许内网发现'
   static readonly PRIVATE_ALLOW_TCP: string = '允许内网应用 TCP'
