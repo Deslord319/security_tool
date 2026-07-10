@@ -1,6 +1,5 @@
 import { LogUtils } from '../../../utils/LogUtils'
-import restrictions from '@ohos.enterprise.restrictions'
-import { bluetoothManager, usbManager, wifiManager } from '@kit.MDMKit'
+import { deviceSettings, restrictions, usbManager } from '@kit.MDMKit'
 
 import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { PeripheralServiceErrorStrings } from '../../../constants/modules/PeripheralErrorStrings'
@@ -117,7 +116,11 @@ export class PeripheralService {
 
   private static turnOnWifiWithResult(): OperationResult<void> {
     try {
-      wifiManager.turnOnWifi(ADMIN_WANT, false)
+      deviceSettings.setSwitchStatus(
+        ADMIN_WANT,
+        deviceSettings.SwitchKey.WIFI,
+        deviceSettings.SwitchStatus.ON
+      )
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `turnOnWifi failed: ${JSON.stringify(err)}`)
@@ -129,7 +132,11 @@ export class PeripheralService {
 
   private static turnOnBluetoothWithResult(): OperationResult<void> {
     try {
-      bluetoothManager.turnOnBluetooth(ADMIN_WANT)
+      deviceSettings.setSwitchStatus(
+        ADMIN_WANT,
+        deviceSettings.SwitchKey.BLUETOOTH,
+        deviceSettings.SwitchStatus.ON
+      )
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `turnOnBluetooth failed: ${JSON.stringify(err)}`)

@@ -1,7 +1,7 @@
 import { adminManager, applicationManager, EnterpriseAdminExtensionAbility } from '@kit.MDMKit'
 import { common } from '@kit.AbilityKit'
 import type { Want } from '@kit.AbilityKit'
-import osAccount from '@ohos.account.osAccount'
+import { osAccount } from '@kit.BasicServicesKit'
 import { ADMIN_WANT, ENTRY_WANT } from '../constants/AppConstants'
 import { AccountChangeCoordinator } from '../services/account/AccountChangeCoordinator'
 import { registerDefaultAccountChangeHandlers } from '../services/account/AccountChangeHandlers'

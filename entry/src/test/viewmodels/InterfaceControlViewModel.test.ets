@@ -123,19 +123,15 @@ export default function interfaceControlViewModelTest() {
     )
     let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
     let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
-    let restorePowerMock = mockKit.mockFunc(PeripheralService, PeripheralService.restoreEnabledInterfacePowerWithResult)
     let getInterfaceResult = new BooleanOperationResult()
     getInterfaceResult.success = true
     getInterfaceResult.data = false
     let usbResult = new UsbPolicyOperationResult()
     usbResult.success = true
     usbResult.data = edmUsbManager.UsbPolicy.READ_WRITE
-    let restoreResult = new VoidOperationResult()
-    restoreResult.success = true
     when(isUsbDefaultDenyMock)().afterReturn(true)
     when(getInterfaceMock)(ArgumentMatchers.any).afterReturn(getInterfaceResult)
     when(getUsbStorageMock)().afterReturn(usbResult)
-    when(restorePowerMock)(ArgumentMatchers.any).afterReturn(restoreResult)
 
     viewModel.reloadState()
 
@@ -150,7 +146,6 @@ export default function interfaceControlViewModelTest() {
     )
     let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
     let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
-    let restorePowerMock = mockKit.mockFunc(PeripheralService, PeripheralService.restoreEnabledInterfacePowerWithResult)
     let enabledResult = new BooleanOperationResult()
     enabledResult.success = true
     enabledResult.data = false
@@ -160,8 +155,6 @@ export default function interfaceControlViewModelTest() {
     let usbResult = new UsbPolicyOperationResult()
     usbResult.success = true
     usbResult.data = edmUsbManager.UsbPolicy.READ_WRITE
-    let restoreResult = new VoidOperationResult()
-    restoreResult.success = true
     when(isUsbDefaultDenyMock)().afterReturn(false)
     when(getInterfaceMock)(PeripheralInterfaceFeatures.BLUETOOTH).afterReturn(enabledResult)
     when(getInterfaceMock)(PeripheralInterfaceFeatures.WIFI).afterReturn(enabledResult)
@@ -171,7 +164,6 @@ export default function interfaceControlViewModelTest() {
     when(getInterfaceMock)(PeripheralInterfaceFeatures.MICROPHONE).afterReturn(enabledResult)
     when(getInterfaceMock)(PeripheralInterfaceFeatures.CAMERA).afterReturn(enabledResult)
     when(getUsbStorageMock)().afterReturn(usbResult)
-    when(restorePowerMock)(ArgumentMatchers.any).afterReturn(restoreResult)
 
     viewModel.reloadState()
 

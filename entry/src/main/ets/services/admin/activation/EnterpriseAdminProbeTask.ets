@@ -1,5 +1,5 @@
 import { LogUtils } from '../../../utils/LogUtils'
-import restrictions from '@ohos.enterprise.restrictions'
+import { restrictions } from '@kit.MDMKit'
 import { AppInfo, ADMIN_WANT } from '../../../constants/AppConstants'
 import {
   AdminActivationState,

@@ -49,7 +49,7 @@ export class FirewallRuleStrings {
 }
 
 export class FirewallUserStrings {
-  static readonly NO_ACTIVATED_USERS: string = '未找到已激活用户'
+  static readonly NO_ACTIVATED_USERS: string = '未找到可用本地用户'
 }
 
 export function getFirewallModeAccent(mode: FirewallPresetMode): string {
