@@ -18,7 +18,6 @@ import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/d
 import { UsbDevicePolicyStateRepository } from '../../../services/peripheral/device-policy/UsbDevicePolicyStateRepository'
 import { PeripheralTraceEntryRepository } from '../../../services/peripheral/connection-record/PeripheralTraceEntryRepository'
 import { PeripheralTraceMaintenanceService } from '../../../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
-import { WiredNetworkService } from '../../../services/peripheral/interface-control/WiredNetworkService'
 import { InterfaceControlViewModel } from '../interface-control/InterfaceControlViewModel'
 import { PeripheralConnectionRecordClearUsecase } from '../connection-record/PeripheralConnectionRecordClearUsecase'
 import { PeripheralPolicyViewModel } from '../device-policy/PeripheralPolicyViewModel'
@@ -49,7 +48,6 @@ export class PeripheralViewModel {
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.appContext = context
-    WiredNetworkService.init(context)
     try {
       this.destroy()
       let traceReady = await PeripheralTraceMaintenanceService.initialize(context)
