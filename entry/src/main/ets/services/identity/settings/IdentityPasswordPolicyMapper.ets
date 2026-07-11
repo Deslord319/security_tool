@@ -34,27 +34,21 @@ export class IdentityPasswordPolicyMapper {
 
   static buildComplexityRegex(config: PasswordComplexityConfig): string {
     let lookaheads: string[] = []
-    let charSet = ''
 
     if (config.requireLowercase) {
       lookaheads.push('(?=.*[a-z])')
-      charSet += 'a-z'
     }
     if (config.requireUppercase) {
       lookaheads.push('(?=.*[A-Z])')
-      charSet += 'A-Z'
     }
     if (config.requireDigit) {
       lookaheads.push('(?=.*\\d)')
-      charSet += '\\d'
     }
     if (config.requireSpecialChar) {
       lookaheads.push('(?=.*[!@#$%^&*])')
-      charSet += '!@#$%^&*'
     }
 
-    let charClass: string = charSet === '' ? '.' : `[${charSet}]`
-    return `^${lookaheads.join('')}${charClass}{${config.minLength},}$`
+    return `^${lookaheads.join('')}.{${config.minLength},}$`
   }
 
   static buildDescription(config: PasswordComplexityConfig): string {

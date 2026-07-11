@@ -35,7 +35,7 @@ export default function identityServiceTest() {
 
       let policy = IdentityPasswordPolicyMapper.toPasswordPolicy(config)
 
-      expect(policy.complexityRegex).assertEqual('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{10,}$')
+      expect(policy.complexityRegex).assertEqual('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*]).{10,}$')
       expect(policy.additionalDescription).assertEqual('至少10个字符，包含大写字母，包含小写字母，包含数字，包含特殊字符(!@#$%^&*)')
       expect(policy.validityPeriod).assertEqual(365 * DAY_IN_MS)
     })
@@ -127,6 +127,59 @@ export default function identityServiceTest() {
       let regex = IdentityPasswordPolicyMapper.buildComplexityRegex(config)
 
       expect(regex).assertEqual('^.{6,}$')
+    })
+
+    it('should enforce every length option with all character requirement combinations', 0, () => {
+      let lengths: number[] = [6, 8, 10, 12, 16, 20, 24]
+      for (let lengthIndex: number = 0; lengthIndex < lengths.length; lengthIndex++) {
+        let minLength: number = lengths[lengthIndex]
+        for (let mask: number = 0; mask < 16; mask++) {
+          let config = createConfig()
+          config.minLength = minLength
+          config.requireUppercase = (mask & 1) !== 0
+          config.requireLowercase = (mask & 2) !== 0
+          config.requireDigit = (mask & 4) !== 0
+          config.requireSpecialChar = (mask & 8) !== 0
+
+          let regex = new RegExp(IdentityPasswordPolicyMapper.buildComplexityRegex(config))
+          let required: string = ''
+          required += config.requireUppercase ? 'A' : ''
+          required += config.requireLowercase ? 'a' : ''
+          required += config.requireDigit ? '1' : ''
+          required += config.requireSpecialChar ? '!' : ''
+          let exactPassword: string = required.padEnd(minLength, '_')
+
+          expect(regex.test(exactPassword)).assertTrue()
+          expect(regex.test(`${exactPassword}_`)).assertTrue()
+          expect(regex.test(exactPassword.substring(0, minLength - 1))).assertFalse()
+
+          if (config.requireUppercase) {
+            expect(regex.test(exactPassword.replace('A', '_'))).assertFalse()
+          }
+          if (config.requireLowercase) {
+            expect(regex.test(exactPassword.replace('a', '_'))).assertFalse()
+          }
+          if (config.requireDigit) {
+            expect(regex.test(exactPassword.replace('1', '_'))).assertFalse()
+          }
+          if (config.requireSpecialChar) {
+            expect(regex.test(exactPassword.replace('!', '_'))).assertFalse()
+          }
+        }
+      }
+    })
+
+    it('should allow character types that are not required', 0, () => {
+      let config = createConfig()
+      config.minLength = 8
+      config.requireUppercase = true
+      config.requireLowercase = false
+      config.requireDigit = false
+      config.requireSpecialChar = false
+      let regex = new RegExp(IdentityPasswordPolicyMapper.buildComplexityRegex(config))
+
+      expect(regex.test('Abcdef1!')).assertTrue()
+      expect(regex.test('abcdefgh')).assertFalse()
     })
 
     it('should build description in stable order', 0, () => {
