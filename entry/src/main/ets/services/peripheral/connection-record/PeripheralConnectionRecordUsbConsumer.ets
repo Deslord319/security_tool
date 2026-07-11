@@ -57,6 +57,7 @@ interface ResolvedUsbEventInfo {
 
 interface UsbPolicySnapshot {
   usbStoragePolicy: UsbStoragePolicy
+  usbGloballyDisabled: boolean
 }
 
 interface UsbEventPolicyEvaluation {
@@ -95,8 +96,9 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       return null
     }
     const snapshot = PeripheralConnectionRecordUsbConsumer.readCurrentUsbPolicySnapshot()
-    const skipDeviceDenyDispatch = info.deviceType === PeripheralType.USB_STORAGE &&
-      snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED
+    const skipDeviceDenyDispatch = snapshot.usbGloballyDisabled ||
+      (info.deviceType === PeripheralType.USB_STORAGE &&
+        snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED)
     const stateResult = await PeripheralConnectionRecordUsbConsumer.updateUsbPolicyState(
       info,
       action,
@@ -190,6 +192,18 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       }
     }
 
+    if (snapshot.usbGloballyDisabled) {
+      return {
+        policyHit: 'deny',
+        result: SecurityEventResult.BLOCKED,
+        summary: PeripheralMatchedPolicyStrings.USB_DISABLED,
+        detail: PeripheralMatchedPolicyStrings.USB_DISABLED,
+        usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
+        effectivePolicyLabel: StatusText.DISABLED,
+        matchedPolicyKind: 'usb_disabled'
+      }
+    }
+
     if (stateResult?.desiredPolicy === 'deny') {
       if (stateResult.dispatchResult && !stateResult.dispatchResult.success) {
         return {
@@ -262,7 +276,10 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
   private static readCurrentUsbPolicySnapshot(): UsbPolicySnapshot {
     return {
-      usbStoragePolicy: PeripheralConnectionRecordUsbConsumer.readCurrentUsbStoragePolicy()
+      usbStoragePolicy: PeripheralConnectionRecordUsbConsumer.readCurrentUsbStoragePolicy(),
+      usbGloballyDisabled: PeripheralService.getInterfaceDisabledWithResult(
+        'usb'
+      ).data ?? false
     }
   }
 
@@ -285,6 +302,9 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     snapshot: UsbPolicySnapshot,
     stateResult: UsbPolicyStateProcessResult | null
   ): string {
+    if (snapshot.usbGloballyDisabled) {
+      return StatusText.DISABLED
+    }
     if (stateResult?.desiredPolicy === 'deny') {
       return StatusText.DISABLED
     }

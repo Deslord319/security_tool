@@ -35,6 +35,14 @@ export class UsbDevicePolicyStateService {
     const existingState = existing === null ? undefined : existing
     const desiredPolicy = existing?.desiredPolicy ??
       (PeripheralDevicePolicyRepository.isUsbDefaultDeny() ? 'deny' : 'allow')
+    if (!existing && desiredPolicy === 'allow') {
+      return {
+        desiredPolicy: 'allow',
+        activePolicy: 'none',
+        autoDenyApplied: false,
+        internalAllowRestored: false
+      }
+    }
     let nextState = UsbDevicePolicyStateService.buildState(
       identity,
       existingState,
@@ -61,13 +69,14 @@ export class UsbDevicePolicyStateService {
       nextState.activePolicy = 'none'
     }
 
-    const saved = await UsbDevicePolicyStateRepository.upsert(nextState)
-    if (!saved) {
+    const shouldSave = existing !== null || (desiredPolicy === 'deny' && dispatchResult?.success === true)
+    const saved = shouldSave ? await UsbDevicePolicyStateRepository.upsert(nextState) : false
+    if (shouldSave && !saved) {
       LogUtils.error(TAG, `handleConnect state save failed: key=${identity.fingerprintKey}`)
     }
 
     return {
-      state: saved ? nextState : existing ?? nextState,
+      state: saved ? nextState : existing ?? undefined,
       dispatchResult: dispatchResult,
       desiredPolicy: desiredPolicy,
       activePolicy: nextState.activePolicy,
@@ -168,6 +177,82 @@ export class UsbDevicePolicyStateService {
       PeripheralReasonCodes.USB_DISPATCH_FAILED as 'usb_dispatch_failed',
       'state_save_failed'
     )
+  }
+
+  static async suspendActivePolicies(): Promise<boolean> {
+    const records = await UsbDevicePolicyStateRepository.listAll()
+    const suspended: UsbDevicePolicyStateRecord[] = []
+    for (const record of records) {
+      if (record.activePolicy !== 'deny') {
+        continue
+      }
+      const result = await PeripheralDevicePolicyDispatchService.dispatch({
+        deviceId: record.fingerprintKey,
+        deviceType: UsbDevicePolicyStateService.resolveDeviceType(record.baseClass),
+        policy: 'allow'
+      })
+      if (!result.success) {
+        await UsbDevicePolicyStateService.compensateSuspendedPolicies(suspended)
+        return false
+      }
+      const saved = await UsbDevicePolicyStateRepository.upsert(
+        UsbDevicePolicyStateService.copyStateWithPolicy(record, record.desiredPolicy, 'none')
+      )
+      if (!saved) {
+        suspended.push(record)
+        await UsbDevicePolicyStateService.compensateSuspendedPolicies(suspended)
+        return false
+      }
+      suspended.push(record)
+    }
+    return true
+  }
+
+  static async restorePresentDeniedPolicies(): Promise<boolean> {
+    const records = await UsbDevicePolicyStateRepository.listAll()
+    let success = true
+    for (const record of records) {
+      if (!record.present || record.desiredPolicy !== 'deny') {
+        continue
+      }
+      const result = await PeripheralDevicePolicyDispatchService.dispatch({
+        deviceId: record.fingerprintKey,
+        deviceType: UsbDevicePolicyStateService.resolveDeviceType(record.baseClass),
+        policy: 'deny'
+      })
+      if (!result.success) {
+        success = false
+        continue
+      }
+      const saved = await UsbDevicePolicyStateRepository.upsert(
+        UsbDevicePolicyStateService.copyStateWithPolicy(record, 'deny', 'deny')
+      )
+      if (!saved) {
+        LogUtils.error(TAG, `restore present deny state save failed: key=${record.fingerprintKey}`)
+        success = false
+      }
+    }
+    return success
+  }
+
+  private static async compensateSuspendedPolicies(records: UsbDevicePolicyStateRecord[]): Promise<void> {
+    for (const record of records) {
+      const result = await PeripheralDevicePolicyDispatchService.dispatch({
+        deviceId: record.fingerprintKey,
+        deviceType: UsbDevicePolicyStateService.resolveDeviceType(record.baseClass),
+        policy: 'deny'
+      })
+      if (!result.success) {
+        LogUtils.error(TAG, `suspend compensation failed: key=${record.fingerprintKey}`)
+        continue
+      }
+      const saved = await UsbDevicePolicyStateRepository.upsert(
+        UsbDevicePolicyStateService.copyStateWithPolicy(record, record.desiredPolicy, 'deny')
+      )
+      if (!saved) {
+        LogUtils.error(TAG, `suspend compensation state save failed: key=${record.fingerprintKey}`)
+      }
+    }
   }
 
   static async clearAllPolicies(): Promise<boolean> {

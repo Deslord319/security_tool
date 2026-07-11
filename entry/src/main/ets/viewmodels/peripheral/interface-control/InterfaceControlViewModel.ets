@@ -10,7 +10,7 @@ import {
 } from '../../../models/PeripheralModels'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { WiredNetworkService } from '../../../services/peripheral/interface-control/WiredNetworkService'
-import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { UsbGlobalPolicyService } from '../../../services/peripheral/interface-control/UsbGlobalPolicyService'
 import { PeripheralPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
 import { BluetoothPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
 import {
@@ -66,7 +66,7 @@ export class InterfaceControlViewModel {
       const cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.CAMERA)
       const storagePolicy = PeripheralService.getUsbStoragePolicyWithResult()
       this.commitState({
-        usbDisabled: PeripheralDevicePolicyRepository.isUsbDefaultDeny(),
+        usbDisabled: PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.USB).data ?? false,
         btDisabled: btState.data ?? false,
         wifiDisabled: wifiState.data ?? false,
         ethernetDisabled: ethernetState.data ?? false,
@@ -88,12 +88,10 @@ export class InterfaceControlViewModel {
     this.processingKey = feature
     try {
       if (feature === PeripheralInterfaceFeatures.USB) {
-        const policy = disallow ? 'deny' : 'allow'
-        const saved = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy(policy)
-        if (!saved) {
-          return PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED
+        const result = await UsbGlobalPolicyService.setDisabled(disallow)
+        if (!result.success) {
+          return this.normalizeReason(result.stage, PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
         }
-        await PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot(policy)
         this.updateInterfaceState(feature, disallow)
         return null
       }
@@ -148,6 +146,9 @@ export class InterfaceControlViewModel {
   async setUsbStoragePolicy(index: number): Promise<string | null> {
     this.processingKey = 'usb-storage-policy'
     try {
+      if (this.state.usbDisabled) {
+        return PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT
+      }
       const option = this.resolveUsbStoragePolicyOption(index)
       const result = PeripheralService.setUsbStoragePolicyWithCleanupResult(option.policy)
       if (!result.success) {

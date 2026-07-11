@@ -94,6 +94,8 @@ export class PeripheralPageStrings {
   static readonly DEVICE_TYPE_LABEL: string = '设备类型'
   static readonly CONNECTION_TIME_LABEL: string = '连接时间'
   static readonly LATEST_CONNECTION_TIME_LABEL: string = '最近连接时间'
+  static readonly USB_DEFAULT_POLICY_TITLE: string = '未配置 USB 设备默认策略'
+  static readonly USB_DEFAULT_POLICY_DESCRIPTION: string = '仅用于尚未存在 SN 或设备指纹策略的 USB 设备，不会修改已有设备策略。'
 }
 
 export class PeripheralInterfaceStrings {
@@ -284,7 +286,7 @@ export function resolvePeripheralReason(reason?: string | null): string {
     case PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT:
       return buildPeripheralRetryMessage('系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置')
     case PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT:
-      return buildPeripheralRetryMessage('系统检测到仍存在 USB 冲突规则，暂时无法完成存储策略设置')
+      return buildPeripheralRetryMessage('系统检测与USB接口策略冲突，需先修改USB设备为启用')
     default:
       return reason && reason.trim().length > 0 ? reason : MessageText.RETRY_LATER
   }

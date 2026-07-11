@@ -10,7 +10,6 @@ import { PeripheralInterfaceFeature, PeripheralInterfaceFeatures } from '../../.
 import { OperationResultUtils } from '../../common/OperationResultUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
-import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 
 const TAG = 'PeripheralService'
 const ACTION_TURN_ON_WIFI = 'turn on wifi'
@@ -22,14 +21,6 @@ interface UsbConflictSnapshot {
 
 export class PeripheralService {
   static setInterfaceDisabledWithResult(feature: PeripheralInterfaceFeature, disallow: boolean): OperationResult<void> {
-    if (feature === PeripheralInterfaceFeatures.USB) {
-      return {
-        success: false,
-        errorMessage: 'USB default policy requires async repository write',
-        stage: 'set_usb_default_policy'
-      } as OperationResult<void>
-    }
-
     try {
       restrictions.setDisallowedPolicy(ADMIN_WANT, feature, disallow)
       if (!disallow) {
@@ -38,6 +29,13 @@ export class PeripheralService {
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setInterfaceDisabled failed: ${JSON.stringify(err)}`)
+      if (feature === PeripheralInterfaceFeatures.USB &&
+        CommonErrorUtils.extractErrorCode(err as ErrorLike) === PeripheralErrorCodes.POLICY_CONFLICT) {
+        return PeripheralService.buildUserFailureResult<void>(
+          PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT,
+          PeripheralServiceErrorStrings.USB_POLICY_CONFLICT
+        )
+      }
       return OperationResultUtils.buildFailureResult<void>('set interface disabled policy', err as ErrorLike)
     }
   }
@@ -53,13 +51,6 @@ export class PeripheralService {
   }
 
   static getInterfaceDisabledWithResult(feature: PeripheralInterfaceFeature): OperationResult<boolean> {
-    if (feature === PeripheralInterfaceFeatures.USB) {
-      return {
-        success: true,
-        data: PeripheralDevicePolicyRepository.isUsbDefaultDeny()
-      } as OperationResult<boolean>
-    }
-
     try {
       const disabled = restrictions.getDisallowedPolicy(ADMIN_WANT, feature)
       return {

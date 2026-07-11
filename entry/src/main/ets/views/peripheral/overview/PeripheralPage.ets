@@ -260,6 +260,8 @@ export struct PeripheralPage {
       PolicyList({
         policyRecords: this.viewModel.policy.state.records,
         policyListOptions: this.policyListOptions,
+        usbDefaultPolicyIndex: this.viewModel.policy.state.usbDefaultPolicyIndex,
+        usbGloballyDisabled: this.viewModel.policy.state.usbGloballyDisabled,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         onPolicyChange: (index: number, policyIndex: number) => {
@@ -269,6 +271,13 @@ export struct PeripheralPage {
           }
         },
         isUpdating: (deviceId: string) => this.viewModel.policy.isUpdating(deviceId.toUpperCase()),
+        onDefaultPolicyChange: async (policyIndex: number): Promise<boolean> => {
+          const success = await this.viewModel.setUsbDefaultPolicy(policyIndex)
+          if (!success) {
+            DialogService.openFailure(this.getUIContext(), resolvePeripheralReason(this.viewModel.reasonCode))
+          }
+          return success
+        },
         onPanelHover: (isHover: boolean) => this.setPanelHover(2, isHover)
       })
     }
@@ -410,7 +419,7 @@ export struct PeripheralPage {
         icon: AppResources.RESTORE_ICON,
         kind: 'danger',
         isEnabled: this.viewModel.policy.state.hasRestorableRecords &&
-          !this.viewModel.interfaceControl.state.usbDisabled,
+          !this.viewModel.policy.state.usbGloballyDisabled,
         currentTheme: this.currentTheme,
         onTap: () => this.showClearPolicyRecordsConfirmDialog()
       })
@@ -447,7 +456,7 @@ export struct PeripheralPage {
 
   private showClearPolicyRecordsConfirmDialog(): void {
     if (!this.viewModel.policy.state.hasRestorableRecords ||
-      this.viewModel.interfaceControl.state.usbDisabled) {
+      this.viewModel.policy.state.usbGloballyDisabled) {
       return
     }
     DialogService.openConfirm(this.getUIContext(), {

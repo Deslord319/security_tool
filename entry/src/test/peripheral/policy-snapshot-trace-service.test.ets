@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { usbManager } from '@kit.BasicServicesKit'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   PeripheralDevicePolicySnapshotRequest,
@@ -111,7 +112,8 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
         usbDevice(0x1234, 0x5678, 'Acme', 'Camera', 'usb-a', 0x0E)
       ]))
 
-      const result = await PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot('deny')
+      const devices = PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbGlobalDisabledSnapshot(devices)
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(1)
@@ -124,12 +126,29 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
       expect((savedRecords[0].rawPayload ?? '').includes('"vendorId":4660')).assertTrue()
     })
 
+    it('should append global usb disabled snapshot from devices captured before policy change', 0, async () => {
+      PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
+        usbDevice(0x1234, 0x5678, 'Acme', 'Security Key', 'usb-key', 0x03)
+      ]))
+      const captured = PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbGlobalDisabledSnapshot(captured)
+
+      expect(result.success).assertTrue()
+      expect(savedRecords.length).assertEqual(1)
+      expect(savedRecords[0].rawEventName).assertEqual('usb_global_policy')
+      expect(savedRecords[0].matchedPolicyKind).assertEqual('usb_disabled')
+      expect(savedRecords[0].result).assertEqual(SecurityEventResult.BLOCKED)
+      expect(savedRecords[0].deviceName).assertEqual('Acme Security Key')
+    })
+
     it('should not use usb manager name as snapshot display name', 0, async () => {
       PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
         usbDevice(0x1234, 0x5678, '', 'Camera', 'usb-camera', 0x0E)
       ]))
 
-      const result = await PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot('deny')
+      const devices = PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbGlobalDisabledSnapshot(devices)
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(1)
@@ -141,7 +160,8 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
         usbDevice(0x1234, 0x5678, '', 'Camera', '', 0x0E)
       ]))
 
-      const result = await PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot('deny')
+      const devices = PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbGlobalDisabledSnapshot(devices)
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(1)
@@ -153,7 +173,8 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
         usbDevice(0x1111, 0x2222, 'Hub', 'USB Hub', 'hub', 0x09)
       ]))
 
-      const result = await PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot('deny')
+      const devices = PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbGlobalDisabledSnapshot(devices)
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(0)
@@ -164,7 +185,8 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
         usbDeviceWithInterfaceClass(0x1234, 0x5678, 0, 0x0E)
       ]))
 
-      const result = await PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot('deny')
+      const devices = PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbGlobalDisabledSnapshot(devices)
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(1)
