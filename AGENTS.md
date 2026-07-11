@@ -235,6 +235,8 @@ ohos.permission.MANAGE_NET_FIREWALL
 ohos.permission.GET_NET_FIREWALL
 ohos.permission.PREPARE_APP_TERMINATE
 ohos.permission.ENTERPRISE_MANAGE_NETWORK
+ohos.permission.ENTERPRISE_GET_NETWORK_INFO
+ohos.permission.ENTERPRISE_SET_NETWORK
 ohos.permission.ENTERPRISE_MANAGE_USB
 ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS
 ohos.permission.ACCESS_BLUETOOTH

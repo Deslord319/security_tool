@@ -212,6 +212,7 @@ export struct PeripheralPage {
           usbDisabled: this.viewModel.interfaceControl.state.usbDisabled,
           btDisabled: this.viewModel.interfaceControl.state.btDisabled,
           wifiDisabled: this.viewModel.interfaceControl.state.wifiDisabled,
+          ethernetDisabled: this.viewModel.interfaceControl.state.ethernetDisabled,
           hdcDisabled: this.viewModel.interfaceControl.state.hdcDisabled,
           networkDisabled: this.viewModel.interfaceControl.state.networkDisabled,
           printerDisabled: this.viewModel.interfaceControl.state.printerDisabled,
@@ -223,8 +224,8 @@ export struct PeripheralPage {
           currentTheme: this.currentTheme,
           hoveredPanelIndex: this.hoveredPanelIndex,
           onUsbInterfaceToggleAsync: async (disallow: boolean): Promise<boolean> => this.handleUsbInterfaceToggle(disallow),
-          onInterfaceToggle: (feature: PeripheralInterfaceFeature, disallow: boolean) =>
-            void this.handleInterfaceToggle(feature, disallow),
+          onInterfaceToggle: async (feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> =>
+            await this.handleInterfaceToggle(feature, disallow),
           onUsbStoragePolicyChange: async (index: number): Promise<boolean> => this.handleUsbStoragePolicyChange(index),
           onPanelHover: (isHover: boolean) => this.setPanelHover(0, isHover)
         })
@@ -299,10 +300,9 @@ export struct PeripheralPage {
     return true
   }
 
-  private async handleInterfaceToggle(feature: PeripheralInterfaceFeature, disallow: boolean): Promise<void> {
+  private async handleInterfaceToggle(feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> {
     if (feature === PeripheralInterfaceFeatures.USB) {
-      await this.handleUsbInterfaceToggle(disallow)
-      return
+      return await this.handleUsbInterfaceToggle(disallow)
     }
     const success = await this.viewModel.toggleInterface(feature, disallow)
     if (!success) {
@@ -311,7 +311,9 @@ export struct PeripheralPage {
       } else {
         DialogService.openFailure(this.getUIContext(), resolvePeripheralReason(this.viewModel.reasonCode))
       }
+      return false
     }
+    return true
   }
 
   private async handleUsbStoragePolicyChange(index: number): Promise<boolean> {
@@ -407,7 +409,8 @@ export struct PeripheralPage {
         label: PeripheralExportStrings.CLEAR_POLICY_LABEL,
         icon: AppResources.RESTORE_ICON,
         kind: 'danger',
-        isEnabled: this.viewModel.policy.state.hasRestorableRecords,
+        isEnabled: this.viewModel.policy.state.hasRestorableRecords &&
+          !this.viewModel.interfaceControl.state.usbDisabled,
         currentTheme: this.currentTheme,
         onTap: () => this.showClearPolicyRecordsConfirmDialog()
       })
@@ -443,7 +446,8 @@ export struct PeripheralPage {
   }
 
   private showClearPolicyRecordsConfirmDialog(): void {
-    if (!this.viewModel.policy.state.hasRestorableRecords) {
+    if (!this.viewModel.policy.state.hasRestorableRecords ||
+      this.viewModel.interfaceControl.state.usbDisabled) {
       return
     }
     DialogService.openConfirm(this.getUIContext(), {

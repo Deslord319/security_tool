@@ -9,6 +9,7 @@ export class PeripheralReasonCodes {
   static readonly EMPTY_CONNECTION_HISTORY: string = 'empty_connection_history'
   static readonly EMPTY_POLICY_RECORDS: string = 'empty_policy_records'
   static readonly TOGGLE_INTERFACE_FAILED: string = 'toggle_interface_failed'
+  static readonly WIRED_NETWORK_NOT_CONNECTED: string = 'wired_network_not_connected'
   static readonly USB_STORAGE_POLICY_FAILED: string = 'usb_storage_policy_failed'
   static readonly POLICY_CHANGE_FAILED: string = 'policy_change_failed'
   static readonly UNSUPPORTED_POLICY_DISPATCH: string = 'unsupported_policy'
@@ -17,6 +18,7 @@ export class PeripheralReasonCodes {
   static readonly USB_CONFLICT_ACCOUNT_STORAGE: string = 'usb_conflict_account_storage'
   static readonly USB_DISPATCH_FAILED: string = 'usb_dispatch_failed'
   static readonly USB_DISPATCH_CONFLICT_UNRESOLVED: string = 'usb_dispatch_conflict_unresolved'
+  static readonly USB_GLOBAL_DISABLED: string = 'usb_global_disabled'
   static readonly DEVICE_POLICY_OFFLINE: string = 'device_policy_offline'
   static readonly EXPORT_CONNECTION_HISTORY_FAILED: string = 'export_connection_history_failed'
   static readonly EXPORT_POLICY_RECORDS_FAILED: string = 'export_policy_records_failed'
@@ -101,6 +103,8 @@ export class PeripheralInterfaceStrings {
   static readonly BLUETOOTH_DESCRIPTION: string = '启用或禁用蓝牙接口。'
   static readonly WIFI_TITLE: string = 'Wi-Fi'
   static readonly WIFI_DESCRIPTION: string = '启用或禁用 Wi-Fi 接口。'
+  static readonly ETHERNET_TITLE: string = '有线网络'
+  static readonly ETHERNET_DESCRIPTION: string = '启用或禁用设备的有线网络接口。'
   static readonly HDC_TITLE: string = 'HDC 调试'
   static readonly HDC_DESCRIPTION: string = '启用或禁用 HDC 调试接口。'
   static readonly NETWORK_SHARING_TITLE: string = '网络共享'
@@ -247,6 +251,8 @@ export function resolvePeripheralReason(reason?: string | null): string {
       return '暂无可导出的黑白名单配置'
     case PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED:
       return buildPeripheralRetryMessage('接口管控设置失败')
+    case PeripheralReasonCodes.WIRED_NETWORK_NOT_CONNECTED:
+      return '当前未连接有线网络，请连接'
     case PeripheralReasonCodes.USB_STORAGE_POLICY_FAILED:
       return buildPeripheralRetryMessage('设置 USB 存储策略失败')
     case PeripheralReasonCodes.POLICY_CHANGE_FAILED:
@@ -259,6 +265,8 @@ export function resolvePeripheralReason(reason?: string | null): string {
       return buildPeripheralRetryMessage('当前设备策略下发能力尚未接入')
     case PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE:
       return '系统检测到 USB 存储账户级冲突策略，暂时无法修改单设备策略'
+    case PeripheralReasonCodes.USB_GLOBAL_DISABLED:
+      return 'USB 接口已全局禁用，请先启用 USB 接口后再调整设备策略'
     case PeripheralReasonCodes.USB_DISPATCH_FAILED:
       return buildPeripheralRetryMessage('USB 单设备策略下发失败')
     case PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED:

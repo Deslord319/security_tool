@@ -9,6 +9,7 @@ import {
   UsbStoragePolicy
 } from '../../../models/PeripheralModels'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
+import { WiredNetworkService } from '../../../services/peripheral/interface-control/WiredNetworkService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
 import { BluetoothPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
@@ -38,6 +39,7 @@ export class InterfaceControlStateModel {
   @Trace usbDisabled: boolean = false
   @Trace btDisabled: boolean = false
   @Trace wifiDisabled: boolean = false
+  @Trace ethernetDisabled: boolean = false
   @Trace hdcDisabled: boolean = false
   @Trace networkDisabled: boolean = false
   @Trace printerDisabled: boolean = false
@@ -52,10 +54,11 @@ export class InterfaceControlViewModel {
 
   @Trace processingKey: string = ''
 
-  reloadState(): void {
+  async reloadState(): Promise<void> {
     try {
       const btState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.BLUETOOTH)
       const wifiState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.WIFI)
+      const ethernetState = await WiredNetworkService.getDisabledWithResult()
       const hdcState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.HDC)
       const networkState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.NETWORK)
       const printerState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.PRINTER)
@@ -66,6 +69,7 @@ export class InterfaceControlViewModel {
         usbDisabled: PeripheralDevicePolicyRepository.isUsbDefaultDeny(),
         btDisabled: btState.data ?? false,
         wifiDisabled: wifiState.data ?? false,
+        ethernetDisabled: ethernetState.data ?? false,
         hdcDisabled: hdcState.data ?? false,
         networkDisabled: networkState.data ?? false,
         printerDisabled: printerState.data ?? false,
@@ -94,6 +98,15 @@ export class InterfaceControlViewModel {
         return null
       }
 
+      if (feature === PeripheralInterfaceFeatures.ETHERNET) {
+        const result = await WiredNetworkService.setDisabledWithResult(disallow)
+        if (!result.success) {
+          return this.normalizeReason(result.stage, PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
+        }
+        this.updateInterfaceState(feature, disallow)
+        return null
+      }
+
       const bluetoothSnapshots: BluetoothConnectedDeviceSnapshot[] =
         feature === PeripheralInterfaceFeatures.BLUETOOTH && disallow
           ? BluetoothRuntimeConnectionStore.captureConnectedDevices()
@@ -110,6 +123,7 @@ export class InterfaceControlViewModel {
         })
         throw err as Error
       }
+
       if (!result.success) {
         bluetoothSnapshots.forEach((snapshot: BluetoothConnectedDeviceSnapshot) => {
           BluetoothRuntimeConnectionStore.clearDisabledDisconnectPending(snapshot.deviceId)
@@ -144,6 +158,7 @@ export class InterfaceControlViewModel {
         usbDisabled: this.state.usbDisabled,
         btDisabled: this.state.btDisabled,
         wifiDisabled: this.state.wifiDisabled,
+        ethernetDisabled: this.state.ethernetDisabled,
         hdcDisabled: this.state.hdcDisabled,
         networkDisabled: this.state.networkDisabled,
         printerDisabled: this.state.printerDisabled,
@@ -165,6 +180,7 @@ export class InterfaceControlViewModel {
       usbDisabled: feature === PeripheralInterfaceFeatures.USB ? disallow : this.state.usbDisabled,
       btDisabled: feature === PeripheralInterfaceFeatures.BLUETOOTH ? disallow : this.state.btDisabled,
       wifiDisabled: feature === PeripheralInterfaceFeatures.WIFI ? disallow : this.state.wifiDisabled,
+      ethernetDisabled: feature === PeripheralInterfaceFeatures.ETHERNET ? disallow : this.state.ethernetDisabled,
       hdcDisabled: feature === PeripheralInterfaceFeatures.HDC ? disallow : this.state.hdcDisabled,
       networkDisabled: feature === PeripheralInterfaceFeatures.NETWORK ? disallow : this.state.networkDisabled,
       printerDisabled: feature === PeripheralInterfaceFeatures.PRINTER ? disallow : this.state.printerDisabled,
@@ -178,6 +194,7 @@ export class InterfaceControlViewModel {
     this.state.usbDisabled = nextState.usbDisabled
     this.state.btDisabled = nextState.btDisabled
     this.state.wifiDisabled = nextState.wifiDisabled
+    this.state.ethernetDisabled = nextState.ethernetDisabled
     this.state.hdcDisabled = nextState.hdcDisabled
     this.state.networkDisabled = nextState.networkDisabled
     this.state.printerDisabled = nextState.printerDisabled
