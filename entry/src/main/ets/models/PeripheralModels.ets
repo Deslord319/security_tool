@@ -32,6 +32,7 @@ export type PeripheralInterfaceFeature =
   'usb' |
   'bluetooth' |
   'wifi' |
+  'ethernet' |
   'hdc' |
   'tethering' |
   'printer' |
@@ -42,6 +43,7 @@ export class PeripheralInterfaceFeatures {
   static readonly USB: PeripheralInterfaceFeature = 'usb'
   static readonly BLUETOOTH: PeripheralInterfaceFeature = 'bluetooth'
   static readonly WIFI: PeripheralInterfaceFeature = 'wifi'
+  static readonly ETHERNET: PeripheralInterfaceFeature = 'ethernet'
   static readonly HDC: PeripheralInterfaceFeature = 'hdc'
   static readonly NETWORK: PeripheralInterfaceFeature = 'tethering'
   static readonly PRINTER: PeripheralInterfaceFeature = 'printer'

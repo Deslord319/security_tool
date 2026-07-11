@@ -18,6 +18,7 @@ export struct InterfaceControlTab {
   @Param usbDisabled: boolean = false
   @Param btDisabled: boolean = false
   @Param wifiDisabled: boolean = false
+  @Param ethernetDisabled: boolean = false
   @Param hdcDisabled: boolean = false
   @Param networkDisabled: boolean = false
   @Param printerDisabled: boolean = false
@@ -28,7 +29,7 @@ export struct InterfaceControlTab {
   @Param usbStorageControlKey: string = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param hoveredPanelIndex: number = -1
-  @Event onInterfaceToggle?: (feature: PeripheralInterfaceFeature, disallow: boolean) => void
+  @Event onInterfaceToggle?: (feature: PeripheralInterfaceFeature, disallow: boolean) => Promise<boolean>
   @Event onUsbInterfaceToggleAsync?: (disallow: boolean) => Promise<boolean>
   @Event onUsbStoragePolicyChange?: (index: number) => Promise<boolean>
   @Event onPanelHover?: (isHover: boolean) => void
@@ -45,6 +46,8 @@ export struct InterfaceControlTab {
           this.toggleItem(PeripheralInterfaceStrings.BLUETOOTH_TITLE, PeripheralInterfaceStrings.BLUETOOTH_DESCRIPTION, PeripheralInterfaceFeatures.BLUETOOTH, this.btDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.toggleItem(PeripheralInterfaceStrings.WIFI_TITLE, PeripheralInterfaceStrings.WIFI_DESCRIPTION, PeripheralInterfaceFeatures.WIFI, this.wifiDisabled)
+          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+          this.toggleItem(PeripheralInterfaceStrings.ETHERNET_TITLE, PeripheralInterfaceStrings.ETHERNET_DESCRIPTION, PeripheralInterfaceFeatures.ETHERNET, this.ethernetDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.toggleItem(PeripheralInterfaceStrings.HDC_TITLE, PeripheralInterfaceStrings.HDC_DESCRIPTION, PeripheralInterfaceFeatures.HDC, this.hdcDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
@@ -101,20 +104,22 @@ export struct InterfaceControlTab {
 
   @Builder
   private toggleItem(label: string, description: string, feature: PeripheralInterfaceFeature, disabled: boolean) {
-    this.controlRow(
-      label,
-      description,
-      PeripheralOptionStrings.INTERFACE_TOGGLE_OPTIONS,
-      disabled ?
+    AsyncSelectRow({
+      label: label,
+      description: description,
+      options: PeripheralOptionStrings.INTERFACE_TOGGLE_OPTIONS,
+      selectedIndex: disabled ?
         PeripheralInterfaceToggleOptionIndexes.DISABLED :
         PeripheralInterfaceToggleOptionIndexes.ENABLED,
-      this.interfaceControlProcessingKey === feature,
-      (index: number) => {
-        if (this.onInterfaceToggle) {
-          this.onInterfaceToggle(feature, index === PeripheralInterfaceToggleOptionIndexes.DISABLED)
+      processing: this.interfaceControlProcessingKey === feature,
+      currentTheme: this.currentTheme,
+      onSelectAsync: async (index: number): Promise<boolean> => {
+        if (!this.onInterfaceToggle) {
+          return false
         }
+        return await this.onInterfaceToggle(feature, index === PeripheralInterfaceToggleOptionIndexes.DISABLED)
       }
-    )
+    })
   }
 
   @Builder

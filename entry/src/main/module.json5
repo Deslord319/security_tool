@@ -28,6 +28,12 @@
         "name": "ohos.permission.ENTERPRISE_MANAGE_NETWORK"
       },
       {
+        "name": "ohos.permission.ENTERPRISE_GET_NETWORK_INFO"
+      },
+      {
+        "name": "ohos.permission.ENTERPRISE_SET_NETWORK"
+      },
+      {
         "name": "ohos.permission.ENTERPRISE_MANAGE_USB"
       },
       {
