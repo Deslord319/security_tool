@@ -126,6 +126,12 @@ export default function peripheralPolicyViewModelTest() {
       expect(viewModel.state.records[0].policyIndex).assertEqual(1)
       expect(viewModel.state.records[0].deviceId).assertEqual('USB-WEAK:1234:5678:ABCDEF01')
       expect(viewModel.state.hasRestorableRecords).assertTrue()
+
+      usbStates = []
+      await viewModel.reloadRecords()
+
+      expect(viewModel.state.hasRestorableRecords).assertFalse()
+      expect(viewModel.state.records.length).assertEqual(0)
     })
 
     it('should not expose connection records as policy candidates', 0, async () => {

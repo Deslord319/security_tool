@@ -185,12 +185,7 @@ export struct PeripheralPage {
   @Builder
   private headerRightActions() {
     if (this.currentTabIndex === PeripheralTabIndexes.CONNECTION_RECORD) {
-      this.headerActions(
-        PeripheralExportStrings.HISTORY_LABEL,
-        PeripheralExportStrings.CLEAR_HISTORY_LABEL,
-        () => void this.handleExportConnectionHistory(),
-        () => this.showClearHistoryConfirmDialog()
-      )
+      this.connectionHeaderActions()
     } else if (this.currentTabIndex === PeripheralTabIndexes.DEVICE_POLICY) {
       this.policyHeaderActions()
     }
@@ -359,6 +354,9 @@ export struct PeripheralPage {
   }
 
   private async handleExportConnectionHistory(): Promise<void> {
+    if (this.viewModel.records.state.records.length === 0) {
+      return
+    }
     const result = await this.viewModel.exportConnectionHistory()
     if (result.success) {
       DialogService.openSuccess(
@@ -371,27 +369,24 @@ export struct PeripheralPage {
   }
 
   @Builder
-  private headerActions(
-    exportLabel: string,
-    clearLabel: string,
-    onExport: () => void,
-    onClear: () => void
-  ) {
+  private connectionHeaderActions() {
     Row({ space: 8 }) {
       IconTextActionButton({
-        label: exportLabel,
+        label: PeripheralExportStrings.HISTORY_LABEL,
         icon: AppResources.SAVE_ICON,
         kind: 'primary',
+        isEnabled: this.viewModel.records.state.records.length > 0,
         currentTheme: this.currentTheme,
-        onTap: onExport
+        onTap: () => void this.handleExportConnectionHistory()
       })
 
       IconTextActionButton({
-        label: clearLabel,
+        label: PeripheralExportStrings.CLEAR_HISTORY_LABEL,
         icon: AppResources.TRASH_ICON,
         kind: 'danger',
+        isEnabled: this.viewModel.records.state.records.length > 0,
         currentTheme: this.currentTheme,
-        onTap: onClear
+        onTap: () => this.showClearHistoryConfirmDialog()
       })
     }
   }
@@ -403,6 +398,7 @@ export struct PeripheralPage {
         label: PeripheralExportStrings.EXPORT_POLICY_LABEL,
         icon: AppResources.SAVE_ICON,
         kind: 'primary',
+        isEnabled: this.viewModel.policy.state.records.length > 0,
         currentTheme: this.currentTheme,
         onTap: () => void this.handleExportPeripheralPolicyRecords()
       })
@@ -419,6 +415,9 @@ export struct PeripheralPage {
   }
 
   private async handleExportPeripheralPolicyRecords(): Promise<void> {
+    if (this.viewModel.policy.state.records.length === 0) {
+      return
+    }
     const result = await this.viewModel.exportPeripheralPolicyRecords()
     if (result.success) {
       DialogService.openSuccess(
@@ -432,7 +431,6 @@ export struct PeripheralPage {
 
   private showClearHistoryConfirmDialog(): void {
     if (this.viewModel.records.state.records.length === 0) {
-      DialogService.openFailure(this.getUIContext(), PeripheralEmptyStateStrings.HISTORY_TO_CLEAR)
       return
     }
     DialogService.openConfirm(this.getUIContext(), {
