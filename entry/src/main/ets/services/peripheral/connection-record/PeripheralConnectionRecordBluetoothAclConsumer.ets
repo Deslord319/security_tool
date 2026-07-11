@@ -48,6 +48,8 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       deviceName = BluetoothRuntimeConnectionStore.resolveDeviceName(eventInfo.rawDeviceId)
       BluetoothRuntimeConnectionStore.forgetConnectedDevice(eventInfo.deviceId)
     }
+    const disabledByPolicy = eventInfo.action === 'disconnect' &&
+      BluetoothRuntimeConnectionStore.consumeDisabledDisconnectPending(eventInfo.deviceId)
 
     return {
       recordId: `runtime_bt_acl_${eventInfo.occurAt}_${generateRandomSuffix()}`,
@@ -57,8 +59,8 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       deviceType: PeripheralType.BLUETOOTH,
       deviceId: eventInfo.deviceId,
       action: eventInfo.action,
-      decision: 'allow',
-      result: SecurityEventResult.SUCCESS,
+      decision: disabledByPolicy ? 'deny' : 'allow',
+      result: disabledByPolicy ? SecurityEventResult.BLOCKED : SecurityEventResult.SUCCESS,
       source: 'runtime_event',
       summary: eventInfo.action === 'connect'
         ? PeripheralConnectionRecordStrings.BLUETOOTH_CONNECTED
@@ -67,8 +69,8 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       rawAction: eventInfo.action,
       rawPayload: eventInfo.rawPayload,
       detail: `aclState=${eventInfo.stateLabel}, reason=${PLACEHOLDER_TEXT}`,
-      effectivePolicyLabel: StatusText.ENABLED,
-      matchedPolicyKind: 'bluetooth_connection'
+      effectivePolicyLabel: disabledByPolicy ? StatusText.DISABLED : StatusText.ENABLED,
+      matchedPolicyKind: disabledByPolicy ? 'bluetooth_disabled' : 'bluetooth_connection'
     }
   }
 
