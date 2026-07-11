@@ -41,7 +41,7 @@ class BasicServicesUsbDeviceSnapshotProvider implements UsbDeviceSnapshotProvide
   }
 }
 
-interface CurrentUsbDeviceSnapshot {
+export interface CurrentUsbDeviceSnapshot {
   vendorId: number
   productId: number
   baseClass: number
@@ -71,9 +71,14 @@ export class PeripheralPolicySnapshotTraceService {
     PeripheralPolicySnapshotTraceService.nowProvider = () => Date.now()
   }
 
-  static async appendUsbDefaultPolicySnapshot(policy: PeripheralDevicePolicy): Promise<PeripheralTraceMutationResult> {
-    const devices = PeripheralPolicySnapshotTraceService.listCurrentUsbDevices()
-    return PeripheralPolicySnapshotTraceService.appendSnapshotRecords(devices, policy, 'usb_default_policy')
+  static captureCurrentUsbDevices(): CurrentUsbDeviceSnapshot[] {
+    return PeripheralPolicySnapshotTraceService.listCurrentUsbDevices()
+  }
+
+  static async appendUsbGlobalDisabledSnapshot(
+    devices: CurrentUsbDeviceSnapshot[]
+  ): Promise<PeripheralTraceMutationResult> {
+    return PeripheralPolicySnapshotTraceService.appendSnapshotRecords(devices, 'deny', 'usb_global_policy')
   }
 
   static async appendDevicePolicySnapshot(record: PeripheralDevicePolicySnapshotRequest): Promise<PeripheralTraceMutationResult> {
@@ -179,6 +184,7 @@ export class PeripheralPolicySnapshotTraceService {
     occurAt: number
   ): PeripheralTraceRecord {
     const policyLabel = policy === 'deny' ? StatusText.DISABLED : StatusText.ENABLED
+    const globalUsbDisabled = reason === 'usb_global_policy' && policy === 'deny'
     return {
       recordId: `policy_snapshot_usb_${occurAt}_${PeripheralPolicySnapshotTraceService.sanitizeRecordKey(device.deviceId)}_${generateRandomSuffix()}`,
       occurAt: occurAt,
@@ -188,15 +194,17 @@ export class PeripheralPolicySnapshotTraceService {
       deviceId: device.deviceId,
       action: 'discover',
       decision: policy,
-      result: SecurityEventResult.SUCCESS,
+      result: globalUsbDisabled ? SecurityEventResult.BLOCKED : SecurityEventResult.SUCCESS,
       source: 'policy_snapshot',
-      summary: PeripheralConnectionRecordStrings.POLICY_SNAPSHOT_SUMMARY,
+      summary: globalUsbDisabled
+        ? PeripheralMatchedPolicyStrings.USB_DISABLED
+        : PeripheralConnectionRecordStrings.POLICY_SNAPSHOT_SUMMARY,
       rawEventName: reason,
       rawAction: 'discover',
       rawPayload: device.rawPayload,
       detail: PeripheralConnectionRecordStrings.buildPolicySnapshotDetail(device.deviceId, policyLabel),
       effectivePolicyLabel: policyLabel,
-      matchedPolicyKind: policy === 'deny' ? 'device_deny' : 'default_allow'
+      matchedPolicyKind: globalUsbDisabled ? 'usb_disabled' : (policy === 'deny' ? 'device_deny' : 'default_allow')
     }
   }
 

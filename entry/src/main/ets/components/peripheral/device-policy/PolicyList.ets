@@ -13,6 +13,7 @@ import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { PeripheralDeviceIdentityCell, PeripheralHeaderCell, PeripheralTypeTag } from '../common/PeripheralTableCells'
 import { StyledSelect } from '../../StyledSelect'
+import { AsyncSelectRow } from '../../AsyncSelectRow'
 
 @ComponentV2
 export struct PolicyList {
@@ -22,6 +23,9 @@ export struct PolicyList {
   @Param hoveredPanelIndex: number = -1
   @Event onPolicyChange?: (index: number, policyIndex: number) => void = undefined
   @Param isUpdating?: (deviceId: string) => boolean = undefined
+  @Param usbDefaultPolicyIndex: number = 0
+  @Param usbGloballyDisabled: boolean = false
+  @Event onDefaultPolicyChange?: (policyIndex: number) => Promise<boolean> = undefined
   @Event onPanelHover?: (isHover: boolean) => void = undefined
   @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
@@ -56,6 +60,10 @@ export struct PolicyList {
   @Builder
   private contentCard() {
     Column({ space: 0 }) {
+      this.defaultPolicyRow()
+      Divider()
+        .color(AppColors.getColors(this.currentTheme).BORDER)
+        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
       this.tableHeader()
       ForEach(this.policyRecords, (record: PeripheralPolicyRecord, index: number) => {
         Column({ space: 0 }) {
@@ -85,6 +93,10 @@ export struct PolicyList {
   @Builder
   private emptyCard() {
     Column() {
+      this.defaultPolicyRow()
+      Divider()
+        .color(AppColors.getColors(this.currentTheme).BORDER)
+        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
       Text(EmptyStateStrings.NO_DEVICES)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -166,7 +178,7 @@ export struct PolicyList {
         controlHeight: 32,
         radius: 8,
         fontSize: AppStyles.FONT_SIZE_CAPTION,
-        enabledValue: true,
+        enabledValue: this.isPolicyEditable(record),
         opacityValue: this.isPolicyEditable(record) ? 1 : 0.6,
         currentTheme: this.currentTheme,
         onSelect: (selectIndex: number) => {
@@ -202,8 +214,23 @@ export struct PolicyList {
     return isUsbPeripheralType(deviceType) ? '' : deviceId
   }
 
+  @Builder
+  private defaultPolicyRow() {
+    AsyncSelectRow({
+      label: PeripheralPageStrings.USB_DEFAULT_POLICY_TITLE,
+      description: PeripheralPageStrings.USB_DEFAULT_POLICY_DESCRIPTION,
+      options: this.policyListOptions.map((item: SelectOption) => `${item.value}`),
+      selectedIndex: this.usbDefaultPolicyIndex,
+      enabledValue: !this.usbGloballyDisabled,
+      currentTheme: this.currentTheme,
+      onSelectAsync: async (index: number): Promise<boolean> => {
+        return this.onDefaultPolicyChange ? await this.onDefaultPolicyChange(index) : false
+      }
+    })
+  }
+
   private isPolicyEditable(record: PeripheralPolicyRecord): boolean {
     const updating = this.isUpdating ? this.isUpdating(record.deviceId) : false
-    return !updating && record.editable !== false
+    return !this.usbGloballyDisabled && !updating && record.editable !== false
   }
 }

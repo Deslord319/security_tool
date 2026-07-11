@@ -9,7 +9,11 @@ const TAG = 'WiredNetworkService'
 export class WiredNetworkService {
   static getDisabledWithResult(): OperationResult<boolean> {
     try {
-      const interfaces = WiredNetworkService.getActiveInterfaces()
+      const interfaceResult = WiredNetworkService.getActiveInterfacesWithResult()
+      if (!interfaceResult.success) {
+        return { success: false, stage: 'read_wired_network_interfaces' } as OperationResult<boolean>
+      }
+      const interfaces = interfaceResult.data ?? []
       if (interfaces.length === 0) {
         return { success: true, data: false } as OperationResult<boolean>
       }
@@ -24,7 +28,11 @@ export class WiredNetworkService {
 
   static setDisabledWithResult(disabled: boolean): OperationResult<void> {
     try {
-      const interfaces = WiredNetworkService.getActiveInterfaces()
+      const interfaceResult = WiredNetworkService.getActiveInterfacesWithResult()
+      if (!interfaceResult.success) {
+        return { success: false, stage: 'read_wired_network_interfaces' } as OperationResult<void>
+      }
+      const interfaces = interfaceResult.data ?? []
       if (interfaces.length === 0) {
         return { success: false, stage: PeripheralReasonCodes.WIRED_NETWORK_NOT_CONNECTED } as OperationResult<void>
       }
@@ -41,15 +49,20 @@ export class WiredNetworkService {
     }
   }
 
-  private static getActiveInterfaces(): string[] {
-    const raw = networkManager.getAllNetworkInterfacesSync(ADMIN_WANT)
-    const interfaces: string[] = []
-    for (const item of raw) {
-      const normalized = item.trim()
-      if (normalized.length > 0 && !interfaces.includes(normalized)) {
-        interfaces.push(normalized)
+  private static getActiveInterfacesWithResult(): OperationResult<string[]> {
+    try {
+      const raw = networkManager.getAllNetworkInterfacesSync(ADMIN_WANT)
+      const interfaces: string[] = []
+      for (const item of raw) {
+        const normalized = item.trim()
+        if (normalized.length > 0 && !interfaces.includes(normalized)) {
+          interfaces.push(normalized)
+        }
       }
+      return { success: true, data: interfaces } as OperationResult<string[]>
+    } catch (err) {
+      LogUtils.error(TAG, `getActiveInterfaces failed: ${JSON.stringify(err)}`)
+      return { success: false, data: [], stage: 'read_wired_network_interfaces' } as OperationResult<string[]>
     }
-    return interfaces
   }
 }

@@ -12,6 +12,7 @@ import { ExportActionResult } from '../../../models/CommonModels'
 import {
   PeripheralPolicyRecord,
   PeripheralType,
+  PeripheralInterfaceFeatures,
   formatUsbDeviceId,
   isUsbPeripheralType
 } from '../../../models/PeripheralModels'
@@ -26,6 +27,7 @@ import {
 import { PeripheralPolicyService } from '../../../services/peripheral/device-policy/PeripheralPolicyService'
 import { CsvFileExportService } from '../../../services/common/export/CsvFileExportService'
 import { PeripheralPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
+import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 
 const TAG = 'PeripheralPolicyViewModel'
 
@@ -34,6 +36,8 @@ export class PeripheralPolicyState {
   @Trace records: PeripheralPolicyRecord[] = []
   @Trace updatingKeys: string[] = []
   @Trace hasRestorableRecords: boolean = false
+  @Trace usbDefaultPolicyIndex: number = PeripheralPolicyOptionIndexes.ALLOW
+  @Trace usbGloballyDisabled: boolean = false
 }
 
 @ObservedV2
@@ -51,6 +55,24 @@ export class PeripheralPolicyViewModel {
     const records = PeripheralPolicyService.buildPolicyRecords(usbPolicyStates)
     this.state.hasRestorableRecords = this.hasRestorableRecords(records)
     this.state.records = records
+    this.state.usbDefaultPolicyIndex = PeripheralDevicePolicyRepository.isUsbDefaultDeny()
+      ? PeripheralPolicyOptionIndexes.DENY
+      : PeripheralPolicyOptionIndexes.ALLOW
+    const globalUsbResult = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.USB)
+    this.state.usbGloballyDisabled = globalUsbResult?.data ?? false
+  }
+
+  async setUsbDefaultPolicy(policyIndex: number): Promise<string | null> {
+    if (this.state.usbGloballyDisabled) {
+      return PeripheralReasonCodes.USB_GLOBAL_DISABLED
+    }
+    const policy = policyIndex === PeripheralPolicyOptionIndexes.DENY ? 'deny' : 'allow'
+    const saved = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy(policy)
+    if (!saved) {
+      return PeripheralReasonCodes.POLICY_CHANGE_FAILED
+    }
+    this.state.usbDefaultPolicyIndex = policyIndex
+    return null
   }
 
   isUpdating(deviceId: string): boolean {
@@ -78,6 +100,9 @@ export class PeripheralPolicyViewModel {
     deviceType: PeripheralType,
     policyIndex: number
   ): Promise<string | null> {
+    if (this.state.usbGloballyDisabled) {
+      return PeripheralReasonCodes.USB_GLOBAL_DISABLED
+    }
     if (!isUsbPeripheralType(deviceType)) {
       return PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH
     }
@@ -114,6 +139,9 @@ export class PeripheralPolicyViewModel {
   }
 
   async clearAllPolicies(): Promise<boolean> {
+    if (this.state.usbGloballyDisabled) {
+      return false
+    }
     const stateRecords = await UsbDevicePolicyStateRepository.listAll()
     if (stateRecords.length === 0) {
       return true

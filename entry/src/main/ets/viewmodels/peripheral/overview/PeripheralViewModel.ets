@@ -152,6 +152,14 @@ export class PeripheralViewModel {
     return true
   }
 
+  async setUsbDefaultPolicy(index: number): Promise<boolean> {
+    if (!this.ensureAdminReady()) {
+      return false
+    }
+    this.reasonCode = await this.policy.setUsbDefaultPolicy(index)
+    return this.reasonCode === null
+  }
+
   async handlePeripheralPolicyChange(
     deviceId: string,
     deviceType: PeripheralType,
@@ -160,7 +168,7 @@ export class PeripheralViewModel {
     if (!this.ensureAdminReady()) {
       return false
     }
-    if (this.interfaceControl.state.usbDisabled) {
+    if (this.policy.state.usbGloballyDisabled) {
       this.reasonCode = PeripheralReasonCodes.USB_GLOBAL_DISABLED
       return false
     }
@@ -198,7 +206,7 @@ export class PeripheralViewModel {
   }
 
   async clearPeripheralPolicyRecords(): Promise<boolean> {
-    if (this.interfaceControl.state.usbDisabled) {
+    if (this.policy.state.usbGloballyDisabled) {
       this.reasonCode = PeripheralReasonCodes.USB_GLOBAL_DISABLED
       return false
     }

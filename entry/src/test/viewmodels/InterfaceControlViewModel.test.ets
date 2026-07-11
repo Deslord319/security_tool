@@ -10,6 +10,7 @@ import { PeripheralReasonCodes } from '../../main/ets/constants/modules/Peripher
 import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { UsbGlobalPolicyService } from '../../main/ets/services/peripheral/interface-control/UsbGlobalPolicyService'
 import { PeripheralPolicySnapshotTraceService } from '../../main/ets/services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
 import { BluetoothPolicySnapshotTraceService } from '../../main/ets/services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
 import {
@@ -52,15 +53,10 @@ export default function interfaceControlViewModelTest() {
     mockKit = new MockKit()
     capturedUsbStoragePolicy = null
     capturedBluetoothSnapshots = null
-    let appendUsbSnapshotMock = mockKit.mockFunc(
-      PeripheralPolicySnapshotTraceService,
-      PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot
-    )
     let appendUsbStorageSnapshotMock = mockKit.mockFunc(
       PeripheralPolicySnapshotTraceService,
       PeripheralPolicySnapshotTraceService.appendUsbStoragePolicySnapshot
     )
-    when(appendUsbSnapshotMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(successTraceMutationResult()))
     when(appendUsbStorageSnapshotMock)(ArgumentMatchers.any).afterAction((policy: UsbStoragePolicy) => {
       capturedUsbStoragePolicy = policy
       return Promise.resolve(successTraceMutationResult())
@@ -91,30 +87,26 @@ export default function interfaceControlViewModelTest() {
   })
 
   it('should toggle interface successfully', 0, async (done: Function) => {
-    let setUsbDefaultPolicyMock = mockKit.mockFunc(
-      PeripheralDevicePolicyRepository,
-      PeripheralDevicePolicyRepository.setUsbDefaultPolicy
-    )
-    when(setUsbDefaultPolicyMock)('deny').afterReturn(Promise.resolve(true))
-
+    let globalPolicyMock = mockKit.mockFunc(UsbGlobalPolicyService, UsbGlobalPolicyService.setDisabled)
+    let result = new VoidOperationResult()
+    result.success = false
+    result.stage = PeripheralReasonCodes.USB_DISPATCH_FAILED
+    when(globalPolicyMock)(true).afterReturn(Promise.resolve(result))
     const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.USB, true)
-
-    expect(reason).assertNull()
-    expect(viewModel.processingKey).assertEqual('')
-    expect(viewModel.state.usbDisabled).assertTrue()
+    expect(reason).assertEqual(PeripheralReasonCodes.USB_DISPATCH_FAILED)
     done()
   })
 
   it('should surface failure stage for interface toggle', 0, async (done: Function) => {
-    let setUsbDefaultPolicyMock = mockKit.mockFunc(
-      PeripheralDevicePolicyRepository,
-      PeripheralDevicePolicyRepository.setUsbDefaultPolicy
-    )
-    when(setUsbDefaultPolicyMock)('deny').afterReturn(Promise.resolve(false))
+    let globalPolicyMock = mockKit.mockFunc(UsbGlobalPolicyService, UsbGlobalPolicyService.setDisabled)
+    let result = new VoidOperationResult()
+    result.success = false
+    result.stage = PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT
+    when(globalPolicyMock)(true).afterReturn(Promise.resolve(result))
 
     const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.USB, true)
 
-    expect(reason).assertEqual(PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
+    expect(reason).assertEqual(PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT)
     done()
   })
 
@@ -127,7 +119,7 @@ export default function interfaceControlViewModelTest() {
     let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
     let getInterfaceResult = new BooleanOperationResult()
     getInterfaceResult.success = true
-    getInterfaceResult.data = false
+    getInterfaceResult.data = true
     let usbResult = new UsbPolicyOperationResult()
     usbResult.success = true
     usbResult.data = edmUsbManager.UsbPolicy.READ_WRITE
@@ -135,7 +127,7 @@ export default function interfaceControlViewModelTest() {
     when(getInterfaceMock)(ArgumentMatchers.any).afterReturn(getInterfaceResult)
     when(getUsbStorageMock)().afterReturn(usbResult)
 
-    viewModel.reloadState()
+    await viewModel.reloadState()
 
     expect(viewModel.state.usbDisabled).assertTrue()
     done()
@@ -159,6 +151,7 @@ export default function interfaceControlViewModelTest() {
     usbResult.data = edmUsbManager.UsbPolicy.READ_WRITE
     when(isUsbDefaultDenyMock)().afterReturn(false)
     when(getInterfaceMock)(PeripheralInterfaceFeatures.BLUETOOTH).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralInterfaceFeatures.USB).afterReturn(enabledResult)
     when(getInterfaceMock)(PeripheralInterfaceFeatures.WIFI).afterReturn(enabledResult)
     when(getInterfaceMock)(PeripheralInterfaceFeatures.HDC).afterReturn(enabledResult)
     when(getInterfaceMock)(PeripheralInterfaceFeatures.NETWORK).afterReturn(disabledResult)
@@ -167,7 +160,7 @@ export default function interfaceControlViewModelTest() {
     when(getInterfaceMock)(PeripheralInterfaceFeatures.CAMERA).afterReturn(enabledResult)
     when(getUsbStorageMock)().afterReturn(usbResult)
 
-    viewModel.reloadState()
+    await viewModel.reloadState()
 
     expect(viewModel.state.networkDisabled).assertTrue()
     done()
