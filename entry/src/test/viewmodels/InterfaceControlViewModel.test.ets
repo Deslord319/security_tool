@@ -47,6 +47,7 @@ export default function interfaceControlViewModelTest() {
     let capturedBluetoothSnapshots: BluetoothConnectedDeviceSnapshot[] | null
 
   beforeEach(() => {
+    BluetoothRuntimeConnectionStore.resetForTest()
     viewModel = new InterfaceControlViewModel()
     mockKit = new MockKit()
     capturedUsbStoragePolicy = null
@@ -85,6 +86,7 @@ export default function interfaceControlViewModelTest() {
   })
 
   afterEach(() => {
+    BluetoothRuntimeConnectionStore.resetForTest()
     mockKit.clearAll()
   })
 
@@ -233,6 +235,9 @@ export default function interfaceControlViewModelTest() {
     expect(reason).assertNull()
     expect(viewModel.state.btDisabled).assertTrue()
     expect(capturedBluetoothSnapshots?.length).assertEqual(1)
+    expect(BluetoothRuntimeConnectionStore.consumeDisabledDisconnectPending(
+      'MAC: 11:22:33:44:55:66'
+    )).assertTrue()
     done()
   })
 
@@ -247,6 +252,40 @@ export default function interfaceControlViewModelTest() {
 
     expect(reason).assertEqual('set_bluetooth_failed')
     expect(capturedBluetoothSnapshots === null).assertTrue()
+    expect(BluetoothRuntimeConnectionStore.consumeDisabledDisconnectPending(
+      'MAC: 11:22:33:44:55:66'
+    )).assertFalse()
+    done()
+  })
+
+  it('should roll back bluetooth disconnect marker when policy call throws', 0, async (done: Function) => {
+    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    when(setInterfaceMock)(ArgumentMatchers.any).afterAction(() => {
+      throw new Error('set bluetooth failed unexpectedly')
+    })
+
+    const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.BLUETOOTH, true)
+
+    expect(reason).assertEqual(PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
+    expect(BluetoothRuntimeConnectionStore.consumeDisabledDisconnectPending(
+      'MAC: 11:22:33:44:55:66'
+    )).assertFalse()
+    done()
+  })
+
+  it('should clear stale bluetooth disconnect markers after bluetooth is enabled', 0, async (done: Function) => {
+    BluetoothRuntimeConnectionStore.markDisabledDisconnectPending('MAC: 11:22:33:44:55:66')
+    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = true
+    when(setInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
+
+    const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.BLUETOOTH, false)
+
+    expect(reason).assertNull()
+    expect(BluetoothRuntimeConnectionStore.consumeDisabledDisconnectPending(
+      'MAC: 11:22:33:44:55:66'
+    )).assertFalse()
     done()
   })
 

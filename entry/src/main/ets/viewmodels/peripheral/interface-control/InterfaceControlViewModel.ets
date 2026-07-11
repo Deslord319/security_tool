@@ -1,5 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
+import { OperationResult } from '../../../models/CommonModels'
 
 import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 import {
@@ -97,12 +98,28 @@ export class InterfaceControlViewModel {
         feature === PeripheralInterfaceFeatures.BLUETOOTH && disallow
           ? BluetoothRuntimeConnectionStore.captureConnectedDevices()
           : []
-      const result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
+      bluetoothSnapshots.forEach((snapshot: BluetoothConnectedDeviceSnapshot) => {
+        BluetoothRuntimeConnectionStore.markDisabledDisconnectPending(snapshot.deviceId)
+      })
+      let result: OperationResult<void>
+      try {
+        result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
+      } catch (err) {
+        bluetoothSnapshots.forEach((snapshot: BluetoothConnectedDeviceSnapshot) => {
+          BluetoothRuntimeConnectionStore.clearDisabledDisconnectPending(snapshot.deviceId)
+        })
+        throw err as Error
+      }
       if (!result.success) {
+        bluetoothSnapshots.forEach((snapshot: BluetoothConnectedDeviceSnapshot) => {
+          BluetoothRuntimeConnectionStore.clearDisabledDisconnectPending(snapshot.deviceId)
+        })
         return this.normalizeReason(result.stage, PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
       }
       if (feature === PeripheralInterfaceFeatures.BLUETOOTH && disallow) {
         await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot(bluetoothSnapshots)
+      } else if (feature === PeripheralInterfaceFeatures.BLUETOOTH) {
+        BluetoothRuntimeConnectionStore.clearAllDisabledDisconnectPending()
       }
       this.updateInterfaceState(feature, disallow)
       return null

@@ -157,6 +157,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       const mockKit = new MockKit()
       try {
         BluetoothPolicySnapshotTraceService.setNowProviderForTest(() => 1700000000000)
+        BluetoothRuntimeConnectionStore.markDisabledDisconnectPending('MAC: 11:22:33:44:55:66')
         const appendMock = mockKit.mockFunc(
           PeripheralTraceMaintenanceService,
           PeripheralTraceMaintenanceService.appendEntries
@@ -177,7 +178,20 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
         expect(record !== null).assertTrue()
         expect(record?.action).assertEqual('disconnect')
         expect(record?.summary).assertEqual('蓝牙设备已断开')
-        expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection')
+        expect(record?.decision).assertEqual('deny')
+        expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
+        expect(record?.effectivePolicyLabel).assertEqual('已禁用')
+        expect(record?.matchedPolicyKind).assertEqual('bluetooth_disabled')
+
+        const repeatedRecord = await consumer.consume(buildBluetoothAclEvent({ action: 'disconnect' }))
+        expect(repeatedRecord?.decision).assertEqual('allow')
+        expect(repeatedRecord?.effectivePolicyLabel).assertEqual('已启用')
+
+        BluetoothRuntimeConnectionStore.markDisabledDisconnectPending('MAC: 11:22:33:44:55:66')
+        await consumer.consume(buildBluetoothAclEvent({ action: 'connect' }))
+        const disconnectAfterReconnect = await consumer.consume(buildBluetoothAclEvent({ action: 'disconnect' }))
+        expect(disconnectAfterReconnect?.decision).assertEqual('allow')
+        expect(disconnectAfterReconnect?.effectivePolicyLabel).assertEqual('已启用')
       } finally {
         BluetoothPolicySnapshotTraceService.resetForTest()
         mockKit.clearAll()

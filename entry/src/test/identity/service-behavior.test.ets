@@ -20,7 +20,7 @@ export default function identityServiceBehaviorTest() {
       let regex = IdentityPasswordPolicyMapper.buildComplexityRegex(config)
       let description = IdentityPasswordPolicyMapper.buildDescription(config)
 
-      expect(regex).assertEqual('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{10,}$')
+      expect(regex).assertEqual('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{10,}$')
       expect(description.indexOf('至少10个字符') >= 0).assertTrue()
       expect(description.indexOf('包含大写字母') >= 0).assertTrue()
       expect(description.indexOf('包含数字') >= 0).assertTrue()

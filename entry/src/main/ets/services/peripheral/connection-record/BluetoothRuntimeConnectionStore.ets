@@ -17,6 +17,7 @@ export class BluetoothRuntimeConnectionStore {
   private static connectedSnapshots: Map<string, BluetoothConnectedDeviceSnapshot> =
     new Map<string, BluetoothConnectedDeviceSnapshot>()
   private static deviceNameCache: Map<string, string> = new Map<string, string>()
+  private static pendingDisabledDisconnects: Set<string> = new Set<string>()
   private static remoteDeviceNameProviderForTest: ((deviceId: string) => string) | null = null
 
   static setRemoteDeviceNameProviderForTest(provider: ((deviceId: string) => string) | null): void {
@@ -26,6 +27,7 @@ export class BluetoothRuntimeConnectionStore {
   static resetForTest(): void {
     BluetoothRuntimeConnectionStore.connectedSnapshots.clear()
     BluetoothRuntimeConnectionStore.deviceNameCache.clear()
+    BluetoothRuntimeConnectionStore.pendingDisabledDisconnects.clear()
     BluetoothRuntimeConnectionStore.remoteDeviceNameProviderForTest = null
   }
 
@@ -45,6 +47,7 @@ export class BluetoothRuntimeConnectionStore {
       return null
     }
     const deviceId = formatBluetoothDeviceId(normalizedRawId)
+    BluetoothRuntimeConnectionStore.pendingDisabledDisconnects.delete(deviceId)
     let deviceName = ''
     if (BluetoothRuntimeConnectionStore.isValidDeviceName(preferredDeviceName ?? '')) {
       deviceName = (preferredDeviceName ?? '').trim()
@@ -67,6 +70,33 @@ export class BluetoothRuntimeConnectionStore {
     if (normalized.length > 0) {
       BluetoothRuntimeConnectionStore.connectedSnapshots.delete(normalized)
     }
+  }
+
+  static markDisabledDisconnectPending(deviceId: string): void {
+    const normalized = BluetoothRuntimeConnectionStore.normalizeTraceDeviceId(deviceId)
+    if (normalized.length > 0) {
+      BluetoothRuntimeConnectionStore.pendingDisabledDisconnects.add(normalized)
+    }
+  }
+
+  static clearDisabledDisconnectPending(deviceId: string): void {
+    const normalized = BluetoothRuntimeConnectionStore.normalizeTraceDeviceId(deviceId)
+    if (normalized.length > 0) {
+      BluetoothRuntimeConnectionStore.pendingDisabledDisconnects.delete(normalized)
+    }
+  }
+
+  static clearAllDisabledDisconnectPending(): void {
+    BluetoothRuntimeConnectionStore.pendingDisabledDisconnects.clear()
+  }
+
+  static consumeDisabledDisconnectPending(deviceId: string): boolean {
+    const normalized = BluetoothRuntimeConnectionStore.normalizeTraceDeviceId(deviceId)
+    if (normalized.length === 0 || !BluetoothRuntimeConnectionStore.pendingDisabledDisconnects.has(normalized)) {
+      return false
+    }
+    BluetoothRuntimeConnectionStore.pendingDisabledDisconnects.delete(normalized)
+    return true
   }
 
   static resolveDeviceName(deviceId: string): string {
