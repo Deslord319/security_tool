@@ -5,7 +5,7 @@ import {
   UsbDeviceActivePolicy,
   UsbDevicePolicyStateRecord
 } from '../../../models/PeripheralModels'
-import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
+import { RdbRepository } from '../../../storage/rdb/RdbRepository'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 
 const TAG = 'UsbDevicePolicyStateRepo'
