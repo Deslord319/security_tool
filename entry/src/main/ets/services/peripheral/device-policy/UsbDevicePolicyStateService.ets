@@ -35,14 +35,6 @@ export class UsbDevicePolicyStateService {
     const existingState = existing === null ? undefined : existing
     const desiredPolicy = existing?.desiredPolicy ??
       (PeripheralDevicePolicyRepository.isUsbDefaultDeny() ? 'deny' : 'allow')
-    if (!existing && desiredPolicy === 'allow') {
-      return {
-        desiredPolicy: 'allow',
-        activePolicy: 'none',
-        autoDenyApplied: false,
-        internalAllowRestored: false
-      }
-    }
     let nextState = UsbDevicePolicyStateService.buildState(
       identity,
       existingState,
@@ -69,7 +61,7 @@ export class UsbDevicePolicyStateService {
       nextState.activePolicy = 'none'
     }
 
-    const shouldSave = existing !== null || (desiredPolicy === 'deny' && dispatchResult?.success === true)
+    const shouldSave = desiredPolicy === 'allow' || existing !== null || dispatchResult?.success === true
     const saved = shouldSave ? await UsbDevicePolicyStateRepository.upsert(nextState) : false
     if (shouldSave && !saved) {
       LogUtils.error(TAG, `handleConnect state save failed: key=${identity.fingerprintKey}`)

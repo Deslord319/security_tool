@@ -142,6 +142,21 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
       expect(savedRecords[0].deviceName).assertEqual('Acme Security Key')
     })
 
+    it('should append allow snapshot after usb global enable', 0, async () => {
+      PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
+        usbDevice(0x1234, 0x5678, 'Acme', 'Keyboard', 'usb-keyboard', 0x03)
+      ]))
+      const devices = PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbGlobalEnabledSnapshot(devices)
+
+      expect(result.success).assertTrue()
+      expect(savedRecords.length).assertEqual(1)
+      expect(savedRecords[0].decision).assertEqual('allow')
+      expect(savedRecords[0].rawEventName).assertEqual('usb_global_policy')
+      expect(savedRecords[0].matchedPolicyKind).assertEqual('default_allow')
+    })
+
     it('should not use usb manager name as snapshot display name', 0, async () => {
       PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
         usbDevice(0x1234, 0x5678, '', 'Camera', 'usb-camera', 0x0E)

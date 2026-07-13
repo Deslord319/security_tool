@@ -32,7 +32,8 @@ export default function usbGlobalPolicyServiceTest() {
     let restoreCalls: number
     let globalSetCalls: number
     let captureCalls: number
-    let snapshotCalls: number
+    let disabledSnapshotCalls: number
+    let enabledSnapshotCalls: number
     let lastDisabled: boolean | undefined
 
     beforeEach(() => {
@@ -45,7 +46,8 @@ export default function usbGlobalPolicyServiceTest() {
       restoreCalls = 0
       globalSetCalls = 0
       captureCalls = 0
-      snapshotCalls = 0
+      disabledSnapshotCalls = 0
+      enabledSnapshotCalls = 0
       lastDisabled = undefined
 
       const storageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
@@ -59,9 +61,13 @@ export default function usbGlobalPolicyServiceTest() {
         PeripheralPolicySnapshotTraceService,
         PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices
       )
-      const snapshotMock = mockKit.mockFunc(
+      const disabledSnapshotMock = mockKit.mockFunc(
         PeripheralPolicySnapshotTraceService,
         PeripheralPolicySnapshotTraceService.appendUsbGlobalDisabledSnapshot
+      )
+      const enabledSnapshotMock = mockKit.mockFunc(
+        PeripheralPolicySnapshotTraceService,
+        PeripheralPolicySnapshotTraceService.appendUsbGlobalEnabledSnapshot
       )
 
       when(storageMock)().afterAction(() => storageResult)
@@ -87,8 +93,12 @@ export default function usbGlobalPolicyServiceTest() {
         captureCalls += 1
         return [] as CurrentUsbDeviceSnapshot[]
       })
-      when(snapshotMock)(ArgumentMatchers.any).afterAction(() => {
-        snapshotCalls += 1
+      when(disabledSnapshotMock)(ArgumentMatchers.any).afterAction(() => {
+        disabledSnapshotCalls += 1
+        return Promise.resolve({ success: true, code: 'ok' } as PeripheralTraceMutationResult)
+      })
+      when(enabledSnapshotMock)(ArgumentMatchers.any).afterAction(() => {
+        enabledSnapshotCalls += 1
         return Promise.resolve({ success: true, code: 'ok' } as PeripheralTraceMutationResult)
       })
     })
@@ -131,7 +141,8 @@ export default function usbGlobalPolicyServiceTest() {
       expect(captureCalls).assertEqual(1)
       expect(globalSetCalls).assertEqual(1)
       expect(lastDisabled).assertTrue()
-      expect(snapshotCalls).assertEqual(1)
+      expect(disabledSnapshotCalls).assertEqual(1)
+      expect(enabledSnapshotCalls).assertEqual(0)
       expect(restoreCalls).assertEqual(0)
     })
 
@@ -142,7 +153,8 @@ export default function usbGlobalPolicyServiceTest() {
 
       expect(result.success).assertFalse()
       expect(restoreCalls).assertEqual(1)
-      expect(snapshotCalls).assertEqual(0)
+      expect(disabledSnapshotCalls).assertEqual(0)
+      expect(enabledSnapshotCalls).assertEqual(0)
     })
 
     it('should keep global enable successful when a device deny replay is partial', 0, async () => {
@@ -153,7 +165,9 @@ export default function usbGlobalPolicyServiceTest() {
       expect(result.success).assertTrue()
       expect(restoreCalls).assertEqual(1)
       expect(lastDisabled).assertFalse()
-      expect(snapshotCalls).assertEqual(0)
+      expect(captureCalls).assertEqual(1)
+      expect(disabledSnapshotCalls).assertEqual(0)
+      expect(enabledSnapshotCalls).assertEqual(1)
     })
   })
 }

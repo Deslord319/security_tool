@@ -81,6 +81,12 @@ export class PeripheralPolicySnapshotTraceService {
     return PeripheralPolicySnapshotTraceService.appendSnapshotRecords(devices, 'deny', 'usb_global_policy')
   }
 
+  static async appendUsbGlobalEnabledSnapshot(
+    devices: CurrentUsbDeviceSnapshot[]
+  ): Promise<PeripheralTraceMutationResult> {
+    return PeripheralPolicySnapshotTraceService.appendSnapshotRecords(devices, 'allow', 'usb_global_policy')
+  }
+
   static async appendDevicePolicySnapshot(record: PeripheralDevicePolicySnapshotRequest): Promise<PeripheralTraceMutationResult> {
     const target = parseUsbDeviceId(record.deviceId)
     if (!target) {

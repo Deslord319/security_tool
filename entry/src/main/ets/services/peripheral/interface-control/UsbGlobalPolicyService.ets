@@ -52,6 +52,13 @@ export class UsbGlobalPolicyService {
       if (!snapshotResult.success) {
         LogUtils.warn(TAG, `append USB global policy snapshot failed: code=${snapshotResult.code}`)
       }
+    } else {
+      const snapshotResult = await PeripheralPolicySnapshotTraceService.appendUsbGlobalEnabledSnapshot(
+        PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+      )
+      if (!snapshotResult.success) {
+        LogUtils.warn(TAG, `append USB global enabled snapshot failed: code=${snapshotResult.code}`)
+      }
     }
     return result
   }

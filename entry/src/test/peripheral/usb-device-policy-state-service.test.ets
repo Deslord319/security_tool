@@ -148,7 +148,7 @@ export default function usbDevicePolicyStateServiceTest() {
       expect(savedStates[1].present).assertFalse()
     })
 
-    it('should not dispatch or save a new device when default policy is allow', 0, async () => {
+    it('should save a new allowlist device without dispatch when default policy is allow', 0, async () => {
       const identity: UsbDeviceIdentity = {
         fingerprintKey: 'USB-SN:ALLOW-001',
         fingerprintType: 'serial',
@@ -163,8 +163,11 @@ export default function usbDevicePolicyStateServiceTest() {
 
       expect(result.desiredPolicy).assertEqual('allow')
       expect(dispatchRequests.length).assertEqual(0)
-      expect(saveCalls).assertEqual(0)
-      expect(result.state === undefined).assertTrue()
+      expect(saveCalls).assertEqual(1)
+      expect(savedStates[0].fingerprintKey).assertEqual(identity.fingerprintKey)
+      expect(savedStates[0].desiredPolicy).assertEqual('allow')
+      expect(savedStates[0].activePolicy).assertEqual('none')
+      expect(savedStates[0].present).assertTrue()
     })
 
     it('should save explicit deny only after default deny dispatch succeeds', 0, async () => {
