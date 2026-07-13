@@ -11,6 +11,8 @@ import {
 import { PeripheralService } from './PeripheralService'
 
 const TAG = 'UsbGlobalPolicyService'
+const USB_FIRST_REENUMERATION_WAIT_MS = 500
+const USB_SECOND_REENUMERATION_WAIT_MS = 1000
 
 export class UsbGlobalPolicyService {
   static async setDisabled(disallow: boolean): Promise<OperationResult<void>> {
@@ -53,14 +55,26 @@ export class UsbGlobalPolicyService {
         LogUtils.warn(TAG, `append USB global policy snapshot failed: code=${snapshotResult.code}`)
       }
     } else {
+      await UsbGlobalPolicyService.waitForUsbReenumeration(USB_FIRST_REENUMERATION_WAIT_MS)
+      let enabledDevices = PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+      if (enabledDevices.length === 0) {
+        await UsbGlobalPolicyService.waitForUsbReenumeration(USB_SECOND_REENUMERATION_WAIT_MS)
+        enabledDevices = PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+      }
       const snapshotResult = await PeripheralPolicySnapshotTraceService.appendUsbGlobalEnabledSnapshot(
-        PeripheralPolicySnapshotTraceService.captureCurrentUsbDevices()
+        enabledDevices
       )
       if (!snapshotResult.success) {
         LogUtils.warn(TAG, `append USB global enabled snapshot failed: code=${snapshotResult.code}`)
       }
     }
     return result
+  }
+
+  private static async waitForUsbReenumeration(delayMs: number): Promise<void> {
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, delayMs)
+    })
   }
 
   private static failure(stage: string): OperationResult<void> {

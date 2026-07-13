@@ -32,6 +32,7 @@ export default function usbGlobalPolicyServiceTest() {
     let restoreCalls: number
     let globalSetCalls: number
     let captureCalls: number
+    let capturedDevices: CurrentUsbDeviceSnapshot[]
     let disabledSnapshotCalls: number
     let enabledSnapshotCalls: number
     let lastDisabled: boolean | undefined
@@ -46,6 +47,7 @@ export default function usbGlobalPolicyServiceTest() {
       restoreCalls = 0
       globalSetCalls = 0
       captureCalls = 0
+      capturedDevices = []
       disabledSnapshotCalls = 0
       enabledSnapshotCalls = 0
       lastDisabled = undefined
@@ -91,7 +93,7 @@ export default function usbGlobalPolicyServiceTest() {
       })
       when(captureMock)().afterAction(() => {
         captureCalls += 1
-        return [] as CurrentUsbDeviceSnapshot[]
+        return capturedDevices
       })
       when(disabledSnapshotMock)(ArgumentMatchers.any).afterAction(() => {
         disabledSnapshotCalls += 1
@@ -165,8 +167,18 @@ export default function usbGlobalPolicyServiceTest() {
       expect(result.success).assertTrue()
       expect(restoreCalls).assertEqual(1)
       expect(lastDisabled).assertFalse()
-      expect(captureCalls).assertEqual(1)
+      expect(captureCalls).assertEqual(2)
       expect(disabledSnapshotCalls).assertEqual(0)
+      expect(enabledSnapshotCalls).assertEqual(1)
+    })
+
+    it('should skip the 1.5 second fallback when devices are available after 0.5 seconds', 0, async () => {
+      capturedDevices = [{ deviceId: 'VID:1234 PID:5678' } as CurrentUsbDeviceSnapshot]
+
+      const result = await UsbGlobalPolicyService.setDisabled(false)
+
+      expect(result.success).assertTrue()
+      expect(captureCalls).assertEqual(1)
       expect(enabledSnapshotCalls).assertEqual(1)
     })
   })
