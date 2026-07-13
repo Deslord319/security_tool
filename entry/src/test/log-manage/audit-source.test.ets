@@ -561,14 +561,23 @@ export default function logAuditSourceTest() {
 
     it('should append confirmed EDM object info remark rows for known device management events', 0, () => {
       const cases: EdmObjectInfoRemarkCase[] = [
+        { objectInfo: 'disable_usb', remark: 'USB 接口管理' },
+        { objectInfo: 'usb_read_only', remark: 'USB 存储访问策略' },
         { objectInfo: 'disabled_bluetooth', remark: '蓝牙管理' },
         { objectInfo: 'disable_wifi', remark: 'Wi-Fi 管理' },
         { objectInfo: 'disabled_printer', remark: '打印机管理' },
-        { objectInfo: 'disable_microphone', remark: '麦克风管理' }
+        { objectInfo: 'disable_microphone', remark: '麦克风管理' },
+        { objectInfo: 'disable_camera', remark: '摄像头管理' },
+        { objectInfo: 'disabled_hdc', remark: 'HDC 管理' },
+        { objectInfo: 'disallowed_tethering', remark: '网络共享管理' },
+        { objectInfo: 'get_network_interfaces', remark: '有线网络接口查询' },
+        { objectInfo: 'disallowed_usb_devices', remark: 'USB 禁止设备类型策略' },
+        { objectInfo: 'allowed_usb_devices', remark: 'USB 设备信任列表' },
+        { objectInfo: 'set_switch_status', remark: '设备开关状态管理' }
       ]
 
-      cases.forEach((item: EdmObjectInfoRemarkCase, index: number) => {
-        const timestamp = `2026062917182${index}`
+      cases.forEach((item: EdmObjectInfoRemarkCase) => {
+        const timestamp = '20260629171820'
         const content: EdmAuditContent = {
           caller: {
             abilityName: 'EnterpriseAdminAbility',
@@ -655,7 +664,7 @@ export default function logAuditSourceTest() {
           abilityName: 'EnterpriseAdminAbility',
           bundleName: 'com.huawei.securitytool'
         },
-        objectInfo: 'disable_usb',
+        objectInfo: 'disallowed_permissive_usb_devices',
         outcome: '0',
         subType: 0,
         type: 0
@@ -673,12 +682,12 @@ export default function logAuditSourceTest() {
 
       expect(!!entry).assertTrue()
       expect(getRowValue(rows, 'audit.description')).assertEqual('企业设备管理事件')
-      expect(getRowValue(rows, 'audit.edm.objectInfo')).assertEqual('disable_usb')
+      expect(getRowValue(rows, 'audit.edm.objectInfo')).assertEqual('disallowed_permissive_usb_devices')
       expect(getRowValue(rows, 'audit.edm.objectRemark')).assertEqual('')
       expect(getRowValue(rows, 'audit.edm.operationType')).assertEqual('type=0')
       expect(getRowValue(rows, 'audit.edm.operationTypeRemark')).assertEqual('读取/查询策略状态')
-      expect(entry!.detail).assertEqual('disable_usb | 读取/查询策略状态')
-      expect(getRowValue(rows, 'audit.rawJson').indexOf('disable_usb') >= 0).assertTrue()
+      expect(entry!.detail).assertEqual('disallowed_permissive_usb_devices | 读取/查询策略状态')
+      expect(getRowValue(rows, 'audit.rawJson').indexOf('disallowed_permissive_usb_devices') >= 0).assertTrue()
     })
 
     it('should not append EDM operation type remark row for unknown type values', 0, () => {

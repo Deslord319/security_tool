@@ -94,8 +94,8 @@ export class PeripheralPageStrings {
   static readonly DEVICE_TYPE_LABEL: string = '设备类型'
   static readonly CONNECTION_TIME_LABEL: string = '连接时间'
   static readonly LATEST_CONNECTION_TIME_LABEL: string = '最近连接时间'
-  static readonly USB_DEFAULT_POLICY_TITLE: string = '未配置 USB 设备默认策略'
-  static readonly USB_DEFAULT_POLICY_DESCRIPTION: string = '仅用于尚未存在 SN 或设备指纹策略的 USB 设备，不会修改已有设备策略。'
+  static readonly USB_DEFAULT_POLICY_TITLE: string = 'USB 设备黑白名单默认策略'
+  static readonly USB_DEFAULT_POLICY_DESCRIPTION: string = '用于设置新接入 USB 设备的默认策略，不会修改已有设备策略。'
 }
 
 export class PeripheralInterfaceStrings {
