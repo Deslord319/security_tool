@@ -14,6 +14,36 @@ import { SectionLabel } from '../../SectionRows'
 import { StyledSelect } from '../../StyledSelect'
 
 @ComponentV2
+struct InterfaceToggleRow {
+  @Param label: string = ''
+  @Param description: string = ''
+  @Param feature: PeripheralInterfaceFeature = PeripheralInterfaceFeatures.BLUETOOTH
+  @Param disabled: boolean = false
+  @Param processing: boolean = false
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onToggle: (feature: PeripheralInterfaceFeature, disallow: boolean) => Promise<boolean> = async () => false
+
+  build() {
+    AsyncSelectRow({
+      label: this.label,
+      description: this.description,
+      options: PeripheralOptionStrings.INTERFACE_TOGGLE_OPTIONS,
+      selectedIndex: this.disabled ?
+        PeripheralInterfaceToggleOptionIndexes.DISABLED :
+        PeripheralInterfaceToggleOptionIndexes.ENABLED,
+      processing: this.processing,
+      currentTheme: this.currentTheme,
+      onSelectAsync: async (index: number): Promise<boolean> => {
+        return await this.onToggle(
+          this.feature,
+          index === PeripheralInterfaceToggleOptionIndexes.DISABLED
+        )
+      }
+    })
+  }
+}
+
+@ComponentV2
 export struct InterfaceControlTab {
   @Param usbDisabled: boolean = false
   @Param btDisabled: boolean = false
@@ -43,21 +73,93 @@ export struct InterfaceControlTab {
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.storageItem()
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.BLUETOOTH_TITLE, PeripheralInterfaceStrings.BLUETOOTH_DESCRIPTION, PeripheralInterfaceFeatures.BLUETOOTH, this.btDisabled)
+          InterfaceToggleRow({
+            label: PeripheralInterfaceStrings.BLUETOOTH_TITLE,
+            description: PeripheralInterfaceStrings.BLUETOOTH_DESCRIPTION,
+            feature: PeripheralInterfaceFeatures.BLUETOOTH,
+            disabled: this.btDisabled,
+            processing: this.interfaceControlProcessingKey === PeripheralInterfaceFeatures.BLUETOOTH,
+            currentTheme: this.currentTheme,
+            onToggle: async (feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> =>
+              await this.toggleInterface(feature, disallow)
+          })
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.WIFI_TITLE, PeripheralInterfaceStrings.WIFI_DESCRIPTION, PeripheralInterfaceFeatures.WIFI, this.wifiDisabled)
+          InterfaceToggleRow({
+            label: PeripheralInterfaceStrings.WIFI_TITLE,
+            description: PeripheralInterfaceStrings.WIFI_DESCRIPTION,
+            feature: PeripheralInterfaceFeatures.WIFI,
+            disabled: this.wifiDisabled,
+            processing: this.interfaceControlProcessingKey === PeripheralInterfaceFeatures.WIFI,
+            currentTheme: this.currentTheme,
+            onToggle: async (feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> =>
+              await this.toggleInterface(feature, disallow)
+          })
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.ETHERNET_TITLE, PeripheralInterfaceStrings.ETHERNET_DESCRIPTION, PeripheralInterfaceFeatures.ETHERNET, this.ethernetDisabled)
+          InterfaceToggleRow({
+            label: PeripheralInterfaceStrings.ETHERNET_TITLE,
+            description: PeripheralInterfaceStrings.ETHERNET_DESCRIPTION,
+            feature: PeripheralInterfaceFeatures.ETHERNET,
+            disabled: this.ethernetDisabled,
+            processing: this.interfaceControlProcessingKey === PeripheralInterfaceFeatures.ETHERNET,
+            currentTheme: this.currentTheme,
+            onToggle: async (feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> =>
+              await this.toggleInterface(feature, disallow)
+          })
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.HDC_TITLE, PeripheralInterfaceStrings.HDC_DESCRIPTION, PeripheralInterfaceFeatures.HDC, this.hdcDisabled)
+          InterfaceToggleRow({
+            label: PeripheralInterfaceStrings.HDC_TITLE,
+            description: PeripheralInterfaceStrings.HDC_DESCRIPTION,
+            feature: PeripheralInterfaceFeatures.HDC,
+            disabled: this.hdcDisabled,
+            processing: this.interfaceControlProcessingKey === PeripheralInterfaceFeatures.HDC,
+            currentTheme: this.currentTheme,
+            onToggle: async (feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> =>
+              await this.toggleInterface(feature, disallow)
+          })
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.NETWORK_SHARING_TITLE, PeripheralInterfaceStrings.NETWORK_SHARING_DESCRIPTION, PeripheralInterfaceFeatures.NETWORK, this.networkDisabled)
+          InterfaceToggleRow({
+            label: PeripheralInterfaceStrings.NETWORK_SHARING_TITLE,
+            description: PeripheralInterfaceStrings.NETWORK_SHARING_DESCRIPTION,
+            feature: PeripheralInterfaceFeatures.NETWORK,
+            disabled: this.networkDisabled,
+            processing: this.interfaceControlProcessingKey === PeripheralInterfaceFeatures.NETWORK,
+            currentTheme: this.currentTheme,
+            onToggle: async (feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> =>
+              await this.toggleInterface(feature, disallow)
+          })
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.PRINTER_TITLE, PeripheralInterfaceStrings.PRINTER_DESCRIPTION, PeripheralInterfaceFeatures.PRINTER, this.printerDisabled)
+          InterfaceToggleRow({
+            label: PeripheralInterfaceStrings.PRINTER_TITLE,
+            description: PeripheralInterfaceStrings.PRINTER_DESCRIPTION,
+            feature: PeripheralInterfaceFeatures.PRINTER,
+            disabled: this.printerDisabled,
+            processing: this.interfaceControlProcessingKey === PeripheralInterfaceFeatures.PRINTER,
+            currentTheme: this.currentTheme,
+            onToggle: async (feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> =>
+              await this.toggleInterface(feature, disallow)
+          })
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.MICROPHONE_TITLE, PeripheralInterfaceStrings.MICROPHONE_DESCRIPTION, PeripheralInterfaceFeatures.MICROPHONE, this.microphoneDisabled)
+          InterfaceToggleRow({
+            label: PeripheralInterfaceStrings.MICROPHONE_TITLE,
+            description: PeripheralInterfaceStrings.MICROPHONE_DESCRIPTION,
+            feature: PeripheralInterfaceFeatures.MICROPHONE,
+            disabled: this.microphoneDisabled,
+            processing: this.interfaceControlProcessingKey === PeripheralInterfaceFeatures.MICROPHONE,
+            currentTheme: this.currentTheme,
+            onToggle: async (feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> =>
+              await this.toggleInterface(feature, disallow)
+          })
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.CAMERA_TITLE, PeripheralInterfaceStrings.CAMERA_DESCRIPTION, PeripheralInterfaceFeatures.CAMERA, this.cameraDisabled)
+          InterfaceToggleRow({
+            label: PeripheralInterfaceStrings.CAMERA_TITLE,
+            description: PeripheralInterfaceStrings.CAMERA_DESCRIPTION,
+            feature: PeripheralInterfaceFeatures.CAMERA,
+            disabled: this.cameraDisabled,
+            processing: this.interfaceControlProcessingKey === PeripheralInterfaceFeatures.CAMERA,
+            currentTheme: this.currentTheme,
+            onToggle: async (feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> =>
+              await this.toggleInterface(feature, disallow)
+          })
         }
         .borderRadius(AppStyles.RADIUS_LG)
         .clip(true)
@@ -103,26 +205,6 @@ export struct InterfaceControlTab {
   }
 
   @Builder
-  private toggleItem(label: string, description: string, feature: PeripheralInterfaceFeature, disabled: boolean) {
-    AsyncSelectRow({
-      label: label,
-      description: description,
-      options: PeripheralOptionStrings.INTERFACE_TOGGLE_OPTIONS,
-      selectedIndex: disabled ?
-        PeripheralInterfaceToggleOptionIndexes.DISABLED :
-        PeripheralInterfaceToggleOptionIndexes.ENABLED,
-      processing: this.interfaceControlProcessingKey === feature,
-      currentTheme: this.currentTheme,
-      onSelectAsync: async (index: number): Promise<boolean> => {
-        if (!this.onInterfaceToggle) {
-          return false
-        }
-        return await this.onInterfaceToggle(feature, index === PeripheralInterfaceToggleOptionIndexes.DISABLED)
-      }
-    })
-  }
-
-  @Builder
   private storageItem() {
     AsyncSelectRow({
       label: DeviceTypeLabels.USB_STORAGE,
@@ -138,6 +220,13 @@ export struct InterfaceControlTab {
         return await this.onUsbStoragePolicyChange(nextIndex)
       }
     })
+  }
+
+  private async toggleInterface(feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> {
+    if (!this.onInterfaceToggle) {
+      return false
+    }
+    return await this.onInterfaceToggle(feature, disallow)
   }
 
   @Builder
