@@ -37,10 +37,10 @@ export class BluetoothRuntimeConnectionStore {
     return snapshots
   }
 
-  static rememberConnectedDevice(
+  static trackConnectedDevice(
     rawDeviceId: string,
     rawPayload: string,
-    preferredDeviceName?: string
+    resolvedDeviceName: string
   ): BluetoothConnectedDeviceSnapshot | null {
     const normalizedRawId = BluetoothRuntimeConnectionStore.normalizeRawDeviceId(rawDeviceId)
     if (normalizedRawId.length === 0) {
@@ -48,12 +48,11 @@ export class BluetoothRuntimeConnectionStore {
     }
     const deviceId = formatBluetoothDeviceId(normalizedRawId)
     BluetoothRuntimeConnectionStore.pendingDisabledDisconnects.delete(deviceId)
-    let deviceName = ''
-    if (BluetoothRuntimeConnectionStore.isValidDeviceName(preferredDeviceName ?? '')) {
-      deviceName = (preferredDeviceName ?? '').trim()
+    const deviceName = BluetoothRuntimeConnectionStore.isValidDeviceName(resolvedDeviceName)
+      ? resolvedDeviceName.trim()
+      : ''
+    if (deviceName.length > 0) {
       BluetoothRuntimeConnectionStore.rememberDeviceName(deviceId, deviceName)
-    } else {
-      deviceName = BluetoothRuntimeConnectionStore.resolveDeviceName(normalizedRawId)
     }
     const snapshot: BluetoothConnectedDeviceSnapshot = {
       rawDeviceId: normalizedRawId,
@@ -70,6 +69,11 @@ export class BluetoothRuntimeConnectionStore {
     if (normalized.length > 0) {
       BluetoothRuntimeConnectionStore.connectedSnapshots.delete(normalized)
     }
+  }
+
+  static hasConnectedDevice(deviceId: string): boolean {
+    const normalized = BluetoothRuntimeConnectionStore.normalizeTraceDeviceId(deviceId)
+    return normalized.length > 0 && BluetoothRuntimeConnectionStore.connectedSnapshots.has(normalized)
   }
 
   static markDisabledDisconnectPending(deviceId: string): void {
@@ -99,14 +103,29 @@ export class BluetoothRuntimeConnectionStore {
     return true
   }
 
-  static resolveDeviceName(deviceId: string): string {
+  static queryAndCacheDeviceName(deviceId: string): string {
     const remoteName = BluetoothRuntimeConnectionStore.queryRemoteDeviceName(deviceId)
     if (BluetoothRuntimeConnectionStore.isValidDeviceName(remoteName)) {
       BluetoothRuntimeConnectionStore.rememberDeviceName(deviceId, remoteName)
+      BluetoothRuntimeConnectionStore.refreshConnectedSnapshotName(deviceId, remoteName)
       return remoteName
     }
-    const cachedName = BluetoothRuntimeConnectionStore.resolveCachedDeviceName(deviceId)
-    return cachedName.length > 0 ? cachedName : PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
+    return ''
+  }
+
+  static getCachedDeviceName(deviceId: string): string {
+    const normalized = BluetoothRuntimeConnectionStore.normalizeTraceDeviceId(deviceId)
+    const snapshotName = normalized.length > 0
+      ? (BluetoothRuntimeConnectionStore.connectedSnapshots.get(normalized)?.deviceName ?? '')
+      : ''
+    if (BluetoothRuntimeConnectionStore.isValidDeviceName(snapshotName)) {
+      return snapshotName.trim()
+    }
+    return BluetoothRuntimeConnectionStore.resolveCachedDeviceName(deviceId)
+  }
+
+  static isValidResolvedDeviceName(deviceName: string): boolean {
+    return BluetoothRuntimeConnectionStore.isValidDeviceName(deviceName)
   }
 
   static normalizeRawDeviceId(deviceId: string): string {
@@ -128,6 +147,25 @@ export class BluetoothRuntimeConnectionStore {
     return normalized.length > 0 ? (BluetoothRuntimeConnectionStore.deviceNameCache.get(normalized) ?? '') : ''
   }
 
+  private static refreshConnectedSnapshotName(deviceId: string, deviceName: string): void {
+    if (!BluetoothRuntimeConnectionStore.isValidDeviceName(deviceName)) {
+      return
+    }
+    const normalized = BluetoothRuntimeConnectionStore.normalizeTraceDeviceId(deviceId)
+    const snapshot = normalized.length > 0
+      ? BluetoothRuntimeConnectionStore.connectedSnapshots.get(normalized)
+      : undefined
+    if (!snapshot) {
+      return
+    }
+    BluetoothRuntimeConnectionStore.connectedSnapshots.set(normalized, {
+      rawDeviceId: snapshot.rawDeviceId,
+      deviceId: snapshot.deviceId,
+      deviceName: deviceName.trim(),
+      rawPayload: snapshot.rawPayload
+    })
+  }
+
   private static normalizeTraceDeviceId(deviceId: string): string {
     const normalized = (deviceId ?? '').trim().toUpperCase()
     if (normalized.startsWith('MAC:')) {
@@ -139,7 +177,8 @@ export class BluetoothRuntimeConnectionStore {
 
   private static isValidDeviceName(deviceName: string): boolean {
     const normalized = (deviceName ?? '').trim()
-    return normalized.length > 0 && normalized !== PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
+    return normalized.length > 0 &&
+      normalized !== PeripheralConnectionRecordStrings.BLUETOOTH_DEVICE
   }
 
   private static queryRemoteDeviceName(deviceId: string): string {

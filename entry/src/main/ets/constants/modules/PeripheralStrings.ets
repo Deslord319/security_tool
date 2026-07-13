@@ -134,7 +134,7 @@ export class PeripheralMatchedPolicyStrings {
 }
 
 export class PeripheralConnectionRecordStrings {
-  static readonly UNNAMED_BLUETOOTH: string = '未命名蓝牙设备'
+  static readonly BLUETOOTH_DEVICE: string = '蓝牙设备'
   static readonly BLUETOOTH_CONNECTED: string = '蓝牙设备已连接'
   static readonly BLUETOOTH_DISCONNECTED: string = '蓝牙设备已断开'
   static readonly BLUETOOTH_POLICY_SNAPSHOT_SUMMARY: string = '蓝牙禁用策略变更时发现当前连接设备'

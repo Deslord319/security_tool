@@ -15,6 +15,7 @@ const TAG = 'ConnectionRecordProducer'
 const BLUETOOTH_RUNTIME_PERMISSION: Permissions = 'ohos.permission.ACCESS_BLUETOOTH'
 const BLUETOOTH_PEER_MAC_PERMISSION: Permissions = 'ohos.permission.GET_BLUETOOTH_PEERS_MAC'
 const BLUETOOTH_ACL_EVENT_NAME = 'bluetooth_acl_state_change'
+const BLUETOOTH_BOND_EVENT_NAME = 'bluetooth_bond_state_change'
 
 export function mapBluetoothAclStateToAction(state: connection.AclState): PeripheralBluetoothAclAction | null {
   switch (state) {
@@ -33,6 +34,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
   private context: common.UIAbilityContext | null = null
   private usbSubscriber: commonEventManager.CommonEventSubscriber | null = null
   private bluetoothAclStateListener: ((result: connection.AclStateResult) => void) | undefined
+  private bluetoothBondStateListener: ((result: connection.BondStateParam) => void) | undefined
   private bluetoothPermissionBlocked: boolean = false
   private bluetoothPermissionPrompted: boolean = false
   private bluetoothPermissionRequestInFlight: boolean = false
@@ -164,7 +166,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
       LogUtils.error(TAG, 'registerBluetoothRuntimeEvents failed: GET_BLUETOOTH_PEERS_MAC not granted')
       return false
     }
-    if (this.bluetoothAclStateListener) {
+    if (this.bluetoothAclStateListener && this.bluetoothBondStateListener) {
       return true
     }
     try {
@@ -188,8 +190,28 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
       }
       connection.onAclStateChange(listener)
       this.bluetoothAclStateListener = listener
+      const bondListener = (result: connection.BondStateParam): void => {
+        const deviceId = (result.deviceId ?? '').trim()
+        if (deviceId.length === 0) {
+          LogUtils.warn(TAG, `skip bluetooth bond callback: state=${result.state}, deviceIdPresent=false`)
+          return
+        }
+        this.emitRuntimeEvent({
+          source: 'runtime',
+          channel: 'bluetooth_bond',
+          eventName: BLUETOOTH_BOND_EVENT_NAME,
+          bluetoothBond: {
+            deviceId: deviceId,
+            state: result.state,
+            cause: result.cause,
+            occurAt: Date.now()
+          }
+        })
+      }
+      connection.on('bondStateChange', bondListener)
+      this.bluetoothBondStateListener = bondListener
       this.bluetoothPermissionBlocked = false
-      LogUtils.info(TAG, 'bluetooth acl state listener ready')
+      LogUtils.info(TAG, 'bluetooth acl and bond state listeners ready')
       return true
     } catch (err) {
       const error = err as BusinessError
@@ -207,19 +229,32 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
 
   private cleanupBluetoothRuntimeEvents(): void {
     const listener = this.bluetoothAclStateListener
+    const bondListener = this.bluetoothBondStateListener
     this.bluetoothAclStateListener = undefined
-    if (!listener) {
-      return
+    this.bluetoothBondStateListener = undefined
+    if (listener) {
+      try {
+        connection.offAclStateChange(listener)
+        LogUtils.info(TAG, 'bluetooth acl state listener cleaned')
+      } catch (err) {
+        const error = err as BusinessError
+        LogUtils.warn(
+          TAG,
+          `bluetooth acl listener cleanup failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
+        )
+      }
     }
-    try {
-      connection.offAclStateChange(listener)
-      LogUtils.info(TAG, 'bluetooth acl state listener cleaned')
-    } catch (err) {
-      const error = err as BusinessError
-      LogUtils.warn(
-        TAG,
-        `bluetooth acl listener cleanup failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
-      )
+    if (bondListener) {
+      try {
+        connection.off('bondStateChange', bondListener)
+        LogUtils.info(TAG, 'bluetooth bond state listener cleaned')
+      } catch (err) {
+        const error = err as BusinessError
+        LogUtils.warn(
+          TAG,
+          `bluetooth bond listener cleanup failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
+        )
+      }
     }
   }
 

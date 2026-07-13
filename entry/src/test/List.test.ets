@@ -52,6 +52,7 @@ import logTimestampResolverTest from './log-manage/timestamp-resolver.test'
 import logPowerLifecycleSourceTest from './log-manage/power-lifecycle-source.test'
 import dataModelsTest from './models/data-models.test'
 import peripheralBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
+import bluetoothConnectionRecordCoordinatorTest from './peripheral/bluetooth-connection-record-coordinator.test'
 import peripheralPipelineTest from './peripheral/connection-record-pipeline.test'
 import peripheralConnectionRecordServiceTest from './peripheral/connection-record-service.test'
 import peripheralDevicePolicyDispatchServiceTest from './peripheral/device-policy-dispatch-service.test'
@@ -143,6 +144,7 @@ export default function testsuite() {
   logPowerLifecycleSourceTest()
   dataModelsTest()
   peripheralBluetoothAclConsumerTest()
+  bluetoothConnectionRecordCoordinatorTest()
   peripheralPipelineTest()
   peripheralConnectionRecordServiceTest()
   peripheralDevicePolicyDispatchServiceTest()

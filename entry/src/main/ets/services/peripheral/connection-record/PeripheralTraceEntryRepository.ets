@@ -21,7 +21,6 @@ import {
 } from '../../../models/PeripheralModels'
 import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
-import { PeripheralConnectionRecordStrings } from '../../../constants/modules/PeripheralStrings'
 
 const TAG = 'PeripheralTraceEntryRepo'
 const TABLE_NAME = 'peripheral_trace_entries'
@@ -114,43 +113,6 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
       ],
       'upsertBatch'
     )
-  }
-
-  async refreshBluetoothUnnamedDeviceNames(updates: PeripheralTraceRecord[]): Promise<boolean> {
-    let refreshedNames = new Map<string, string>()
-    for (let record of updates) {
-      if (record.deviceType !== PeripheralType.BLUETOOTH) {
-        continue
-      }
-      let deviceId = normalizeDeviceId(record.deviceId)
-      let deviceName = (record.deviceName ?? '').trim()
-      if (
-        deviceId.length === 0 ||
-        deviceName.length === 0 ||
-        deviceName === PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
-      ) {
-        continue
-      }
-      refreshedNames.set(deviceId, deviceName)
-    }
-    if (refreshedNames.size === 0) {
-      return true
-    }
-
-    let success = true
-    for (let item of Array.from(refreshedNames.entries())) {
-      let updated = await this.executeSql(
-        `UPDATE ${TABLE_NAME}
-         SET device_name = ?
-         WHERE device_type = ?
-           AND device_id = ?
-           AND device_name = ?`,
-        [item[1], PeripheralType.BLUETOOTH, item[0], PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH],
-        'refreshBluetoothUnnamedDeviceNames'
-      )
-      success = success && updated
-    }
-    return success
   }
 
   async listByQuery(query?: PeripheralTraceQuery): Promise<PeripheralTraceRecord[]> {

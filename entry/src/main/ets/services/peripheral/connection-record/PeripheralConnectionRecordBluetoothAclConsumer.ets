@@ -37,16 +37,10 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     if (!eventInfo) {
       return null
     }
-    let deviceName = ''
-    if (eventInfo.action === 'connect') {
-      const snapshot = BluetoothRuntimeConnectionStore.rememberConnectedDevice(
-        eventInfo.rawDeviceId,
-        eventInfo.rawPayload
-      )
-      deviceName = snapshot?.deviceName ?? PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
-    } else {
-      deviceName = BluetoothRuntimeConnectionStore.resolveDeviceName(eventInfo.rawDeviceId)
-      BluetoothRuntimeConnectionStore.forgetConnectedDevice(eventInfo.deviceId)
+    const deviceName = (event.bluetoothAcl?.deviceName ?? '').trim()
+    if (!BluetoothRuntimeConnectionStore.isValidResolvedDeviceName(deviceName)) {
+      LogUtils.warn(TAG, 'skip bluetooth acl event: resolved device name missing')
+      return null
     }
     const disabledByPolicy = eventInfo.action === 'disconnect' &&
       BluetoothRuntimeConnectionStore.consumeDisabledDisconnectPending(eventInfo.deviceId)
@@ -83,13 +77,17 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     }
     const rawDeviceId = (payload.deviceId ?? '').trim()
     if (rawDeviceId.length === 0) {
-      LogUtils.warn(TAG, 'skip bluetooth acl event: real deviceId missing')
+      LogUtils.warn(TAG, 'skip bluetooth acl event: system deviceId missing')
       return null
     }
 
     let rawPayload = ''
     try {
-      rawPayload = JSON.stringify(payload)
+      rawPayload = JSON.stringify({
+        deviceId: payload.deviceId,
+        action: payload.action,
+        occurAt: payload.occurAt
+      })
     } catch (_err) {
       rawPayload = ''
     }
