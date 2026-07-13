@@ -42,10 +42,19 @@ interface FileAuditPathInfo {
 }
 
 const EDM_OBJECT_INFO_REMARKS: Map<string, string> = new Map<string, string>([
+  ['disable_usb', 'USB 接口管理'],
+  ['usb_read_only', 'USB 存储访问策略'],
   ['disabled_bluetooth', '蓝牙管理'],
   ['disable_wifi', 'Wi-Fi 管理'],
   ['disabled_printer', '打印机管理'],
-  ['disable_microphone', '麦克风管理']
+  ['disable_microphone', '麦克风管理'],
+  ['disable_camera', '摄像头管理'],
+  ['disabled_hdc', 'HDC 管理'],
+  ['disallowed_tethering', '网络共享管理'],
+  ['get_network_interfaces', '有线网络接口查询'],
+  ['disallowed_usb_devices', 'USB 禁止设备类型策略'],
+  ['allowed_usb_devices', 'USB 设备信任列表'],
+  ['set_switch_status', '设备开关状态管理']
 ])
 
 const EDM_OPERATION_TYPE_REMARKS: Map<number, string> = new Map<number, string>([
