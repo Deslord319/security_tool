@@ -26,6 +26,7 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
     beforeEach(() => {
       mockKit = new MockKit()
       savedRecords = []
+      BluetoothRuntimeConnectionStore.resetForTest()
       BluetoothPolicySnapshotTraceService.setNowProviderForTest(() => 1700000000000)
       let appendMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.appendEntries)
       when(appendMock)(ArgumentMatchers.any).afterAction((records: PeripheralTraceRecord[]) => {
@@ -41,9 +42,10 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
     })
 
     it('should append blocked bluetooth policy snapshot for cached connected devices', 0, async () => {
-      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
+      BluetoothRuntimeConnectionStore.trackConnectedDevice(
         '11:22:33:44:55:66',
-        '{"source":"acl"}'
+        '{"source":"acl"}',
+        'Bluetooth Keyboard'
       )
       const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
 
@@ -55,7 +57,7 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
       expect(savedRecords[0].action).assertEqual('discover')
       expect(savedRecords[0].deviceType).assertEqual(PeripheralType.BLUETOOTH)
       expect(savedRecords[0].deviceId).assertEqual('MAC: 11:22:33:44:55:66')
-      expect(savedRecords[0].deviceName).assertEqual('未命名蓝牙设备')
+      expect(savedRecords[0].deviceName).assertEqual('Bluetooth Keyboard')
       expect(savedRecords[0].decision).assertEqual('deny')
       expect(savedRecords[0].result).assertEqual(SecurityEventResult.BLOCKED)
       expect(savedRecords[0].rawEventName).assertEqual('bluetooth_global_policy')
@@ -63,13 +65,15 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
     })
 
     it('should deduplicate current bluetooth connection snapshots by normalized mac', 0, () => {
-      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
+      BluetoothRuntimeConnectionStore.trackConnectedDevice(
         '11:22:33:44:55:66',
-        '{"source":"first"}'
+        '{"source":"first"}',
+        ''
       )
-      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
+      BluetoothRuntimeConnectionStore.trackConnectedDevice(
         '11-22-33-44-55-66',
-        '{"source":"second"}'
+        '{"source":"second"}',
+        ''
       )
 
       const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
@@ -87,25 +91,26 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
       expect(savedRecords.length).assertEqual(0)
     })
 
-    it('should use runtime acl connected cache as the snapshot source', 0, async () => {
-      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
+    it('should skip runtime acl snapshot with missing name', 0, async () => {
+      BluetoothRuntimeConnectionStore.trackConnectedDevice(
         'AA:BB:CC:DD:EE:FF',
-        '{"source":"acl"}'
+        '{"source":"acl"}',
+        ''
       )
       const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
 
       const result = await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot(snapshots)
 
       expect(result.success).assertTrue()
-      expect(savedRecords.length).assertEqual(1)
-      expect(savedRecords[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
-      expect(savedRecords[0].deviceName).assertEqual('未命名蓝牙设备')
+      expect(savedRecords.length).assertEqual(0)
+      expect(BluetoothRuntimeConnectionStore.captureConnectedDevices().length).assertEqual(0)
     })
 
     it('should keep snapshot append independent from disconnect filtering', 0, async () => {
-      BluetoothRuntimeConnectionStore.rememberConnectedDevice(
+      BluetoothRuntimeConnectionStore.trackConnectedDevice(
         'AA:BB:CC:DD:EE:FF',
-        '{}'
+        '{}',
+        'Bluetooth Headset'
       )
       const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
 

@@ -22,13 +22,15 @@ interface BluetoothAclOverrides {
   deviceId?: string
   action?: PeripheralBluetoothAclAction
   occurAt?: number
+  deviceName?: string
 }
 
 function buildBluetoothAclEvent(overrides?: BluetoothAclOverrides): PeripheralConnectionRecordProducerEvent {
   const payload: PeripheralBluetoothAclProducerPayload = {
     deviceId: overrides?.deviceId ?? '11:22:33:44:55:66',
     action: overrides?.action ?? 'connect',
-    occurAt: overrides?.occurAt ?? 200
+    occurAt: overrides?.occurAt ?? 200,
+    deviceName: overrides?.deviceName === undefined ? 'Bluetooth Keyboard' : overrides.deviceName
   }
   return {
     source: 'runtime',
@@ -45,8 +47,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       BluetoothRuntimeConnectionStore.resetForTest()
     })
 
-    it('U-BT-001 should map real mac connect event to allow record', 0, async () => {
-      BluetoothRuntimeConnectionStore.setRemoteDeviceNameProviderForTest(() => 'Bluetooth Keyboard')
+    it('U-BT-001 should map system device address connect event to allow record', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
       const record = await consumer.consume(buildBluetoothAclEvent())
@@ -64,20 +65,20 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record?.detail).assertEqual('aclState=STATE_CONNECTED, reason=--')
     })
 
-    it('U-BT-002 should cache connected real mac for bluetooth policy snapshot', 0, async () => {
-      BluetoothRuntimeConnectionStore.setRemoteDeviceNameProviderForTest(() => 'Cached Headset')
+    it('U-BT-002 should not mutate runtime connection cache after coordinator admission', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
-      await consumer.consume(buildBluetoothAclEvent({ deviceId: 'AA:BB:CC:DD:EE:FF' }))
+      const record = await consumer.consume(buildBluetoothAclEvent({
+        deviceId: 'AA:BB:CC:DD:EE:FF',
+        deviceName: 'Cached Headset'
+      }))
       const snapshots = BluetoothRuntimeConnectionStore.captureConnectedDevices()
 
-      expect(snapshots.length).assertEqual(1)
-      expect(snapshots[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
-      expect(snapshots[0].deviceName).assertEqual('Cached Headset')
+      expect(record?.deviceName).assertEqual('Cached Headset')
+      expect(snapshots.length).assertEqual(0)
     })
 
-    it('U-BT-003 should map real mac disconnect and remove connected cache', 0, async () => {
-      BluetoothRuntimeConnectionStore.setRemoteDeviceNameProviderForTest(() => 'Bluetooth Keyboard')
+    it('U-BT-003 should map system device address disconnect event', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
       await consumer.consume(buildBluetoothAclEvent())
 
@@ -91,7 +92,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(snapshots.length).assertEqual(0)
     })
 
-    it('U-BT-004 should reject missing payload or real device id', 0, async () => {
+    it('U-BT-004 should reject missing payload or system device id', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
       const missingPayload: PeripheralConnectionRecordProducerEvent = {
         source: 'runtime',
@@ -106,17 +107,15 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(missingIdRecord === null).assertTrue()
     })
 
-    it('U-BT-005 should keep unnamed real mac event when name cannot be resolved', 0, async () => {
+    it('U-BT-005 should reject event when coordinator did not resolve a valid name', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
-      const record = await consumer.consume(buildBluetoothAclEvent())
+      const record = await consumer.consume(buildBluetoothAclEvent({ deviceName: '' }))
 
-      expect(record !== null).assertTrue()
-      expect(record?.deviceName).assertEqual('未命名蓝牙设备')
-      expect(record?.deviceId).assertEqual('MAC: 11:22:33:44:55:66')
+      expect(record === null).assertTrue()
     })
 
-    it('U-BT-006 should normalize real bluetooth mac format', 0, async () => {
+    it('U-BT-006 should normalize bluetooth system address format', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
       const record = await consumer.consume(buildBluetoothAclEvent({ deviceId: 'aa-bb-cc-dd-ee-ff' }))
@@ -135,18 +134,17 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record?.rawPayload?.includes('"action":"connect"')).assertTrue()
     })
 
-    it('U-BT-008 should reuse real mac name cache when disconnect lookup is unavailable', 0, async () => {
-      let queryCount = 0
-      BluetoothRuntimeConnectionStore.setRemoteDeviceNameProviderForTest(() => {
-        queryCount++
-        return queryCount === 1 ? 'Cached Headset' : ''
-      })
+    it('U-BT-008 should use coordinator-provided cached name for disconnect', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
-      const connectRecord = await consumer.consume(buildBluetoothAclEvent({ deviceId: 'AA:BB:CC:DD:EE:FF' }))
+      const connectRecord = await consumer.consume(buildBluetoothAclEvent({
+        deviceId: 'AA:BB:CC:DD:EE:FF',
+        deviceName: 'Cached Headset'
+      }))
       const disconnectRecord = await consumer.consume(buildBluetoothAclEvent({
         deviceId: 'AA:BB:CC:DD:EE:FF',
-        action: 'disconnect'
+        action: 'disconnect',
+        deviceName: 'Cached Headset'
       }))
 
       expect(connectRecord?.deviceName).assertEqual('Cached Headset')
@@ -188,6 +186,11 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
         expect(repeatedRecord?.effectivePolicyLabel).assertEqual('已启用')
 
         BluetoothRuntimeConnectionStore.markDisabledDisconnectPending('MAC: 11:22:33:44:55:66')
+        BluetoothRuntimeConnectionStore.trackConnectedDevice(
+          '11:22:33:44:55:66',
+          '{}',
+          'Bluetooth Keyboard'
+        )
         await consumer.consume(buildBluetoothAclEvent({ action: 'connect' }))
         const disconnectAfterReconnect = await consumer.consume(buildBluetoothAclEvent({ action: 'disconnect' }))
         expect(disconnectAfterReconnect?.decision).assertEqual('allow')

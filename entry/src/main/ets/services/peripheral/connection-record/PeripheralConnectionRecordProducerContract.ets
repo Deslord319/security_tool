@@ -1,5 +1,6 @@
 import type { common } from '@kit.AbilityKit'
 import type { commonEventManager } from '@kit.BasicServicesKit'
+import type { connection } from '@kit.ConnectivityKit'
 import type { PeripheralTraceRecord } from '../../../models/PeripheralModels'
 export interface PeripheralConnectionRecordProducerCapabilities {
   usbRuntimeEvents: boolean
@@ -18,14 +19,23 @@ export interface PeripheralBluetoothAclProducerPayload {
   deviceId: string
   action: PeripheralBluetoothAclAction
   occurAt: number
+  deviceName?: string
+}
+
+export interface PeripheralBluetoothBondProducerPayload {
+  deviceId: string
+  state: connection.BondState
+  cause?: connection.UnbondCause
+  occurAt: number
 }
 
 export interface PeripheralConnectionRecordProducerEvent {
   source: 'runtime'
-  channel: 'usb' | 'bluetooth_acl'
+  channel: 'usb' | 'bluetooth_acl' | 'bluetooth_bond'
   eventName: string
   rawData?: commonEventManager.CommonEventData
   bluetoothAcl?: PeripheralBluetoothAclProducerPayload
+  bluetoothBond?: PeripheralBluetoothBondProducerPayload
 }
 
 export type PeripheralConnectionRecordProducerListener = (event: PeripheralConnectionRecordProducerEvent) => void

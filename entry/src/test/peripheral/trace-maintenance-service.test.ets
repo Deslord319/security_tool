@@ -43,11 +43,6 @@ export default function peripheralTraceMaintenanceServiceTest() {
       let notifyMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.notifyChanged)
       let clearMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.clearAll)
       let upsertMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.upsertBatch)
-      let refreshBluetoothNameMock = mockKit.mockFunc(
-        PeripheralTraceEntryRepository,
-        PeripheralTraceEntryRepository.refreshBluetoothUnnamedDeviceNames
-      )
-
       when(initMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
       when(readyMock)().afterReturn(true)
       when(deleteMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
@@ -55,7 +50,6 @@ export default function peripheralTraceMaintenanceServiceTest() {
       when(notifyMock)().afterReturn(undefined)
       when(clearMock)().afterReturn(Promise.resolve(true))
       when(upsertMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
-      when(refreshBluetoothNameMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
     })
 
     afterEach(() => {

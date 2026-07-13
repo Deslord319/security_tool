@@ -34,9 +34,20 @@ export class BluetoothPolicySnapshotTraceService {
       return { success: true, code: 'ok' }
     }
 
-    LogUtils.info(TAG, `append bluetooth policy snapshot from acl cache: count=${beforeSnapshots.length}`)
+    const namedSnapshots = beforeSnapshots.filter((snapshot: BluetoothConnectedDeviceSnapshot) => {
+      return BluetoothRuntimeConnectionStore.isValidResolvedDeviceName(snapshot.deviceName)
+    })
+    if (namedSnapshots.length === 0) {
+      LogUtils.info(TAG, 'skip bluetooth policy snapshot append: connected devices have no resolved name')
+      for (const snapshot of beforeSnapshots) {
+        BluetoothRuntimeConnectionStore.forgetConnectedDevice(snapshot.deviceId)
+      }
+      return { success: true, code: 'ok' }
+    }
+
+    LogUtils.info(TAG, `append bluetooth policy snapshot from acl cache: count=${namedSnapshots.length}`)
     const now = BluetoothPolicySnapshotTraceService.nowProvider()
-    const records = beforeSnapshots.map((snapshot: BluetoothConnectedDeviceSnapshot) => {
+    const records = namedSnapshots.map((snapshot: BluetoothConnectedDeviceSnapshot) => {
       return BluetoothPolicySnapshotTraceService.buildTraceRecord(snapshot, now)
     })
     const result = await PeripheralTraceMaintenanceService.appendEntries(records)

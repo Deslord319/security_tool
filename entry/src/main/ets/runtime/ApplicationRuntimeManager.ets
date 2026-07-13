@@ -8,6 +8,7 @@ import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peri
 import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/PeripheralConnectionRecordPipeline'
 import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/PeripheralConnectionRecordRuntimeProducerAdapter'
 import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/PeripheralConnectionRecordUsbConsumer'
+import { BluetoothConnectionRecordCoordinator } from '../services/peripheral/connection-record/BluetoothConnectionRecordCoordinator'
 import { AccountChangeEventPayload } from '../services/account/AccountChangeEventBus'
 import { AccountRuntimeService } from '../services/account/AccountRuntimeService'
 import { UserFirewallOption } from '../services/firewall/FirewallModels'
@@ -52,11 +53,13 @@ export class ApplicationRuntimeManager {
   )
   private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
     new PeripheralConnectionRecordRuntimeProducerAdapter()
+  private readonly bluetoothConnectionRecordCoordinator: BluetoothConnectionRecordCoordinator =
+    new BluetoothConnectionRecordCoordinator()
   private readonly connectionRecordPipeline: PeripheralConnectionRecordPipelineImpl =
     new PeripheralConnectionRecordPipelineImpl(this.connectionRecordProducer, [
       new PeripheralConnectionRecordUsbConsumer(),
       new PeripheralConnectionRecordBluetoothAclConsumer()
-    ])
+    ], this.bluetoothConnectionRecordCoordinator)
 
   static getInstance(): ApplicationRuntimeManager {
     if (!ApplicationRuntimeManager.instance) {

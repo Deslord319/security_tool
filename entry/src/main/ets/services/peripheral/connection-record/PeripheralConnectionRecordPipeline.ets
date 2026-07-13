@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { PeripheralTraceRecord } from '../../../models/PeripheralModels'
 import { PeripheralTraceMaintenanceService } from './PeripheralTraceMaintenanceService'
 import { LogUtils } from '../../../utils/LogUtils'
+import { BluetoothConnectionRecordCoordinator } from './BluetoothConnectionRecordCoordinator'
 import {
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordPipeline,
@@ -20,10 +21,19 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
   private started: boolean = false
   private producer: PeripheralConnectionRecordProducer | null
   private consumers: PeripheralConnectionRecordConsumer[]
+  private bluetoothCoordinator: BluetoothConnectionRecordCoordinator | null
 
-  constructor(producer: PeripheralConnectionRecordProducer | null, consumers: PeripheralConnectionRecordConsumer[]) {
+  constructor(
+    producer: PeripheralConnectionRecordProducer | null,
+    consumers: PeripheralConnectionRecordConsumer[],
+    bluetoothCoordinator?: BluetoothConnectionRecordCoordinator
+  ) {
     this.producer = producer
     this.consumers = consumers
+    this.bluetoothCoordinator = bluetoothCoordinator ?? null
+    this.bluetoothCoordinator?.setRecordSink(async (event: PeripheralConnectionRecordProducerEvent) => {
+      return this.pushAdmittedEvent(event)
+    })
   }
 
   async bindContext(context: common.UIAbilityContext): Promise<boolean> {
@@ -64,6 +74,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
       this.producerListenerId = 0
     }
     this.producer.stop()
+    this.bluetoothCoordinator?.stop()
     this.producer = null
   }
 
@@ -91,6 +102,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
   stop(): void {
     this.started = false
     if (!this.producer) {
+      this.bluetoothCoordinator?.stop()
       return
     }
     if (this.producerListenerId > 0) {
@@ -98,9 +110,20 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
       this.producerListenerId = 0
     }
     this.producer.stop()
+    this.bluetoothCoordinator?.stop()
   }
 
   async push(event: PeripheralConnectionRecordProducerEvent): Promise<boolean> {
+    if (
+      this.bluetoothCoordinator &&
+      (event.channel === 'bluetooth_acl' || event.channel === 'bluetooth_bond')
+    ) {
+      return this.bluetoothCoordinator.handleEvent(event)
+    }
+    return this.pushAdmittedEvent(event)
+  }
+
+  private async pushAdmittedEvent(event: PeripheralConnectionRecordProducerEvent): Promise<boolean> {
     const traceReady = await this.ensureTraceRepositoryReady()
     if (!traceReady) {
       LogUtils.warn(TAG, `skip runtime event: storage not ready, channel=${event.channel}`)
