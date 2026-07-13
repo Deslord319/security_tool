@@ -14,7 +14,7 @@
     },
     {
       "name": "bluetooth_access_reason",
-      "value": "用于监听蓝牙设备连接和断开事件并记录外设连接信息"
+      "value": "用于监听蓝牙设备连接和断开事件"
     }
   ]
 }

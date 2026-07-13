@@ -5,9 +5,9 @@
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-API26-blue)](https://developer.huawei.com/consumer/cn/)
 [![ArkTS](https://img.shields.io/badge/Language-ArkTS-orange)](https://developer.huawei.com/consumer/cn/doc/)
 [![Target](https://img.shields.io/badge/Device-2in1-0A84FF)](https://developer.huawei.com/consumer/cn/)
-[![Version](https://img.shields.io/badge/Version-1.0.1-brightgreen)](#项目基线)
+[![Version](https://img.shields.io/badge/Version-1.0.4-brightgreen)](#项目基线)
 
-`SecurityTool` 是一个基于 ArkTS 的 HarmonyOS 企业安全管理工具，面向 `2in1` 设备，聚合安全总览、防火墙、日志管理、外设管控、权限管理、身份鉴别和工具设置能力。应用主入口为 `pages/MainPage`，包名为 `com.huawei.securitytool`，当前应用版本为 `1.0.1`。
+`SecurityTool` 是一个基于 ArkTS 的 HarmonyOS 企业安全管理工具，面向 `2in1` 设备，聚合安全总览、防火墙、日志管理、外设管控、权限管理、身份鉴别和工具设置能力。应用主入口为 `pages/MainPage`，包名为 `com.huawei.securitytool`，当前应用版本为 `1.0.4`。
 
 ## 当前能力
 
@@ -24,18 +24,18 @@
 
 ## 项目基线
 
-| 项目 | 值 |
-| --- | --- |
-| 应用名称 | 安全管理中心 |
-| 项目名称 | `SecurityTool` |
-| 包名 | `com.huawei.securitytool` |
-| 版本 | `1.0.1` (`versionCode: 1000001`) |
-| 目标设备 | `2in1` |
-| 语言 | ArkTS (ETS) |
-| SDK 基线 | HarmonyOS `26.0.0` (`API 26`) |
-| 主入口页面 | `pages/MainPage` |
+| 项目 | 值                                                                |
+| --- |------------------------------------------------------------------|
+| 应用名称 | 安全管理中心                                                           |
+| 项目名称 | `SecurityTool`                                                   |
+| 包名 | `com.huawei.securitytool`                                        |
+| 版本 | `1.0.4` (`versionCode: 1000004`)                                 |
+| 目标设备 | `2in1`                                                           |
+| 语言 | ArkTS (ETS)                                                      |
+| SDK 基线 | HarmonyOS `26.0.0` (`API 26`)                                    |
+| 主入口页面 | `pages/MainPage`                                                 |
 | unsigned HAP | `entry/build/default/outputs/default/entry-default-unsigned.hap` |
-| signed HAP | `hapsigner/signApp.hap` |
+| signed HAP | `hapsigner/signApp.hap`                                          |
 
 ## 总体设计
 

@@ -10,8 +10,6 @@ import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { AsyncSelectRow } from '../../AsyncSelectRow'
-import { SectionLabel } from '../../SectionRows'
-import { StyledSelect } from '../../StyledSelect'
 
 @ComponentV2
 struct InterfaceToggleRow {
@@ -221,62 +219,10 @@ export struct InterfaceControlTab {
       }
     })
   }
-
   private async toggleInterface(feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> {
     if (!this.onInterfaceToggle) {
       return false
     }
     return await this.onInterfaceToggle(feature, disallow)
-  }
-
-  @Builder
-  private controlRow(
-    label: string,
-    description: string,
-    options: string[],
-    selectedIndex: number,
-    isProcessing: boolean,
-    onSelect?: (index: number) => void
-  ) {
-    Row() {
-      SectionLabel({
-        title: label,
-        description: description,
-        currentTheme: this.currentTheme
-      })
-
-      Row({ space: AppStyles.CONTROL_ROW_ACTION_GAP }) {
-        if (isProcessing) {
-          LoadingProgress()
-            .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-            .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-            .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        }
-
-        StyledSelect({
-          options: options.map((value: string): SelectOption => ({ value: value } as SelectOption)),
-          selectedIndex: selectedIndex,
-          value: options[selectedIndex] ?? '',
-          controlWidth: AppStyles.SELECT_WIDTH_DEFAULT,
-          enabledValue: !isProcessing,
-          opacityValue: isProcessing ? 0.72 : 1,
-          currentTheme: this.currentTheme,
-          onSelect: (index: number) => {
-            if (onSelect) {
-              onSelect(index)
-            }
-          }
-        })
-      }
-    }
-    .width('100%')
-    .padding({
-      left: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
-      right: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
-      top: AppStyles.CONTROL_ROW_VERTICAL_PADDING,
-      bottom: AppStyles.CONTROL_ROW_VERTICAL_PADDING
-    })
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .opacity(isProcessing ? 0.8 : 1)
   }
 }
