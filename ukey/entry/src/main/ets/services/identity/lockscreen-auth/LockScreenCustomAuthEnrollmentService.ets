@@ -16,7 +16,10 @@ import companionDeviceAuth, {
 } from '../custom-auth-core/companion/CompanionDeviceAuthCompat'
 import { decodeUint64Le } from '../custom-auth-core/codec/CustomAuthUint64Codec'
 import { generateRandom } from '../custom-auth-core/crypto/CustomAuthCryptoEngine'
-import { authenticatorUKeyProvider } from '../custom-auth-core/ukey/AuthenticatorUKeyProvider'
+import {
+  AuthenticatorUKeyPasscodeVerification,
+  authenticatorUKeyProvider
+} from '../custom-auth-core/ukey/AuthenticatorUKeyProvider'
 import {
   LockScreenUKeyActiveCredentialRepository,
   LockScreenUKeyBindingRepository,
@@ -113,8 +116,10 @@ export interface CustomAuthCredentialVerificationResult {
 
 export interface CustomAuthCredentialVerificationSummary {
   total: number
+  attemptedCount: number
   successCount: number
   failureCount: number
+  skippedCount: number
   results: CustomAuthCredentialVerificationResult[]
 }
 
@@ -125,6 +130,81 @@ export interface CustomAuthCredentialVerifier {
     challenge: Uint8Array,
     ukeyPassword: string
   ): Promise<CustomAuthCredentialVerificationResult>
+}
+
+export interface UKeyPasscodeVerificationProvider {
+  bindContext(context: common.Context): void
+  isFingerprintLocked(context: common.Context, fingerprint: string): Promise<boolean>
+  verifyPasscodeForFingerprint(
+    context: common.Context,
+    fingerprint: string,
+    passcode: string
+  ): Promise<AuthenticatorUKeyPasscodeVerification>
+}
+
+export function describeUKeyPasscodePrecheckFailure(result: AuthenticatorUKeyPasscodeVerification): string {
+  if (result.locked || result.reason === 'locked') {
+    return 'UKey 密码已锁定'
+  }
+  if (result.reason === 'mismatch') {
+    return `UKey 密码错误，剩余 ${result.remainingAttempts} 次`
+  }
+  if (result.reason === 'ukey_absent') {
+    return '目标 UKey 已移除，请重新插入后重试'
+  }
+  return 'UKey 状态校验失败，请重试'
+}
+
+export function describeCustomAuthVerificationFailure(result: CustomAuthCredentialVerificationResult): string {
+  switch (result.resultCode) {
+    case osAccount.ResultCode.FAIL:
+      return '认证未通过，可能是密码传输校验失败、UKey 已移除或绑定/系统凭据不匹配'
+    case osAccount.ResultCode.GENERAL_ERROR:
+      return '认证器内部异常，请重试'
+    case osAccount.ResultCode.CANCELED:
+      return '认证已取消'
+    case osAccount.ResultCode.TIMEOUT:
+      return '认证超时，请重新尝试'
+    case osAccount.ResultCode.TYPE_NOT_SUPPORT:
+      return '当前系统不支持 CustomAuth'
+    case osAccount.ResultCode.TRUST_LEVEL_NOT_SUPPORT:
+      return '当前系统不支持 ATL3 认证等级'
+    case osAccount.ResultCode.BUSY:
+      return '认证服务正忙，请稍后重试'
+    case osAccount.ResultCode.INVALID_PARAMETERS:
+      return '认证参数无效'
+    case osAccount.ResultCode.LOCKED:
+      return 'UKey 密码已锁定'
+    case osAccount.ResultCode.NOT_ENROLLED:
+      return '系统未找到对应的 UKEY解锁凭据'
+    default:
+      if (result.errorCode !== undefined && result.errorCode !== -1) {
+        return `认证调用异常（错误码 ${result.errorCode}）`
+      }
+      return '认证调用异常，请重试'
+  }
+}
+
+export function buildCustomAuthVerificationFailureMessage(
+  summary: CustomAuthCredentialVerificationSummary
+): string {
+  let failures = summary.results.filter((result: CustomAuthCredentialVerificationResult): boolean => {
+    return !result.success
+  })
+  let details = failures.slice(0, 2).map((result: CustomAuthCredentialVerificationResult): string => {
+    return `用户 ${result.userId}：${describeCustomAuthVerificationFailure(result)}`
+  })
+  let message = `认证失败 ${summary.failureCount}/${summary.total}`
+  if (details.length > 0) {
+    message += `：${details.join('；')}`
+  }
+  if (failures.length > details.length) {
+    message += `；另有 ${failures.length - details.length} 个用户失败`
+  }
+  if (summary.skippedCount > 0) {
+    message += `；后续 ${summary.skippedCount} 个用户未验证`
+  }
+  return message
 }
 
 export interface UKeyUserProvider {
@@ -261,7 +341,7 @@ export class OsAccountCustomAuthCredentialVerifier implements CustomAuthCredenti
               userId: userId,
               credentialIdHex: credentialIdHex,
               challengeHex: challengeHex,
-              errorCode: -1,
+              resultCode: osAccount.ResultCode.TIMEOUT,
               errorMessage: 'CustomAuth credential verification timeout'
             })
           }, CUSTOM_AUTH_VERIFY_TIMEOUT_MS)
@@ -728,6 +808,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
   private readonly registrar: CustomAuthCredentialManager
   private readonly userProvider: UKeyUserProvider
   private readonly verifier: CustomAuthCredentialVerifier
+  private readonly passcodeVerifier: UKeyPasscodeVerificationProvider
 
   constructor(
     bindingRepository: LockScreenUKeyBindingRepository = new PreferencesLockScreenUKeyBindingRepository(),
@@ -736,7 +817,8 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     activeCredentialRepository: LockScreenUKeyActiveCredentialRepository =
       new PreferencesLockScreenUKeyActiveCredentialRepository(),
     userProvider: UKeyUserProvider = new OsAccountUKeyUserProvider(),
-    verifier: CustomAuthCredentialVerifier = new OsAccountCustomAuthCredentialVerifier()
+    verifier: CustomAuthCredentialVerifier = new OsAccountCustomAuthCredentialVerifier(),
+    passcodeVerifier: UKeyPasscodeVerificationProvider = authenticatorUKeyProvider
   ) {
     this.bindingRepository = bindingRepository
     this.deviceProvider = deviceProvider
@@ -744,6 +826,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     this.activeCredentialRepository = activeCredentialRepository
     this.userProvider = userProvider
     this.verifier = verifier
+    this.passcodeVerifier = passcodeVerifier
   }
 
   async addCredentialWithUserInput(
@@ -831,42 +914,79 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       } as OperationResult<CustomAuthCredentialVerificationSummary>
     }
 
+    this.passcodeVerifier.bindContext(context)
+    let passcodeResult = await this.passcodeVerifier.verifyPasscodeForFingerprint(
+      context,
+      active.fingerprint,
+      ukeyPassword
+    )
+    if (!passcodeResult.success) {
+      let message = describeUKeyPasscodePrecheckFailure(passcodeResult)
+      LogUtils.warn(TAG,
+        `[VERIFY_PRECHECK_FAIL] reason=${passcodeResult.reason}, locked=${passcodeResult.locked}, attempts=${passcodeResult.failedAttempts}`)
+      return {
+        success: false,
+        errorMessage: message,
+        userMessage: message,
+        stage: 'verify_credential'
+      } as OperationResult<CustomAuthCredentialVerificationSummary>
+    }
+
     let results: CustomAuthCredentialVerificationResult[] = []
     for (let credential of credentials) {
       let challenge = await generateRandom(CUSTOM_AUTH_VERIFY_CHALLENGE_LENGTH)
       if (!challenge) {
-        results.push({
+        let result: CustomAuthCredentialVerificationResult = {
           success: false,
           userId: credential.userId,
           credentialIdHex: credential.credentialIdHex,
           challengeHex: '',
-          errorCode: -1,
+          resultCode: osAccount.ResultCode.GENERAL_ERROR,
           errorMessage: 'Generate CustomAuth challenge failed'
-        })
+        }
+        results.push(result)
+        LogUtils.warn(TAG,
+          `[VERIFY_USER_FAIL] userId=${result.userId}, resultCode=${result.resultCode}, errorCode=-1, message=${result.errorMessage}`)
         continue
       }
-      results.push(await this.verifier.verifyCredential(
+      let result = await this.verifier.verifyCredential(
         credential.userId,
         credential.credentialIdHex,
         challenge,
         ukeyPassword
-      ))
+      )
+      results.push(result)
+      if (!result.success) {
+        LogUtils.warn(TAG,
+          `[VERIFY_USER_FAIL] userId=${result.userId}, resultCode=${result.resultCode ?? -1}, errorCode=${result.errorCode ?? -1}, message=${result.errorMessage ?? '-'}`)
+        if (result.resultCode === osAccount.ResultCode.FAIL || result.resultCode === osAccount.ResultCode.LOCKED) {
+          break
+        }
+      }
     }
 
     let successCount = results.filter((result: CustomAuthCredentialVerificationResult): boolean => {
       return result.success
     }).length
+    let failureCount = results.length - successCount
+    let skippedCount = credentials.length - results.length
     let summary: CustomAuthCredentialVerificationSummary = {
-      total: results.length,
+      total: credentials.length,
+      attemptedCount: results.length,
       successCount: successCount,
-      failureCount: results.length - successCount,
+      failureCount: failureCount,
+      skippedCount: skippedCount,
       results: results
     }
+    let success = summary.total > 0 && summary.failureCount === 0 && summary.skippedCount === 0
+    let failureMessage = success ? undefined : buildCustomAuthVerificationFailureMessage(summary)
+    LogUtils.info(TAG,
+      `[VERIFY_SUMMARY] total=${summary.total}, attempted=${summary.attemptedCount}, success=${summary.successCount}, failed=${summary.failureCount}, skipped=${summary.skippedCount}`)
     return {
-      success: summary.total > 0 && summary.failureCount === 0,
+      success: success,
       data: summary,
-      errorMessage: summary.failureCount === 0 ? undefined : `UKEY解锁凭据认证失败，失败用户数 ${summary.failureCount}`,
-      userMessage: summary.failureCount === 0 ? undefined : `UKEY解锁凭据认证失败，失败用户数 ${summary.failureCount}`,
+      errorMessage: failureMessage,
+      userMessage: failureMessage,
       stage: 'verify_credential'
     } as OperationResult<CustomAuthCredentialVerificationSummary>
   }
@@ -1216,11 +1336,11 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     systemPin: string,
     ukeyPassword: string
   ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
-    authenticatorUKeyProvider.bindContext(context)
-    if (await authenticatorUKeyProvider.isFingerprintLocked(context, device.fingerprint)) {
+    this.passcodeVerifier.bindContext(context)
+    if (await this.passcodeVerifier.isFingerprintLocked(context, device.fingerprint)) {
       return LockScreenCustomAuthEnrollmentService.failure('ukey_locked', 'UKey 密码已锁定', existing)
     }
-    let passcodeResult = await authenticatorUKeyProvider.verifyPasscodeForFingerprint(
+    let passcodeResult = await this.passcodeVerifier.verifyPasscodeForFingerprint(
       context,
       device.fingerprint,
       ukeyPassword

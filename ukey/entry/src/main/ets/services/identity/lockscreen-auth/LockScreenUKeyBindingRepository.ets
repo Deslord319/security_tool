@@ -5,10 +5,9 @@ import {
   LockScreenUKeyCredentialLifecycle,
   LockScreenUKeyUserCredential,
   PREF_KEY_LOCKSCREEN_UKEY_ACTIVE_CREDENTIAL,
-  PREF_KEY_LOCKSCREEN_UKEY_BINDING,
-  PREF_STORE_NAME_LOCKSCREEN_AUTH
+  PREF_KEY_LOCKSCREEN_UKEY_BINDING
 } from '../../../models/identity/lockscreen-auth/LockScreenAuthModels'
-import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
+import { LockScreenAuthPreferences } from '../../../storage/preferences/LockScreenAuthPreferences'
 import { ErrorUtils } from '../../../utils/ErrorUtils'
 import { LogUtils } from '../../../utils/LogUtils'
 
@@ -69,7 +68,10 @@ export interface LockScreenUKeyActiveCredentialRepository {
 export class PreferencesLockScreenUKeyBindingRepository implements LockScreenUKeyBindingRepository {
   async loadBinding(context: common.Context): Promise<LockScreenUKeyBinding | null> {
     try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+      let pref = await LockScreenAuthPreferences.get(context)
+      if (!pref) {
+        return null
+      }
       let binding = await pref.getJsonObject<LockScreenUKeyBinding | null>(
         PREF_KEY_LOCKSCREEN_UKEY_BINDING,
         null
@@ -91,7 +93,10 @@ export class PreferencesLockScreenUKeyBindingRepository implements LockScreenUKe
       return false
     }
     try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+      let pref = await LockScreenAuthPreferences.get(context)
+      if (!pref) {
+        return false
+      }
       let stored = await pref.getStringResult(PREF_KEY_LOCKSCREEN_UKEY_BINDING, '')
       if (!stored.success) {
         LogUtils.error(TAG, '[SAVE_REJECT] saveBinding | reason=existing_binding_unreadable')
@@ -140,7 +145,10 @@ export class PreferencesLockScreenUKeyBindingRepository implements LockScreenUKe
 export class PreferencesLockScreenUKeyActiveCredentialRepository implements LockScreenUKeyActiveCredentialRepository {
   async loadActiveCredential(context: common.Context): Promise<LockScreenUKeyActiveCredential | null> {
     try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+      let pref = await LockScreenAuthPreferences.get(context)
+      if (!pref) {
+        return null
+      }
       let credential = await pref.getJsonObject<LockScreenUKeyActiveCredential | null>(
         PREF_KEY_LOCKSCREEN_UKEY_ACTIVE_CREDENTIAL,
         null
@@ -165,7 +173,10 @@ export class PreferencesLockScreenUKeyActiveCredentialRepository implements Lock
       return false
     }
     try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+      let pref = await LockScreenAuthPreferences.get(context)
+      if (!pref) {
+        return false
+      }
       let saved = await pref.setJson(PREF_KEY_LOCKSCREEN_UKEY_ACTIVE_CREDENTIAL, credential)
       if (!saved) {
         LogUtils.error(TAG, '[SAVE_ACTIVE_FAIL] saveActiveCredential | reason=preferences_write_failed')
@@ -180,7 +191,10 @@ export class PreferencesLockScreenUKeyActiveCredentialRepository implements Lock
 
   async clearActiveCredential(context: common.Context): Promise<boolean> {
     try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+      let pref = await LockScreenAuthPreferences.get(context)
+      if (!pref) {
+        return false
+      }
       let cleared = await pref.setValue(PREF_KEY_LOCKSCREEN_UKEY_ACTIVE_CREDENTIAL, '')
       if (!cleared) {
         LogUtils.error(TAG, '[CLEAR_ACTIVE_FAIL] clearActiveCredential | reason=preferences_write_failed')

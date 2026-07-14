@@ -2,10 +2,9 @@ import { common } from '@kit.AbilityKit'
 import {
   DEFAULT_LOCKSCREEN_AUTH_CONFIG,
   LockScreenAuthConfig,
-  PREF_KEY_LOCKSCREEN_UKEY_AUTH_ENABLED,
-  PREF_STORE_NAME_LOCKSCREEN_AUTH
+  PREF_KEY_LOCKSCREEN_UKEY_AUTH_ENABLED
 } from '../../../models/identity/lockscreen-auth/LockScreenAuthModels'
-import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
+import { LockScreenAuthPreferences } from '../../../storage/preferences/LockScreenAuthPreferences'
 import { ErrorUtils } from '../../../utils/ErrorUtils'
 import { LogUtils } from '../../../utils/LogUtils'
 
@@ -19,7 +18,10 @@ export interface LockScreenAuthRepository {
 export class PreferencesLockScreenAuthRepository implements LockScreenAuthRepository {
   async loadConfig(context: common.Context): Promise<LockScreenAuthConfig> {
     try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+      let pref = await LockScreenAuthPreferences.get(context)
+      if (!pref) {
+        throw new Error('shared lockscreen auth store is unavailable')
+      }
       let config: LockScreenAuthConfig = {
         ukeyUnlockEnabled: await pref.getBoolean(
           PREF_KEY_LOCKSCREEN_UKEY_AUTH_ENABLED,
@@ -38,7 +40,10 @@ export class PreferencesLockScreenAuthRepository implements LockScreenAuthReposi
 
   async saveConfig(context: common.Context, config: LockScreenAuthConfig): Promise<boolean> {
     try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+      let pref = await LockScreenAuthPreferences.get(context)
+      if (!pref) {
+        return false
+      }
       let saved = await pref.setValue(PREF_KEY_LOCKSCREEN_UKEY_AUTH_ENABLED, config.ukeyUnlockEnabled)
       if (!saved) {
         LogUtils.error(TAG, '[SAVE_FAIL] saveConfig | reason=preferences_write_failed')
