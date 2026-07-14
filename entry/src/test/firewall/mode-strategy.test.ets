@@ -3,8 +3,15 @@ import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 
+import { FirewallPresetRuleNameStrings } from '../../main/ets/constants/modules/FirewallStrings'
 import { FirewallLocalRepository } from '../../main/ets/services/firewall/FirewallLocalRepository'
-import { FirewallRuleIntent, UserFirewallListResult, UserFirewallOption } from '../../main/ets/services/firewall/FirewallModels'
+import {
+  FIREWALL_PROTOCOL_TCP,
+  FirewallPreparedRule,
+  FirewallRuleIntent,
+  UserFirewallListResult,
+  UserFirewallOption
+} from '../../main/ets/services/firewall/FirewallModels'
 import { FirewallModeStrategy } from '../../main/ets/services/firewall/FirewallModeStrategy'
 import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 
@@ -60,14 +67,6 @@ function buildIntent(localRuleId: string, targetUserIds: number[]): FirewallRule
   }
 }
 
-function asciiBytes(value: string): Uint8Array {
-  let result = new Uint8Array(value.length)
-  for (let i = 0; i < value.length; i++) {
-    result[i] = value.charCodeAt(i)
-  }
-  return result
-}
-
 export default function firewallModeStrategyTest() {
   describe('FirewallModeStrategy', () => {
     let mockKit: MockKit
@@ -111,19 +110,34 @@ export default function firewallModeStrategyTest() {
       done()
     })
 
-    it('should build public rules as valid prepared rules without asserting exact strategy details', 0, async (done: Function) => {
+    it('should deny public remote access ports for every available user without limiting remote ips', 0, async (done: Function) => {
       let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
-      fakeContext.resourceManager.content = asciiBytes('{"fixedPublicIp":"","privateCidrs":[],"privateTcpPorts":[],"privateUdpPorts":[]}')
       when(userMock)().afterReturn(buildUserResult(buildUsers()))
 
       let rules = await FirewallModeStrategy.buildRulesForMode(fakeContext as never as common.UIAbilityContext, 'public')
+      let remoteRules = rules.filter((item: FirewallPreparedRule): boolean =>
+        item.rule.name === FirewallPresetRuleNameStrings.PUBLIC_DENY_REMOTE_ACCESS)
+      let expectedPorts: number[] = [22, 23, 3389, 5900]
 
-      expect(rules.length > 0).assertTrue()
-      expect(rules[0].userId === 100 || rules[0].userId === 101).assertTrue()
-      expect(typeof rules[0].rule.name === 'string').assertTrue()
-      expect(typeof rules[0].rule.direction === 'number').assertTrue()
-      expect(typeof rules[0].rule.action === 'number').assertTrue()
-      expect(typeof rules[0].rule.type === 'number').assertTrue()
+      expect(remoteRules.length).assertEqual(buildUsers().length)
+      expect(remoteRules.some((item: FirewallPreparedRule): boolean => item.userId === 100)).assertTrue()
+      expect(remoteRules.some((item: FirewallPreparedRule): boolean => item.userId === 101)).assertTrue()
+      for (let i = 0; i < remoteRules.length; i++) {
+        let rule = remoteRules[i].rule
+        let localPorts = rule.localPorts ?? []
+        let remoteIps = rule.remoteIps ?? []
+        expect(rule.direction).assertEqual(netFirewall.NetFirewallRuleDirection.RULE_IN)
+        expect(rule.action).assertEqual(netFirewall.FirewallRuleAction.RULE_DENY)
+        expect(rule.type).assertEqual(netFirewall.NetFirewallRuleType.RULE_IP)
+        expect(rule.isEnabled).assertTrue()
+        expect(rule.protocol).assertEqual(FIREWALL_PROTOCOL_TCP)
+        expect(localPorts.length).assertEqual(expectedPorts.length)
+        for (let portIndex = 0; portIndex < expectedPorts.length; portIndex++) {
+          expect(localPorts[portIndex].startPort).assertEqual(expectedPorts[portIndex])
+          expect(localPorts[portIndex].endPort).assertEqual(expectedPorts[portIndex])
+        }
+        expect(remoteIps.length).assertEqual(0)
+      }
       done()
     })
 
