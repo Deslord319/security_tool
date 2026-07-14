@@ -344,7 +344,7 @@ struct Index {
         (result.userMessage ?? result.errorMessage ?? 'UKEY解锁凭据认证验证失败')
     } catch (err) {
       LogUtils.warn(TAG, `handleCredentialAuthVerify failed: ${JSON.stringify(err)}`)
-      this.statusMessage = 'UKEY解锁凭据认证验证失败'
+      this.statusMessage = '认证调用异常，请重试（详情见日志）'
     } finally {
       this.verifyUKeyPasswordInput = ''
       this.verifyingCredential = false

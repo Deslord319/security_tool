@@ -118,6 +118,15 @@
 - `com.demo.customauthenticator` 的直接认证成功、Model A 成功或密码 `222222` 结果不能证明本工具通过。
 - 若密文使用认证器 A 的公钥生成，却交给认证器 B 的私钥解密，RSA-OAEP 通常直接校验失败，不会稳定解出六个 NUL 字节。
 
+### 3.10 认证失败提示规则
+
+- 页面凭据认证验证先针对 active fingerprint 执行一次 UKey 密码和锁定状态预校验；密码错误时显示剩余次数，已锁定和目标 UKey 缺席分别显示明确原因。
+- 多账户场景下，一次页面验证只允许对同一份错误 UKey 密码累计一次失败；预校验失败后不得继续逐用户调用 CustomAuth。
+- 进入系统 CustomAuth 后，页面按标准结果码区分取消、超时、类型不支持、ATL3 不支持、服务忙、参数无效、锁定、未录入和认证器内部异常。
+- 通用 `FAIL` 同时覆盖认证过程中 UKey 被移除、绑定不匹配、系统凭据不匹配等情况，页面不得把它武断显示为“密码错误”。
+- 管理页“当前状态”可以展示上述映射文案；真实系统锁屏的提示由系统控制，本工具只能通过 CustomAuth 回调返回标准结果码。
+- 日志记录失败用户、结果码、错误码和脱敏错误信息，不得记录系统 PIN、UKey 密码、passcode 密文或解密明文。
+
 ## 4. 测试环境和数据准备
 
 ### 4.1 必备条件
@@ -243,12 +252,17 @@ Get-FileHash -Algorithm SHA256 ukey\hapsigner\signApp.hap
 | ID | 场景 | 操作 | 预期 |
 |---|---|---|---|
 | UKEY-AUTH-001 | 页面正确密码验证 | active 时输入 `666666` 点击验证 | `com.ukey.pin` Model B 全链路成功，最终 `onResult=0` |
-| UKEY-AUTH-002 | 页面错误密码验证 | 输入非 `666666` | provider 返回 mismatch，认证失败 |
+| UKEY-AUTH-002 | 页面错误密码验证 | 输入非 `666666` | 页面显示“UKey 密码错误，剩余 N 次”；不进入逐用户 CustomAuth |
 | UKEY-AUTH-003 | 空 passcode | 构造空提交或系统 no-PIN 分支 | 本工具返回失败，不允许直接成功 |
 | UKEY-AUTH-004 | prompt 后拔出 | prompt 触发后、提交或 finish 前拔 A | 认证失败 |
 | UKEY-AUTH-005 | 真实锁屏解锁 | 锁屏后由系统触发 CustomAuth | 同样必须选中 `com.ukey.pin`、走 prompt 并成功返回 token |
 | UKEY-AUTH-006 | 多认证器共存 | 同时安装 demo 和本工具 | 记录系统实际选择的 bundle；只有选择 `com.ukey.pin` 的结果计入本工具 |
 | UKEY-AUTH-007 | 六个 NUL 字节 | 观察到解密 `0,0,0,0,0,0` | 判为 passcode 传输链路失败，不记为用户输入 `000000`，不记为通过 |
+| UKEY-AUTH-008 | 多账户错误密码 | 存在多个 active 用户凭据，输入一次错误密码 | 本次操作只累计 1 次密码失败，并显示剩余次数 |
+| UKEY-AUTH-009 | UKey 已锁定 | locked 状态点击页面验证 | 页面显示“UKey 密码已锁定”，不进入逐用户 CustomAuth |
+| UKEY-AUTH-010 | 验证时 UKey 缺席 | 页面状态未刷新前拔出目标 UKey 并触发验证 | 页面显示“目标 UKey 已移除，请重新插入后重试” |
+| UKEY-AUTH-011 | 标准结果码提示 | 分别构造 timeout、busy、not enrolled、general error | 页面展示对应中文原因，不再只显示失败用户数 |
+| UKEY-AUTH-012 | 通用 FAIL 提示 | 构造模板不匹配或认证过程中拔出 UKey | 页面提示认证未通过及可能原因，不错误断言为密码错误 |
 
 ### 6.7 升级和兼容
 
