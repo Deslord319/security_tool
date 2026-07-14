@@ -4,7 +4,7 @@ title: "UKey 管理与认证器核心接入"
 architecture: "Standalone System App + DDK Backend + CustomAuth Core"
 status: "active"
 last_updated: "2026-07-14"
-version: "2.2.36"
+version: "2.2.37"
 ---
 
 # UKey 管理与认证器核心接入设计说明
@@ -28,6 +28,7 @@ version: "2.2.36"
   - `LockScreenCustomAuthEnrollmentService`: 当前承接首把绑定、UKEY解锁凭据注入/删除和启动/插拔对账编排。凭据注入必须携带用户输入的系统 PIN 和 UKey 密码；凭据删除必须携带用户输入的系统 PIN。
   - `DdkLockScreenUKeyDeviceService`: 当前默认 UKey 设备发现后端，基于 `@kit.DriverDevelopmentKit.deviceManager.queryDevices(BusType.USB)` 枚举 USB 设备，并用 `usbManager.getDevices()` 补充设备级和接口级详情。设备 fingerprint 优先使用 SN 稳定标识（`SN:SERIAL`），只比较 SN，不带 VID/PID 前缀；当 serial 为空时生成弱指纹（`VID:xxxx PID:xxxx|WEAK:PRODUCTNAME|DESCRIPTION`），弱指纹只用于精确字符串比较，不做同 VID/PID 放行。候选集合仅包含设备级或接口级 USB Mass Storage 和非键鼠 HID；当前不启用 UKey VID/PID 或产品名特征表，以兼容不同厂商的 HID UKey。该兼容策略无法仅凭 HID 描述符区分 UKey 与游戏手柄、扫码器等其它非键鼠 HID，因此这些设备当前同样可能进入候选，属于已接受的阶段性边界。USB Hub、HID Boot 键盘/鼠标、名称明确为键盘/鼠标/触控板的普通输入外设、Smart Card/CCID、厂商自定义类及其它 USB 类型不进入候选。
   - `PreferencesLockScreenUKeyBindingRepository`: 首次凭据添加成功后持久化可信 UKey 绑定。已存在绑定的 `fingerprint`、`deviceId`、`deviceName`、`boundAt` 和 `stableIdentifier` 视为不可变身份；后续只允许更新其 `userCredentials`。凭据删除、认证失败、锁定、插拔、启动对账和重新添加凭据均不得删除、替换或降级首次绑定，只有卸载或显式清除应用数据可重置绑定。Repository 必须拒绝以不同 fingerprint 覆盖已有绑定，业务层重建绑定记录时也必须沿用既有身份字段。
+  - `LockScreenAuthPreferences`: 管理页进程与 `ICustomAuthenticatorV1` appService 共享的轻量状态统一使用 API 18+ GSKV Preferences store `ukey_lockscreen_auth_settings_gskv_v1`，覆盖认证开关、可信绑定、活动凭据和 UKey 密码锁定状态。普通 XML Preferences 不作为跨进程运行态读写介质；本次穿刺实现不迁移旧 `lockscreen_auth_settings` XML 数据，旧数据在新版本中视为不存在，用户须重新录入首次绑定和凭据。若设备不支持 GSKV，仓储读取/写入按失败处理，不允许回退为 XML 多进程读写。
   - `OsAccountCustomAuthCredentialManager`: 对齐测试 HAP，按 `UserIdentityManager.getAuthInfo(CUSTOM_AUTH=128)` 查询系统 CustomAuth 凭据、credentialId 和 templateId，templateId 的 8 字节原始值按 little-endian 解码为十进制字符串；当该查询返回 `12300002 Parameter invalid` 且用于列出现有 CUSTOM_AUTH 凭据时，按当前没有 CUSTOM_AUTH 凭据处理为空列表，不阻断添加或对账。按 `openSession -> PINAuth.registerInputer -> UserAuth.authUser(PIN, ATL3) -> addCredential/delCred -> closeSession` 添加或删除 CustomAuth 凭据。添加凭据前若系统侧已有 CUSTOM_AUTH 凭据，先按本地当前 `trustedBinding.fingerprint + activeCredential.userCredentials[].credentialIdHex/templateId` 判断是否属于当前目标 UKey；属于自己的恢复为 active，不属于当前目标 UKey 的使用本次输入的系统 PIN 静默删除。
   - `OsAccountUKeyUserProvider`: 通过 `osAccount.getAccountManager().getOsAccountLocalIds()` 枚举本机所有 OS 账户 ID，供 UKEY解锁凭据注册和补注入使用。
   - `OsAccountCustomAuthCredentialVerifier`: 页面凭据认证验证入口。验证前由页面传入 UKey 密码，验证器临时注册 `companionDeviceAuth.registerPasscodePromptCallback`，在系统 CustomAuth prompt 触发时提交该 UKey 密码，再对当前已保存的 UKEY解锁凭据逐用户调用 `UserAuth.authUser(userId, challenge, CUSTOM(128), ATL3)`，验证系统能否通过 `com.ukey.pin` CustomAuth 认证器返回认证 token；验证结束后必须注销 passcode prompt 回调。该能力不调用 `addCredential`，不新增、覆盖或删除凭据。
@@ -84,6 +85,7 @@ SystemUI / UserAuth
 > **设计原则**: `ukey/` 应用自管 UKey 状态和系统凭据生命周期；SecurityTool 不参与该状态流。
 
 - **核心业务状态 (Core Business State)**:
+  - `lockscreenAuthSharedStore`: 跨管理页进程与 CustomAuthenticator appService 共享的轻量状态存储。当前 store 名为 `ukey_lockscreen_auth_settings_gskv_v1`，存储模式固定为 `preferences.StorageType.GSKV`；同一 store 不允许在 XML 与 GSKV 之间切换。本次穿刺实现从空 GSKV store 建立状态，不读取或迁移旧 XML 数据。运行时不再依赖应用自建的 Preferences 实例缓存，实例生命周期交由 ArkData 管理。
   - `ukeyUnlockEnabled: boolean`: UKey 认证管理是否启用，默认 `true`。该开关只在 `ukey/` 独立应用页面展示和持久化，不在 SecurityTool 展示。
   - `trustedBinding: LockScreenUKeyBinding | null`: 首把可信 UKey 绑定。绑定建立后保留，不因拔出而删除。用户输入系统 PIN 删除 UKEY解锁凭据后仍保留 `fingerprint/deviceId/deviceName/boundAt`，但必须清空 `userCredentials`，不得残留已删除的 credentialId/templateId。
   - `activeCredential: LockScreenUKeyActiveCredential | null`: 当前系统侧已注入的 UKEY解锁凭据集合。每个 OS 账户各保存一条 CustomAuth 凭据记录；用户输入系统 PIN 删除凭据时逐个删除这些记录，但保留首把绑定。代码内部沿用 `activeCredential` 命名，页面展示名统一为 `UKEY解锁凭据`。本地状态必须包含 `userCredentials`，不做旧单用户状态兼容；缺失该字段视为无有效 active 凭据。USB 拔出、页面自动同步或插拔对账读不到匹配的系统凭据时不得清空该状态，只有用户输入系统 PIN 删除凭据或添加凭据流程重建当前目标 UKey 凭据时才允许清理。目标 UKey 在位时状态为 `active`；目标 UKey 拔出但凭据仍保留时状态为 `inactive`，页面继续展示凭据但禁用认证验证。
@@ -95,6 +97,7 @@ SystemUI / UserAuth
   - `customAuthKeyMaterial`: 每个 CustomAuth 模板在 SecurityAsset 中保存 `sharedKey(32B) || authenticatorSecret(32B) || authenticatorSecretSeq(4B LE)`，总长 68B。`authenticatorSecretSeq` 为 u32，录入初值为 `1`，每次轮换从磁盘最新值自增后与新 `authenticatorSecret` 在同一次 `asset.updateSync` 中提交。
   - `legacyCustomAuthKeyMaterial`: 兼容旧版本 72B 记录 `sharedKey(32B) || authenticatorSecret(32B) || seq(8B BE)`。首次读取旧记录且 seq 不超过 u32 上限时，原子改写为 68B 新格式；seq 超出 u32 或记录长度异常时按损坏记录处理，不参与认证成功路径。
 - **关键流转路径**:
+  - 管理页进程或 CustomAuthenticator appService 首次访问 UKey 共享状态 -> 检查设备是否支持 GSKV -> 打开 `ukey_lockscreen_auth_settings_gskv_v1` -> 后续读写只使用 GSKV。两个进程可并发读取当前绑定和活动凭据；添加、删除或密码失败次数更新应实时对另一进程可见，不通过 `removePreferencesFromCache` 强制失效，也不改变 credentialId/templateId 严格匹配规则。
   - 应用启动 -> `UKeyRuntimeManager.start()` -> 订阅 USB attach / detach common event -> 读取开关、首把绑定和 UKEY解锁凭据 -> 枚举当前 UKey -> 只做状态对账和日志收敛，不在缺少用户输入的后台链路中添加或删除系统凭据。USB common event 订阅创建和 `subscribe` 同步异常必须被捕获并返回明确失败，不允许 `start()` Promise 永久悬挂；订阅失败时必须记录启动降级日志，不能当作订阅成功处理。
   - 应用启动 -> `EntryAbility.initStatusBar()` -> 注册状态栏图标 -> 启动隐藏的 `BackGroundAbility` 绑定托盘；窗口 X 关闭触发 `onPrepareToTerminate()`，调用 `hideAbility()` 并保持 UKey 运行时继续工作。
   - 状态栏图标左键点击 -> `EntryAbility.showAbility()` -> 恢复 `ukey解锁工具` 管理窗口。
@@ -142,6 +145,8 @@ SystemUI / UserAuth
   - 负责 DDK USB 设备发现、USB 详情增强和候选 UKey 过滤；过滤规则从设备描述符和 USB interface 两层接纳 Mass Storage 和非键鼠 HID，排除 Smart Card/CCID、厂商自定义类、Hub、键鼠和其它 USB 类型。
 - `ukey/entry/src/main/ets/services/identity/lockscreen-auth/LockScreenUKeyBindingRepository.ets`
   - 保存首把绑定和 UKEY解锁凭据，不依赖 SecurityTool 数据。
+- `ukey/entry/src/main/ets/storage/preferences/LockScreenAuthPreferences.ets`
+  - 作为 UKey 共享状态的唯一存储入口，负责检查 GSKV 支持能力、打开固定 GSKV store、类型化读写、JSON 编解码和错误日志；不保留通用 XML 存储分支，不读取或迁移旧 XML store，也不维护应用侧 Preferences 实例缓存。GSKV 不支持时返回明确失败。
 - `ukey/entry/src/main/ets/services/identity/lockscreen-auth/LockScreenCustomAuthEnrollmentService.ets`
   - 负责编排添加/删除系统 CustomAuth 凭据。
   - 添加凭据由管理页传入系统 PIN 和 UKey 密码；系统 PIN 由 `PINAuth.registerInputer` 注入以换取 PIN token，UKey 密码由 `AuthenticatorUKeyProvider` 校验并累计错误次数。
@@ -229,6 +234,7 @@ SystemUI / UserAuth
   5. CustomAuth 核心协议随系统侧升级时，先更新本文档，再同步 `custom-auth-core` 的 JSON 字段、SecurityAsset 格式、旧记录迁移和生命周期清理逻辑；不得迁入测试 HAP 的 fake UKey、模拟换新或调试页面。
   6. 分别构建 SecurityTool 和 `ukey/`，确认 SecurityTool 不再出现 UKey systemapi warning，`ukey/` 作为系统应用承接相关 warning/权限。
   7. 修改 UKey 凭据生命周期时，先确认添加凭据需要系统 PIN + UKey 密码，删除凭据只需要系统 PIN，运行时后台插拔事件不绕过用户输入。
+  8. 将管理页与 appService 共享的 UKey 轻量状态改为新 GSKV store；穿刺版本从新 store 的空状态重新录入，不实现旧 XML 数据升级，也不读取旧 store，不改变认证时 credentialId/templateId 严格匹配规则。
 - **测试覆盖**:
   - 专项手工测试入口: `docs/04-测试文档/手工测试用例/UKey解锁工具规格与测试说明.md`。测试必须区分干净安装、保留数据升级和日常回归三类基线，并记录设备版本、HAP 哈希、当前系统 PIN、UKey SN、系统选中的 CustomAuth bundle/templateId 和关键日志。
   - 测试输入必须区分系统 PIN 与 UKey 密码：系统 PIN 使用被测 OS 账户的真实 PIN；当前开发阶段 UKey 密码固定为 `666666`。二者即使在实验设备上取值相同，也必须按两个独立输入和两条独立校验链路执行。
@@ -237,6 +243,7 @@ SystemUI / UserAuth
   - `ukey/` 构建: 编译通过，`UserAuth is system api` warning 只出现在 `ukey/`。
   - `ukey/` CustomAuth 验证: 覆盖 `template_id` 十进制字符串、`auth_secret_seq` u32 JSON number、68B 新记录读写和 72B 旧记录迁移。
   - `ukey/` CustomAuth 验证: 覆盖 `PASSCODE_PROMPT_ENABLED=true`、页面验证凭据前必须输入 UKey 密码、passcode prompt 回调用页面输入的密码提交、空 passcode 失败、错误 UKey 密码失败、连续 5 次错误锁定、锁定后返回 `LOCKED`、提交密码后目标 UKey 被拔出失败。
+  - `ukey/` 存储验证: 覆盖 GSKV 能力检查，以及从新 store 空状态重新录入后，管理页进程完成“删除凭据 -> 再添加凭据”时 appService 立即读取到新的 credentialId/templateId pair。
   - 设备手工: 安装 `ukey/` 系统签名 HAP 后，第一把 UKey 在管理页输入系统 PIN 和 UKey 密码后可为所有 OS 账户注册凭据，第二把不注册；拔出首把不自动删除凭据，但认证失败；输入系统 PIN 后可删除全部已保存的 UKEY解锁凭据。
   - UT: 覆盖 UKey 设备候选过滤，确保设备级或接口级 Mass Storage、包括 `Longmai-GM3000` 在内的非键鼠 HID 进入候选；Smart Card/CCID、厂商自定义类、键盘、鼠标、触控板、USB Hub 和其它无关类型不进入候选。
 - **验收口径**:
@@ -257,12 +264,14 @@ SystemUI / UserAuth
   - `ukey/` CustomAuth 不引入 `UKeySimulator`、模拟换新按钮或无匹配模板 fallback；第二把 UKey 仍不能认证成功。
   - `ukey/` CustomAuth 解锁认证必须走 `onPrompt` 输入 UKey 密码；目标 UKey 不在位、空密码、错误密码或 5 次锁定后不得返回认证成功。
   - `ukey/` CustomAuth 新录入模板以 68B SecurityAsset 记录保存；旧 72B 记录首次读取后迁移为 68B，迁移失败时不认证成功。
+  - `ukey/` 跨进程共享状态固定使用 `ukey_lockscreen_auth_settings_gskv_v1` GSKV store；从新 store 空状态重新录入后，删除再添加产生的新 credentialId/templateId 在 appService 认证日志中与系统 `getAuthInfo` 一致，不再出现旧 `localPairs`。
   - SecurityTool 构建、文档一致性检查通过。
 
 ## 6. 变更日志 (Changelog)
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 |
 |---|---|---|---|
+| 2.2.37 | 2026-07-14 | Codex | 将管理页进程与 CustomAuthenticator appService 共享的认证开关、可信绑定、活动凭据和密码锁定状态改为新 GSKV store `ukey_lockscreen_auth_settings_gskv_v1`；穿刺版本从新 store 空状态重新录入，不读取或兼容旧 XML store，删除通用 XML Accessor 与应用侧重复实例缓存且不改变 credentialId/templateId 严格认证规则。 |
 | 2.2.36 | 2026-07-14 | Codex | 明确凭据认证验证失败提示：页面在逐用户 CustomAuth 前只做一次 UKey 密码/锁定预校验，错误密码按一次点击累计一次并显示剩余次数；系统认证结果按标准结果码映射为用户可读文案，通用 FAIL 保持诚实的组合提示，每用户诊断日志不得包含密码或明文。 |
 | 2.2.35 | 2026-07-14 | Codex | 合并 USB 候选规则调整：仅允许设备级或接口级 Mass Storage 和非键鼠 HID，暂不启用 VID/PID 特征表；因此游戏手柄、扫码器等其它非键鼠 HID 也属于当前兼容边界。Smart Card/CCID、厂商自定义类、键鼠、触控板、Hub 及其它类型拒绝，现有提示不变。 |
 | 2.2.34 | 2026-07-14 | Codex | 增加 UKey 解锁工具专项测试说明入口和发布阻断口径；明确系统 PIN 与固定 UKey 密码 `666666` 的独立语义、多认证器环境只认 `com.ukey.pin`，以及 Model B 成功和六个 NUL 字节故障的判定标准。 |

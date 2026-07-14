@@ -2,10 +2,9 @@ import { common } from '@kit.AbilityKit'
 import osAccount from '@ohos.account.osAccount'
 import {
   LockScreenUKeyDevice,
-  PREF_KEY_LOCKSCREEN_UKEY_PASSWORD_STATES,
-  PREF_STORE_NAME_LOCKSCREEN_AUTH
+  PREF_KEY_LOCKSCREEN_UKEY_PASSWORD_STATES
 } from '../../../../models/identity/lockscreen-auth/LockScreenAuthModels'
-import { PreferencesAccessor } from '../../../../storage/preferences/PreferencesAccessor'
+import { LockScreenAuthPreferences } from '../../../../storage/preferences/LockScreenAuthPreferences'
 import { LogUtils } from '../../../../utils/LogUtils'
 import {
   LockScreenAuthRepository,
@@ -85,7 +84,10 @@ function normalizePasswordState(state: AuthenticatorUKeyPasswordState | undefine
 export class PreferencesAuthenticatorUKeyPasswordStateRepository
 implements AuthenticatorUKeyPasswordStateRepository {
   async loadPasswordStates(context: common.Context): Promise<AuthenticatorUKeyPasswordStateMap> {
-    let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+    let pref = await LockScreenAuthPreferences.get(context)
+    if (!pref) {
+      return {}
+    }
     let raw = await pref.getJsonObject<AuthenticatorUKeyPasswordStateMap>(PREF_KEY_LOCKSCREEN_UKEY_PASSWORD_STATES, {})
     let result: AuthenticatorUKeyPasswordStateMap = {}
     for (let key of Object.keys(raw)) {
@@ -99,7 +101,10 @@ implements AuthenticatorUKeyPasswordStateRepository {
   }
 
   async savePasswordStates(context: common.Context, states: AuthenticatorUKeyPasswordStateMap): Promise<boolean> {
-    let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+    let pref = await LockScreenAuthPreferences.get(context)
+    if (!pref) {
+      return false
+    }
     return await pref.setJson(PREF_KEY_LOCKSCREEN_UKEY_PASSWORD_STATES, states)
   }
 }
