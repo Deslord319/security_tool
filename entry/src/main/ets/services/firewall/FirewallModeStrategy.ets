@@ -29,6 +29,7 @@ const CONFIG_RAW_FILE = 'firewall_preset_config.json'
 const FIREWALL_PORT_HTTP = 80
 const FIREWALL_PORT_HTTPS = 443
 const FIREWALL_PORT_SSH = 22
+const FIREWALL_PORT_TELNET = 23
 const FIREWALL_PORT_RDP = 3389
 const FIREWALL_PORT_VNC = 5900
 const FIREWALL_PORT_SMB_RPC = 135
@@ -37,7 +38,12 @@ const FIREWALL_PORT_SMB_DIRECT = 445
 const FIREWALL_PORT_NETBIOS_NAME = 137
 const FIREWALL_PORT_NETBIOS_DATAGRAM = 138
 const PUBLIC_SERVICE_PORTS: number[] = [FIREWALL_PORT_HTTP, FIREWALL_PORT_HTTPS]
-const PUBLIC_REMOTE_MANAGEMENT_PORTS: number[] = [FIREWALL_PORT_SSH, FIREWALL_PORT_RDP]
+const PUBLIC_REMOTE_MANAGEMENT_PORTS: number[] = [
+  FIREWALL_PORT_SSH,
+  FIREWALL_PORT_TELNET,
+  FIREWALL_PORT_RDP,
+  FIREWALL_PORT_VNC
+]
 const PRIVATE_REMOTE_MANAGEMENT_PORTS: number[] = [FIREWALL_PORT_SSH, FIREWALL_PORT_RDP, FIREWALL_PORT_VNC]
 const SMB_PORTS: number[] = [FIREWALL_PORT_SMB_RPC, FIREWALL_PORT_SMB_NETBIOS, FIREWALL_PORT_SMB_DIRECT]
 const NETBIOS_PORTS: number[] = [FIREWALL_PORT_NETBIOS_NAME, FIREWALL_PORT_NETBIOS_DATAGRAM]
@@ -65,12 +71,11 @@ export class FirewallModeStrategy {
   }
 
   static async buildPublicRules(
-    context: common.UIAbilityContext,
+    _context: common.UIAbilityContext,
     users?: UserFirewallOption[]
   ): Promise<FirewallPreparedRule[]> {
-    let config = await FirewallModeStrategy.loadPresetConfig(context)
     let usersResult = users === undefined ? await SystemUserProvider.loadAvailableUserIds() : undefined
-    let templates = FirewallModeStrategy.buildPublicRuleTemplates(config.fixedPublicIp)
+    let templates = FirewallModeStrategy.buildPublicRuleTemplates()
     return FirewallModeStrategy.expandTemplatesForUsers(templates, users ?? usersResult?.users ?? [])
   }
 
@@ -133,13 +138,11 @@ export class FirewallModeStrategy {
     return preparedRules
   }
 
-  private static buildPublicRuleTemplates(fixedPublicIp: string): netFirewall.NetFirewallRule[] {
+  private static buildPublicRuleTemplates(): netFirewall.NetFirewallRule[] {
     let rules: netFirewall.NetFirewallRule[] = []
     rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_ALLOW_ICMPV4, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_ICMP))
     rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_ALLOW_SERVICE, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_TCP, PUBLIC_SERVICE_PORTS))
-    if (fixedPublicIp.length > 0) {
-      rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_ALLOW_REMOTE_MANAGE, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_TCP, PUBLIC_REMOTE_MANAGEMENT_PORTS, [fixedPublicIp]))
-    }
+    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_DENY_REMOTE_ACCESS, netFirewall.FirewallRuleAction.RULE_DENY, FIREWALL_PROTOCOL_TCP, PUBLIC_REMOTE_MANAGEMENT_PORTS))
     rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_DENY_SMB, netFirewall.FirewallRuleAction.RULE_DENY, FIREWALL_PROTOCOL_TCP, SMB_PORTS))
     rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_DENY_NETBIOS, netFirewall.FirewallRuleAction.RULE_DENY, FIREWALL_PROTOCOL_UDP, NETBIOS_PORTS))
     return rules

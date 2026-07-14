@@ -168,7 +168,7 @@ export function buildFirewallUserLabel(userId: number, isForeground: boolean, us
 export class FirewallPresetRuleNameStrings {
   static readonly PUBLIC_ALLOW_ICMPV4: string = '允许 ICMPv4'
   static readonly PUBLIC_ALLOW_SERVICE: string = '允许对外服务'
-  static readonly PUBLIC_ALLOW_REMOTE_MANAGE: string = '允许远程管理'
+  static readonly PUBLIC_DENY_REMOTE_ACCESS: string = '禁止远程访问'
   static readonly PUBLIC_DENY_SMB: string = '阻止 SMB 共享'
   static readonly PUBLIC_DENY_NETBIOS: string = '阻止 NetBIOS'
   static readonly PRIVATE_ALLOW_ICMP: string = '允许 ICMP'
