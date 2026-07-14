@@ -172,6 +172,100 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.canSave).assertFalse()
     })
 
+    it('should reload policy when admin becomes active on route activation', 0, async () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      when(adminMock)().afterReturn(createInactiveAdminState())
+
+      let viewModel = new IdentitySettingsViewModel()
+      await viewModel.activate()
+      viewModel.setValidityPeriodIndex(CUSTOM_VALIDITY_OPTION_INDEX)
+      viewModel.setCustomValidityPeriodText('30')
+
+      mockKit.clearAll()
+      mockKit = new MockKit()
+      adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^(?=.*\\d).{10,}$', 90 * DAY_IN_MS)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      await viewModel.activate()
+
+      expect(viewModel.state.adminActivated).assertTrue()
+      expect(viewModel.state.minLengthIndex).assertEqual(2)
+      expect(viewModel.state.requireDigit).assertTrue()
+      expect(viewModel.state.validityPeriodIndex).assertEqual(CUSTOM_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('90')
+      expect(viewModel.state.hasChanges).assertFalse()
+      expect(viewModel.state.canSave).assertFalse()
+    })
+
+    it('should preserve unsaved edits when admin state remains active on route activation', 0, async () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+
+      let viewModel = new IdentitySettingsViewModel()
+      await viewModel.activate()
+      viewModel.setValidityPeriodIndex(CUSTOM_VALIDITY_OPTION_INDEX)
+      viewModel.setCustomValidityPeriodText('120')
+
+      await viewModel.activate()
+
+      expect(viewModel.state.adminActivated).assertTrue()
+      expect(viewModel.state.validityPeriodIndex).assertEqual(CUSTOM_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('120')
+      expect(viewModel.state.hasChanges).assertTrue()
+      expect(viewModel.state.canSave).assertTrue()
+    })
+
+    it('should reset inactive edits when policy reload fails after admin activation', 0, async () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      when(adminMock)().afterReturn(createInactiveAdminState())
+
+      let viewModel = new IdentitySettingsViewModel()
+      await viewModel.activate()
+      viewModel.setRequirement('requireDigit', true)
+
+      mockKit.clearAll()
+      mockKit = new MockKit()
+      adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createFailedPolicyResult('policy read error'))
+
+      await viewModel.activate()
+
+      expect(viewModel.state.adminActivated).assertTrue()
+      expect(viewModel.state.requireDigit).assertFalse()
+      expect(viewModel.state.hasChanges).assertFalse()
+      expect(viewModel.state.canSave).assertFalse()
+    })
+
+    it('should preserve edits and disable save when admin becomes inactive on route activation', 0, async () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+
+      let viewModel = new IdentitySettingsViewModel()
+      await viewModel.activate()
+      viewModel.setRequirement('requireDigit', true)
+
+      mockKit.clearAll()
+      mockKit = new MockKit()
+      adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      when(adminMock)().afterReturn(createInactiveAdminState())
+
+      await viewModel.activate()
+
+      expect(viewModel.state.adminActivated).assertFalse()
+      expect(viewModel.state.requireDigit).assertTrue()
+      expect(viewModel.state.hasChanges).assertTrue()
+      expect(viewModel.state.canSave).assertFalse()
+    })
+
     it('should sanitize custom validity input and update derived state', 0, async () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)

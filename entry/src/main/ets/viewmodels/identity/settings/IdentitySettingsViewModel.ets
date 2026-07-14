@@ -67,6 +67,16 @@ export class IdentitySettingsViewModel {
   @Trace state: IdentitySettingsState = IdentitySettingsViewModel.buildDefaultState()
   private initialState: IdentitySettingsSnapshot = IdentitySettingsViewModel.buildDefaultSnapshot()
   private adminState: AdminActivationState = IdentitySettingsViewModel.buildDefaultAdminState()
+  private activationPromise: Promise<void> | null = null
+
+  activate(): Promise<void> {
+    if (!this.activationPromise) {
+      this.activationPromise = this.activateInternal().finally(() => {
+        this.activationPromise = null
+      })
+    }
+    return this.activationPromise
+  }
 
   async initialize(): Promise<void> {
     this.state.loading = true
@@ -95,6 +105,36 @@ export class IdentitySettingsViewModel {
     this.applyPolicy(result.data)
     this.state.loading = false
     this.state.initialized = true
+  }
+
+  private async activateInternal(): Promise<void> {
+    if (!this.state.initialized) {
+      await this.initialize()
+      return
+    }
+
+    let wasAdminActivated = this.state.adminActivated
+    this.state.loading = true
+    this.refreshDerivedState()
+    try {
+      await this.refreshAdminActivationStateAsync()
+
+      if (!wasAdminActivated && this.adminState.activated) {
+        let result = await IdentityService.getPasswordPolicyWithResultAsync()
+        if (!result.success) {
+          LogUtils.warn(TAG,
+            `activate policy reload failed | reset to defaults, errorCode=${result.errorCode ?? 0}, errorMessage=${result.errorMessage ?? ''}`
+          )
+          this.reset()
+        } else {
+          LogUtils.info(TAG, `activate policy reload success | hasPolicy=${result.data !== null}`)
+          this.applyPolicy(result.data)
+        }
+      }
+    } finally {
+      this.state.loading = false
+      this.refreshDerivedState()
+    }
   }
 
   reset(): void {

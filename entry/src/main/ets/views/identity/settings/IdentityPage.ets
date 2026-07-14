@@ -17,15 +17,12 @@ import {
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import { LoadingStatePanel } from '../../../components/LoadingStatePanel'
 import { DialogService } from '../../../utils/DialogService'
-import { LogUtils } from '../../../utils/LogUtils'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
   IdentitySettingsActionRequest,
   IdentitySettingsViewModel
 } from '../../../viewmodels/identity/settings/IdentitySettingsViewModel'
-
-const TAG = 'IdentityPage'
 
 @ComponentV2
 export struct IdentityPage {
@@ -43,19 +40,6 @@ export struct IdentityPage {
     { value: IdentityFormStrings.PERMANENT_OPTION } as SelectOption,
     { value: IdentityFormStrings.CUSTOM_OPTION } as SelectOption
   ]
-
-  aboutToAppear() {
-    this.initializeViewModel()
-  }
-
-  private initializeViewModel(): void {
-    if (this.viewModel.state.initialized || this.viewModel.state.loading) {
-      return
-    }
-    this.viewModel.initialize().catch((err: Error) => {
-      LogUtils.warn(TAG, `initialize failed: ${JSON.stringify(err)}`)
-    })
-  }
 
   private async saveConfig(skipImmediateExpiryConfirm: boolean = false): Promise<void> {
     let request = this.viewModel.requestSave(skipImmediateExpiryConfirm)

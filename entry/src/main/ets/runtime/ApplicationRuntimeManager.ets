@@ -122,6 +122,7 @@ export class ApplicationRuntimeManager {
 
   async ensureIdentityRuntimeServices(): Promise<void> {
     await this.ensureIdentityRuntimeInitialized()
+    await this.identitySettingsViewModel.activate()
   }
 
   async ensurePeripheralRuntimeServices(): Promise<void> {
