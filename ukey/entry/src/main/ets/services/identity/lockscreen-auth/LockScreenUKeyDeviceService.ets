@@ -120,16 +120,14 @@ export class DdkLockScreenUKeyDeviceService implements LockScreenUKeyDeviceProvi
     for (let raw of ddkDevices) {
       let detail = DdkLockScreenUKeyDeviceService.findUsbDetail(raw, detailDevices)
       let device = DdkLockScreenUKeyDeviceService.toUKeyDevice(raw, detail)
-      if (!DdkLockScreenUKeyDeviceService.isCandidateUKeyDevice(device)) {
+      if (!DdkLockScreenUKeyDeviceService.isCandidateUKeyDevice(device, detail)) {
         continue
       }
       devices.push(device)
     }
-    let storageDevices = devices.filter((item: LockScreenUKeyDevice): boolean => item.clazz === USB_CLASS_MASS_STORAGE)
-    let candidates = storageDevices.length > 0 ? storageDevices : devices
     return {
       success: true,
-      data: candidates
+      data: devices
     } as OperationResult<LockScreenUKeyDevice[]>
   }
 
@@ -174,7 +172,8 @@ export class DdkLockScreenUKeyDeviceService implements LockScreenUKeyDeviceProvi
       name: DdkLockScreenUKeyDeviceService.resolveCommonText(matches, (device: usbManager.USBDevice): string | undefined => device.name),
       clazz: DdkLockScreenUKeyDeviceService.resolveCommonNumber(matches, (device: usbManager.USBDevice): number | undefined => device.clazz),
       subClass: DdkLockScreenUKeyDeviceService.resolveCommonNumber(matches, (device: usbManager.USBDevice): number | undefined => device.subClass),
-      protocol: DdkLockScreenUKeyDeviceService.resolveCommonNumber(matches, (device: usbManager.USBDevice): number | undefined => device.protocol)
+      protocol: DdkLockScreenUKeyDeviceService.resolveCommonNumber(matches, (device: usbManager.USBDevice): number | undefined => device.protocol),
+      configs: DdkLockScreenUKeyDeviceService.resolveCommonConfigurations(matches)
     } as usbManager.USBDevice
   }
 
@@ -214,28 +213,103 @@ export class DdkLockScreenUKeyDeviceService implements LockScreenUKeyDeviceProvi
     return commonValue
   }
 
-  private static isCandidateUKeyDevice(device: LockScreenUKeyDevice): boolean {
-    if (device.clazz === USB_CLASS_HUB) {
-      return false
+  private static resolveCommonConfigurations(devices: usbManager.USBDevice[]): usbManager.USBConfiguration[] {
+    if (devices.length === 0) {
+      return []
     }
-    if (DdkLockScreenUKeyDeviceService.isKeyboardOrMouse(device)) {
-      return false
+    let signature = DdkLockScreenUKeyDeviceService.buildInterfaceSignature(devices[0])
+    for (let index = 1; index < devices.length; index++) {
+      if (DdkLockScreenUKeyDeviceService.buildInterfaceSignature(devices[index]) !== signature) {
+        return []
+      }
     }
-    return true
+    return Array.isArray(devices[0].configs) ? devices[0].configs : []
   }
 
-  private static isKeyboardOrMouse(device: LockScreenUKeyDevice): boolean {
-    if (device.clazz === USB_CLASS_HID &&
-      device.subClass === USB_HID_SUBCLASS_BOOT &&
-      (device.protocol === USB_HID_PROTOCOL_KEYBOARD || device.protocol === USB_HID_PROTOCOL_MOUSE)) {
+  private static buildInterfaceSignature(device: usbManager.USBDevice): string {
+    let interfaces = DdkLockScreenUKeyDeviceService.getUsbInterfaces(device)
+    let signatures: string[] = []
+    for (let item of interfaces) {
+      signatures.push(`${DdkLockScreenUKeyDeviceService.normalizeNumber(item.clazz)}:` +
+        `${DdkLockScreenUKeyDeviceService.normalizeNumber(item.subClass)}:` +
+        `${DdkLockScreenUKeyDeviceService.normalizeNumber(item.protocol)}`)
+    }
+    signatures.sort()
+    return signatures.join('|')
+  }
+
+  private static isCandidateUKeyDevice(
+    device: LockScreenUKeyDevice,
+    detail: usbManager.USBDevice | null
+  ): boolean {
+    if (device.clazz === USB_CLASS_HUB || DdkLockScreenUKeyDeviceService.hasUsbClass(detail, USB_CLASS_HUB)) {
+      return false
+    }
+    if (DdkLockScreenUKeyDeviceService.isKeyboardOrMouse(device, detail)) {
+      return false
+    }
+    if (device.clazz === USB_CLASS_MASS_STORAGE || device.clazz === USB_CLASS_HID ||
+      DdkLockScreenUKeyDeviceService.hasUsbClass(detail, USB_CLASS_MASS_STORAGE) ||
+      DdkLockScreenUKeyDeviceService.hasUsbClass(detail, USB_CLASS_HID)) {
       return true
     }
-    let label = [
+    return false
+  }
+
+  private static isBootKeyboardOrMouse(clazz: number, subClass: number, protocol: number): boolean {
+    return clazz === USB_CLASS_HID && subClass === USB_HID_SUBCLASS_BOOT &&
+      (protocol === USB_HID_PROTOCOL_KEYBOARD || protocol === USB_HID_PROTOCOL_MOUSE)
+  }
+
+  private static isKeyboardOrMouse(
+    device: LockScreenUKeyDevice,
+    detail: usbManager.USBDevice | null
+  ): boolean {
+    if (device.clazz === USB_CLASS_HID &&
+      DdkLockScreenUKeyDeviceService.isBootKeyboardOrMouse(device.clazz, device.subClass, device.protocol)) {
+      return true
+    }
+    let labels = [
       device.manufacturerName,
       device.productName,
       device.deviceName
-    ].join('|').toUpperCase()
+    ]
+    let interfaces = DdkLockScreenUKeyDeviceService.getUsbInterfaces(detail)
+    for (let item of interfaces) {
+      if (DdkLockScreenUKeyDeviceService.isBootKeyboardOrMouse(
+        DdkLockScreenUKeyDeviceService.normalizeNumber(item.clazz),
+        DdkLockScreenUKeyDeviceService.normalizeNumber(item.subClass),
+        DdkLockScreenUKeyDeviceService.normalizeNumber(item.protocol)
+      )) {
+        return true
+      }
+      labels.push(DdkLockScreenUKeyDeviceService.normalizeText(item.name))
+    }
+    let label = labels.join('|').toUpperCase()
     return KEYBOARD_MOUSE_NAME_KEYWORDS.some((keyword: string): boolean => label.includes(keyword))
+  }
+
+  private static hasUsbClass(device: usbManager.USBDevice | null, clazz: number): boolean {
+    let interfaces = DdkLockScreenUKeyDeviceService.getUsbInterfaces(device)
+    return interfaces.some((item: usbManager.USBInterface): boolean => {
+      return DdkLockScreenUKeyDeviceService.normalizeNumber(item.clazz) === clazz
+    })
+  }
+
+  private static getUsbInterfaces(device: usbManager.USBDevice | null): usbManager.USBInterface[] {
+    if (!device || !Array.isArray(device.configs)) {
+      return []
+    }
+    let result: usbManager.USBInterface[] = []
+    for (let config of device.configs) {
+      if (!config || !Array.isArray(config.interfaces)) {
+        continue
+      }
+      for (let item of config.interfaces) {
+        result.push(item)
+      }
+    }
+    return result
   }
 
   private static toUKeyDevice(
