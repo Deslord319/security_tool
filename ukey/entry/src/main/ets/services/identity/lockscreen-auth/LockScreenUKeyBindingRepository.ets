@@ -14,6 +14,13 @@ import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'LockScreenUKey.BindingRepo'
 
+export function canUpdateUKeyBinding(
+  existing: LockScreenUKeyBinding | null,
+  incoming: LockScreenUKeyBinding
+): boolean {
+  return existing === null || existing.fingerprint === incoming.fingerprint
+}
+
 function isValidCredentialLifecycle(lifecycle: LockScreenUKeyCredentialLifecycle): boolean {
   return lifecycle === 'active' || lifecycle === 'inactive' || lifecycle === 'failed'
 }
@@ -85,6 +92,29 @@ export class PreferencesLockScreenUKeyBindingRepository implements LockScreenUKe
     }
     try {
       let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
+      let stored = await pref.getStringResult(PREF_KEY_LOCKSCREEN_UKEY_BINDING, '')
+      if (!stored.success) {
+        LogUtils.error(TAG, '[SAVE_REJECT] saveBinding | reason=existing_binding_unreadable')
+        return false
+      }
+      let existing: LockScreenUKeyBinding | null = null
+      if (stored.value.length > 0) {
+        try {
+          existing = JSON.parse(stored.value) as LockScreenUKeyBinding
+        } catch (err) {
+          LogUtils.error(TAG, `[SAVE_REJECT] saveBinding | reason=existing_binding_malformed, err=${JSON.stringify(err)}`)
+          return false
+        }
+        if (!PreferencesLockScreenUKeyBindingRepository.isValidBinding(existing)) {
+          LogUtils.error(TAG, '[SAVE_REJECT] saveBinding | reason=existing_binding_invalid')
+          return false
+        }
+      }
+      if (!canUpdateUKeyBinding(existing, binding)) {
+        LogUtils.error(TAG,
+          `[SAVE_REJECT] saveBinding | reason=immutable_fingerprint, existing=${existing?.fingerprint ?? '-'}, incoming=${binding.fingerprint}`)
+        return false
+      }
       let saved = await pref.setJson(PREF_KEY_LOCKSCREEN_UKEY_BINDING, binding)
       if (!saved) {
         LogUtils.error(TAG, '[SAVE_FAIL] saveBinding | reason=preferences_write_failed')
