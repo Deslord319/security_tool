@@ -4,7 +4,7 @@ title: "UKey 管理与认证器核心接入"
 architecture: "Standalone System App + DDK Backend + CustomAuth Core"
 status: "active"
 last_updated: "2026-07-08"
-version: "2.2.31"
+version: "2.2.33"
 ---
 
 # UKey 管理与认证器核心接入设计说明
@@ -27,6 +27,7 @@ version: "2.2.31"
   - `ICustomAuthenticatorV1` appService: 系统身份认证服务回调入口，`pluginInfo` 指向 `com.ukey.pin`。
   - `LockScreenCustomAuthEnrollmentService`: 当前承接首把绑定、UKEY解锁凭据注入/删除和启动/插拔对账编排。凭据注入必须携带用户输入的系统 PIN 和 UKey 密码；凭据删除必须携带用户输入的系统 PIN。
   - `DdkLockScreenUKeyDeviceService`: 当前默认 UKey 设备发现后端，基于 `@kit.DriverDevelopmentKit.deviceManager.queryDevices(BusType.USB)` 枚举 USB 设备，并用 `usbManager.getDevices()` 补充详情。设备 fingerprint 优先使用 SN 稳定标识（`SN:SERIAL`），只比较 SN，不带 VID/PID 前缀；当 serial 为空时生成弱指纹（`VID:xxxx PID:xxxx|WEAK:PRODUCTNAME|DESCRIPTION`），弱指纹只用于精确字符串比较，不做同 VID/PID 放行。候选过滤必须排除 USB Hub、HID Boot 键盘/鼠标以及名称明确为键盘/鼠标/触控板的普通输入外设，避免键鼠被当作 UKey 阻塞凭据注入。
+  - `PreferencesLockScreenUKeyBindingRepository`: 首次凭据添加成功后持久化可信 UKey 绑定。已存在绑定的 `fingerprint`、`deviceId`、`deviceName`、`boundAt` 和 `stableIdentifier` 视为不可变身份；后续只允许更新其 `userCredentials`。凭据删除、认证失败、锁定、插拔、启动对账和重新添加凭据均不得删除、替换或降级首次绑定，只有卸载或显式清除应用数据可重置绑定。Repository 必须拒绝以不同 fingerprint 覆盖已有绑定，业务层重建绑定记录时也必须沿用既有身份字段。
   - `OsAccountCustomAuthCredentialManager`: 对齐测试 HAP，按 `UserIdentityManager.getAuthInfo(CUSTOM_AUTH=128)` 查询系统 CustomAuth 凭据、credentialId 和 templateId，templateId 的 8 字节原始值按 little-endian 解码为十进制字符串；当该查询返回 `12300002 Parameter invalid` 且用于列出现有 CUSTOM_AUTH 凭据时，按当前没有 CUSTOM_AUTH 凭据处理为空列表，不阻断添加或对账。按 `openSession -> PINAuth.registerInputer -> UserAuth.authUser(PIN, ATL3) -> addCredential/delCred -> closeSession` 添加或删除 CustomAuth 凭据。添加凭据前若系统侧已有 CUSTOM_AUTH 凭据，先按本地当前 `trustedBinding.fingerprint + activeCredential.userCredentials[].credentialIdHex/templateId` 判断是否属于当前目标 UKey；属于自己的恢复为 active，不属于当前目标 UKey 的使用本次输入的系统 PIN 静默删除。
   - `OsAccountUKeyUserProvider`: 通过 `osAccount.getAccountManager().getOsAccountLocalIds()` 枚举本机所有 OS 账户 ID，供 UKEY解锁凭据注册和补注入使用。
   - `OsAccountCustomAuthCredentialVerifier`: 页面凭据认证验证入口。验证前由页面传入 UKey 密码，验证器临时注册 `companionDeviceAuth.registerPasscodePromptCallback`，在系统 CustomAuth prompt 触发时提交该 UKey 密码，再对当前已保存的 UKEY解锁凭据逐用户调用 `UserAuth.authUser(userId, challenge, CUSTOM(128), ATL3)`，验证系统能否通过 `com.ukey.pin` CustomAuth 认证器返回认证 token；验证结束后必须注销 passcode prompt 回调。该能力不调用 `addCredential`，不新增、覆盖或删除凭据。
@@ -36,6 +37,18 @@ version: "2.2.31"
 - **业务边界**:
   - ✅ **包含**: UKey 设备发现；首把 UKey 绑定；UKEY解锁凭据注入和删除；启动对账；CustomAuth appService；CustomAuth 核心协议、IPC、密码学和 SecurityAsset 存储；UKey 密码校验与 5 次锁定；第二把 UKey 严格失败规则。
   - ❌ **不包含**: SecurityTool 页面开关；SecurityTool 外设流水线 consumer；SecurityTool 口令策略；SystemUI 锁屏页面改造；多把 UKey 管理界面；UKey 换新流程；测试 HAP 页面和调试状态。
+
+- **可信绑定不变量**:
+  - 首次成功添加系统 CustomAuth 凭据时写入唯一可信绑定；仅检测到设备、输入密码失败或凭据下发失败不得建立绑定。
+  - 已有可信绑定时，所有保存路径必须保留原 fingerprint 和设备身份字段，只能增删或更新凭据列表。
+  - 删除 UKEY 解锁凭据后保留空 `userCredentials` 的可信绑定，不提供应用内换绑、解绑或自动覆盖入口。
+  - Preferences 读取失败不得解释为允许换绑；即使上层错误地提交不同 fingerprint，Repository 仍必须拒绝覆盖。
+
+- **启动识别兜底**:
+  - 机器重启后的首次启动对账必须考虑 USB/DDK 和 USB 详情中的 SN 尚未就绪；第一次未枚举到可信绑定不得立即将凭据降为 inactive。
+  - 启动对账按 0.5 秒间隔最多执行 3 次设备查询，任一次精确匹配可信 fingerprint 即保持或恢复 active；仅连续 3 次查询成功但均未匹配时才写入 inactive。
+  - 查询接口异常时保留原凭据生命周期并返回读取失败，不把基础设施暂时异常解释为 UKey 已拔出。
+  - 明确收到 USB detach 事件时继续沿用实时处理，不套用启动重试窗口。
 
 主链路:
 
@@ -244,6 +257,8 @@ SystemUI / UserAuth
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 |
 |---|---|---|---|
+| 2.2.33 | 2026-07-14 | Codex | 增加重启启动识别兜底：启动对账首次未匹配绑定 UKey 时不立即将凭据降为 inactive，按 0.5 秒间隔最多查询 3 次；查询异常保留原状态，仅连续成功查询且均未匹配时才降级。 |
+| 2.2.32 | 2026-07-14 | Codex | 将首次成功绑定的 UKey 设备身份设为不可变可信绑定：删除凭据、失败、锁定、插拔、重启和重新添加均只允许更新凭据列表；业务构造沿用旧身份字段，Repository 拒绝不同 fingerprint 覆盖，应用内不提供解绑或换绑入口。 |
 | 2.2.31 | 2026-07-08 | Codex | 收紧管理页凭据操作输入态：添加按钮要求系统 PIN 和 UKey 密码均已输入，删除按钮要求系统 PIN 已输入；操作结束后显式清理对应输入框。 |
 | 2.2.30 | 2026-07-06 | Codex | 修正空 CUSTOM_AUTH 凭据列表处理：`getAuthInfo(CUSTOM_AUTH=128)` 返回 `12300002 Parameter invalid` 时按无现有凭据继续添加/对账，不再直接阻断凭据注册。 |
 | 2.2.28 | 2026-07-04 | Codex | 移除管理页手动刷新按钮和对应 ActionRow 样式逻辑；状态同步只由页面进入、USB 插拔、开关变更、凭据操作和认证验证触发，操作状态保留为纯文本展示。 |

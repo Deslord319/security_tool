@@ -34,6 +34,8 @@ const LOCKSCREEN_CUSTOM_AUTH_SUB_TYPE = 0
 const CUSTOM_AUTH_EMPTY_LIST_ERROR_CODE = 12300002
 const CUSTOM_AUTH_VERIFY_CHALLENGE_LENGTH = 16
 const CUSTOM_AUTH_VERIFY_TIMEOUT_MS = 15000
+const STARTUP_DEVICE_QUERY_ATTEMPTS = 3
+const STARTUP_DEVICE_QUERY_INTERVAL_MS = 500
 type StoredUKeyCredentialLifecycle = 'active' | 'inactive' | 'failed'
 
 export type LockScreenUKeyEnrollmentStage =
@@ -988,14 +990,19 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       }
       return LockScreenCustomAuthEnrollmentService.success(null, 'active_credential_missing')
     }
-    let deviceResult = this.deviceProvider.getCandidateDevices()
-    if (!deviceResult.success) {
-      return LockScreenCustomAuthEnrollmentService.failure(deviceResult.stage ?? 'query_usb_devices',
-        deviceResult.errorMessage ?? '读取 UKey 失败')
-    }
-    let candidates = deviceResult.data ?? []
-    if (LockScreenCustomAuthEnrollmentService.containsBoundDevice(existing, candidates)) {
-      return await this.resolveExistingBinding(context, existing, candidates)
+    for (let attempt = 1; attempt <= STARTUP_DEVICE_QUERY_ATTEMPTS; attempt++) {
+      let deviceResult = this.deviceProvider.getCandidateDevices()
+      if (!deviceResult.success) {
+        return LockScreenCustomAuthEnrollmentService.failure(deviceResult.stage ?? 'query_usb_devices',
+          deviceResult.errorMessage ?? '读取 UKey 失败', existing)
+      }
+      let candidates = deviceResult.data ?? []
+      if (LockScreenCustomAuthEnrollmentService.containsBoundDevice(existing, candidates)) {
+        return await this.resolveExistingBinding(context, existing, candidates)
+      }
+      if (attempt < STARTUP_DEVICE_QUERY_ATTEMPTS) {
+        await LockScreenCustomAuthEnrollmentService.sleep(STARTUP_DEVICE_QUERY_INTERVAL_MS)
+      }
     }
     let active = await this.loadActiveCredential(context)
     if (!active) {
@@ -1594,13 +1601,19 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     existing: LockScreenUKeyBinding | null
   ): LockScreenUKeyBinding {
     return {
-      fingerprint: device.fingerprint,
-      deviceId: device.deviceId,
-      deviceName: device.deviceName,
+      fingerprint: existing ? existing.fingerprint : device.fingerprint,
+      deviceId: existing ? existing.deviceId : device.deviceId,
+      deviceName: existing ? existing.deviceName : device.deviceName,
       boundAt: existing ? existing.boundAt : Date.now(),
-      stableIdentifier: device.stableIdentifier,
+      stableIdentifier: existing ? existing.stableIdentifier : device.stableIdentifier,
       userCredentials: LockScreenCustomAuthEnrollmentService.cloneCredentialRecords(credentials, 'active')
     }
+  }
+
+  private static async sleep(delayMs: number): Promise<void> {
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, delayMs)
+    })
   }
 
   private static toBindingFromActiveCredential(active: LockScreenUKeyActiveCredential): LockScreenUKeyBinding {

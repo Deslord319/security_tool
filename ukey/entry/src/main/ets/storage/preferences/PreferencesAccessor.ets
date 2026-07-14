@@ -9,6 +9,11 @@ interface PrefWriteItem {
   value: PrefScalar
 }
 
+export interface PrefStringReadResult {
+  success: boolean
+  value: string
+}
+
 const TAG = 'PreferencesAccessor'
 
 export class PreferencesAccessor {
@@ -59,16 +64,24 @@ export class PreferencesAccessor {
   }
 
   async getString(key: string, defaultValue: string): Promise<string> {
+    let result = await this.getStringResult(key, defaultValue)
+    return result.success ? result.value : defaultValue
+  }
+
+  async getStringResult(key: string, defaultValue: string): Promise<PrefStringReadResult> {
     let store = await this.store()
     if (!store) {
-      return defaultValue
+      return { success: false, value: defaultValue }
     }
     try {
       let raw = await store.get(key, defaultValue)
-      return typeof raw === 'string' ? raw : defaultValue
+      return {
+        success: true,
+        value: typeof raw === 'string' ? raw : defaultValue
+      }
     } catch (err) {
       LogUtils.error(TAG, `getString failed: store=${this.storeName}, key=${key}, err=${JSON.stringify(err)}`)
-      return defaultValue
+      return { success: false, value: defaultValue }
     }
   }
 
