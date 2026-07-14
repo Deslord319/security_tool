@@ -3,8 +3,8 @@ module: "ukey-custom-auth"
 title: "UKey 管理与认证器核心接入"
 architecture: "Standalone System App + DDK Backend + CustomAuth Core"
 status: "active"
-last_updated: "2026-07-08"
-version: "2.2.33"
+last_updated: "2026-07-14"
+version: "2.2.34"
 ---
 
 # UKey 管理与认证器核心接入设计说明
@@ -15,7 +15,7 @@ version: "2.2.33"
   - [x] 当前已落地代码 (As-Is)
   - [x] 目标架构设计 (To-Be)
   - [x] 重构中过渡方案 (WIP)
-- **维护规则**: 本文档描述 `ukey/` 独立系统应用内的 UKey 设备管理、DDK 接入、CustomAuth 核心执行逻辑和系统凭据注入/删除链路。修改 UKey 插拔策略、凭据生命周期、CustomAuth 协议接入、DDK 权限、系统应用签名或验收口径时，必须同步更新本文档。
+- **维护规则**: 本文档描述 `ukey/` 独立系统应用内的 UKey 设备管理、DDK 接入、CustomAuth 核心执行逻辑和系统凭据注入/删除链路。修改 UKey 插拔策略、凭据生命周期、CustomAuth 协议接入、DDK 权限、系统应用签名或验收口径时，必须同步更新本文档。面向测试执行的规格、用例和结果判定统一维护在 `docs/04-测试文档/手工测试用例/UKey解锁工具规格与测试说明.md`；两份文档冲突时，先以本文档和当前生产代码核准设计结论，再同步修正测试说明。
 - **一致性原则**: UKey 能力不再放在 SecurityTool 主应用内。SecurityTool 只保留身份鉴别口令策略和通用 PIN/指纹认证能力，不再声明 CustomAuthenticator appService，不再读取 UKey，不再保存 UKey 绑定或 UKEY解锁凭据。
 - **裁剪原则**: `ukey/` 工程只承载生产需要的 UKey 管理和 CustomAuth 执行端能力，不迁入测试 HAP 页面、调试按钮、AppStorage fake UKey 切换、模拟换新和无关资源。
 
@@ -230,6 +230,9 @@ SystemUI / UserAuth
   6. 分别构建 SecurityTool 和 `ukey/`，确认 SecurityTool 不再出现 UKey systemapi warning，`ukey/` 作为系统应用承接相关 warning/权限。
   7. 修改 UKey 凭据生命周期时，先确认添加凭据需要系统 PIN + UKey 密码，删除凭据只需要系统 PIN，运行时后台插拔事件不绕过用户输入。
 - **测试覆盖**:
+  - 专项手工测试入口: `docs/04-测试文档/手工测试用例/UKey解锁工具规格与测试说明.md`。测试必须区分干净安装、保留数据升级和日常回归三类基线，并记录设备版本、HAP 哈希、当前系统 PIN、UKey SN、系统选中的 CustomAuth bundle/templateId 和关键日志。
+  - 测试输入必须区分系统 PIN 与 UKey 密码：系统 PIN 使用被测 OS 账户的真实 PIN；当前开发阶段 UKey 密码固定为 `666666`。二者即使在实验设备上取值相同，也必须按两个独立输入和两条独立校验链路执行。
+  - 同机安装多个 CustomAuthenticator HAP 时，只有系统日志或 `sensorInfo` 明确显示 `customAuthenticatorBundleName=com.ukey.pin` 的结果才计入本工具验收；其它 bundle 的成功或失败只作为环境信息，不得代替本工具结论。
   - SecurityTool UT/构建: 身份鉴别页仍可配置口令策略，且不再引用 UKey 模块。
   - `ukey/` 构建: 编译通过，`UserAuth is system api` warning 只出现在 `ukey/`。
   - `ukey/` CustomAuth 验证: 覆盖 `template_id` 十进制字符串、`auth_secret_seq` u32 JSON number、68B 新记录读写和 72B 旧记录迁移。
@@ -237,6 +240,9 @@ SystemUI / UserAuth
   - 设备手工: 安装 `ukey/` 系统签名 HAP 后，第一把 UKey 在管理页输入系统 PIN 和 UKey 密码后可为所有 OS 账户注册凭据，第二把不注册；拔出首把不自动删除凭据，但认证失败；输入系统 PIN 后可删除全部已保存的 UKEY解锁凭据。
   - UT: 覆盖 UKey 设备候选过滤，确保键盘、鼠标、触控板和 USB Hub 不进入候选集合，不会把唯一真实 UKey 误判为“多把 UKey”。
 - **验收口径**:
+  - 发布前 P0 阻断项至少包括：系统应用签名/权限不满足、首把绑定失败、正确 UKey 密码无法完成有效 Model B 认证、错误密码未失败、连续 5 次错误未锁定、第二把 UKey 可替换或认证、目标 UKey 拔出后仍可认证、删除凭据后系统或本地仍残留可用凭据。
+  - “正确密码认证成功”必须同时满足：系统选中 `com.ukey.pin`、触发 `onPrompt/submitPasscode`、认证器解密明文为 ASCII `666666`（字节码 `54,54,54,54,54,54`）、provider 匹配成功且最终 `onResult=0`。只看到 SceneBoard 打印字符串或其它认证器直接完成，不能判定本工具密码链路通过。
+  - 若认证器解密得到 `0,0,0,0,0,0`，该值表示六个 NUL 字节而非字符串 `000000`；应按 passcode 传输链路故障处理，结合 SceneBoard 实际 `Uint8Array`、NAPI 深拷贝和 CDA RSA 加密输入定位，不得归类为用户输入了错误密码或两个认证器串用密钥。
   - `security_tool/entry/src/main/ets` 下不再存在 `lockscreen-auth`、`custom-auth-core` 或 `CustomAuthExtAbility`。
   - SecurityTool `module.json5` 不再定义 `ACCESS_CUSTOM_AUTHENTICATOR`，不再声明 UKey 凭据链路权限。
   - `ukey/` `module.json5` 声明 `ICustomAuthenticatorV1` appService 和 UKey 所需权限。
@@ -257,6 +263,7 @@ SystemUI / UserAuth
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 |
 |---|---|---|---|
+| 2.2.34 | 2026-07-14 | Codex | 增加 UKey 解锁工具专项测试说明入口和发布阻断口径；明确系统 PIN 与固定 UKey 密码 `666666` 的独立语义、多认证器环境只认 `com.ukey.pin`，以及 Model B 成功和六个 NUL 字节故障的判定标准。 |
 | 2.2.33 | 2026-07-14 | Codex | 增加重启启动识别兜底：启动对账首次未匹配绑定 UKey 时不立即将凭据降为 inactive，按 0.5 秒间隔最多查询 3 次；查询异常保留原状态，仅连续成功查询且均未匹配时才降级。 |
 | 2.2.32 | 2026-07-14 | Codex | 将首次成功绑定的 UKey 设备身份设为不可变可信绑定：删除凭据、失败、锁定、插拔、重启和重新添加均只允许更新凭据列表；业务构造沿用旧身份字段，Repository 拒绝不同 fingerprint 覆盖，应用内不提供解绑或换绑入口。 |
 | 2.2.31 | 2026-07-08 | Codex | 收紧管理页凭据操作输入态：添加按钮要求系统 PIN 和 UKey 密码均已输入，删除按钮要求系统 PIN 已输入；操作结束后显式清理对应输入框。 |
