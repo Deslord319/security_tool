@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
+import { usbManager } from '@kit.MDMKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   PeripheralType,
@@ -19,6 +20,8 @@ import { PeripheralPolicySnapshotTraceService } from '../../main/ets/services/pe
 import { PeripheralTraceMutationResult } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { UsbDevicePolicyStateRepository } from '../../main/ets/services/peripheral/device-policy/UsbDevicePolicyStateRepository'
 import { UsbDevicePolicyStateService } from '../../main/ets/services/peripheral/device-policy/UsbDevicePolicyStateService'
+import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
+import { OperationResult } from '../../main/ets/models/CommonModels'
 
 function cloneUsbState(record: UsbDevicePolicyStateRecord): UsbDevicePolicyStateRecord {
   return {
@@ -57,16 +60,32 @@ export default function peripheralPolicyViewModelTest() {
     let viewModel: PeripheralPolicyViewModel
     let mockKit: MockKit
     let usbStates: UsbDevicePolicyStateRecord[]
+    let usbStoragePolicy: usbManager.UsbPolicy
+    let clearPolicyCalls: number
 
     beforeEach(async () => {
       viewModel = new PeripheralPolicyViewModel()
       mockKit = new MockKit()
       usbStates = []
+      usbStoragePolicy = usbManager.UsbPolicy.READ_WRITE
+      clearPolicyCalls = 0
       let listUsbStateMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.listAll)
       let getUsbStateMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.get)
       let setUsbStatePolicyMock = mockKit.mockFunc(UsbDevicePolicyStateService, UsbDevicePolicyStateService.setPolicy)
       let clearUsbStatePoliciesMock = mockKit.mockFunc(UsbDevicePolicyStateService, UsbDevicePolicyStateService.clearAllPolicies)
       let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+      let hasDisallowedUsbTypesMock = mockKit.mockFunc(
+        PeripheralDevicePolicyDispatchService,
+        PeripheralDevicePolicyDispatchService.hasDisallowedUsbDeviceTypePolicies
+      )
+      let getUsbStoragePolicyMock = mockKit.mockFunc(
+        PeripheralService,
+        PeripheralService.getUsbStoragePolicyWithResult
+      )
+      let getUsbGlobalPolicyMock = mockKit.mockFunc(
+        PeripheralService,
+        PeripheralService.getInterfaceDisabledWithResult
+      )
       let appendSnapshotMock = mockKit.mockFunc(
         PeripheralPolicySnapshotTraceService,
         PeripheralPolicySnapshotTraceService.appendDevicePolicySnapshot
@@ -88,6 +107,7 @@ export default function peripheralPolicyViewModelTest() {
         return Promise.resolve(createDispatchResult(index >= 0, index >= 0 ? undefined : 'usb_dispatch_failed'))
       })
       when(clearUsbStatePoliciesMock)().afterAction(() => {
+        clearPolicyCalls += 1
         usbStates = usbStates.map((item: UsbDevicePolicyStateRecord) => {
           let next = cloneUsbState(item)
           next.desiredPolicy = 'allow'
@@ -97,6 +117,14 @@ export default function peripheralPolicyViewModelTest() {
         return Promise.resolve(true)
       })
       when(dispatchMock)(ArgumentMatchers.any).afterReturn(createDispatchResult(true))
+      when(hasDisallowedUsbTypesMock)().afterReturn(false)
+      when(getUsbStoragePolicyMock)().afterAction(() => {
+        return { success: true, data: usbStoragePolicy } as OperationResult<usbManager.UsbPolicy>
+      })
+      when(getUsbGlobalPolicyMock)(ArgumentMatchers.any).afterReturn({
+        success: true,
+        data: false
+      } as OperationResult<boolean>)
       when(appendSnapshotMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createTraceMutationResult()))
     })
 
@@ -160,6 +188,52 @@ export default function peripheralPolicyViewModelTest() {
       expect(viewModel.state.records.length).assertEqual(1)
       expect(viewModel.state.records[0].policyIndex).assertEqual(0)
       expect(viewModel.state.hasRestorableRecords).assertFalse()
+    })
+
+    it('should keep desired policy visible and disable editing when storage access is disabled', 0, async () => {
+      usbStoragePolicy = usbManager.UsbPolicy.DISABLED
+      usbStates = [{
+        fingerprintKey: 'USB-WEAK:1234:5678:ABCDEF01',
+        fingerprintType: 'weak',
+        vendorId: 0x1234,
+        productId: 0x5678,
+        description: 'storage',
+        baseClass: 0x08,
+        deviceName: 'USB Device',
+        desiredPolicy: 'allow',
+        present: true,
+        activePolicy: 'none',
+        lastSeenAt: 300,
+        updatedAt: 301
+      }]
+
+      await viewModel.reloadRecords()
+
+      expect(viewModel.state.records[0].editable).assertFalse()
+      expect(viewModel.state.records[0].policyIndex).assertEqual(0)
+    })
+
+    it('should prefer the confirmed storage target state over an immediate stale system read', 0, async () => {
+      usbStoragePolicy = usbManager.UsbPolicy.DISABLED
+      usbStates = [{
+        fingerprintKey: 'USB-WEAK:1234:5678:ABCDEF01',
+        fingerprintType: 'weak',
+        vendorId: 0x1234,
+        productId: 0x5678,
+        description: 'storage',
+        baseClass: 0x08,
+        deviceName: 'USB Device',
+        desiredPolicy: 'allow',
+        present: true,
+        activePolicy: 'none',
+        lastSeenAt: 300,
+        updatedAt: 301
+      }]
+
+      await viewModel.reloadRecords(false)
+
+      expect(viewModel.state.records[0].editable).assertTrue()
+      expect(viewModel.state.records[0].policyIndex).assertEqual(0)
     })
 
     it('should reject invalid device ids when changing policy', 0, async () => {
@@ -235,6 +309,13 @@ export default function peripheralPolicyViewModelTest() {
       expect(usbStates.length).assertEqual(1)
       expect(usbStates[0].desiredPolicy).assertEqual('allow')
       expect(usbStates[0].activePolicy).assertEqual('none')
+    })
+
+    it('should clear system usb policies even when local policy records are empty', 0, async () => {
+      const success = await viewModel.clearAllPolicies()
+
+      expect(success).assertTrue()
+      expect(clearPolicyCalls).assertEqual(1)
     })
 
     it('should return false when clearing usb policy states fails', 0, async () => {

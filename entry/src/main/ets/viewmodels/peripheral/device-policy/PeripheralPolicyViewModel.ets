@@ -1,5 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
+import { usbManager } from '@kit.MDMKit'
 
 import { DeviceTypeLabels,
   PeripheralExportStrings,
@@ -19,6 +20,7 @@ import {
 import { getPeripheralTypeLabel } from '../connection-record/PeripheralRecordPresentationMapper'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { UsbDevicePolicyStateRepository } from '../../../services/peripheral/device-policy/UsbDevicePolicyStateRepository'
+import { PeripheralDevicePolicyDispatchService } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyDispatchService'
 import { UsbDevicePolicyStateService } from '../../../services/peripheral/device-policy/UsbDevicePolicyStateService'
 import {
   PeripheralPolicyDispatchReason,
@@ -50,10 +52,33 @@ export class PeripheralPolicyViewModel {
     return devicePolicyReady && usbStateReady
   }
 
-  async reloadRecords(): Promise<void> {
+  async reloadRecords(usbStorageDisabledOverride?: boolean): Promise<void> {
     const usbPolicyStates = await UsbDevicePolicyStateRepository.listAll()
-    const records = PeripheralPolicyService.buildPolicyRecords(usbPolicyStates)
-    this.state.hasRestorableRecords = this.hasRestorableRecords(records)
+    let records = PeripheralPolicyService.buildPolicyRecords(usbPolicyStates)
+    const storagePolicyResult = usbStorageDisabledOverride === undefined
+      ? PeripheralService.getUsbStoragePolicyWithResult()
+      : null
+    const usbStorageDisabled = usbStorageDisabledOverride ??
+      (storagePolicyResult?.success === true && storagePolicyResult.data === usbManager.UsbPolicy.DISABLED)
+    if (usbStorageDisabled) {
+      records = records.map((record: PeripheralPolicyRecord) => {
+        if (record.deviceType !== PeripheralType.USB_STORAGE) {
+          return record
+        }
+        return {
+          deviceName: record.deviceName,
+          deviceType: record.deviceType,
+          deviceId: record.deviceId,
+          lastSeenAt: record.lastSeenAt,
+          lastSeenLabel: record.lastSeenLabel,
+          policyIndex: record.policyIndex,
+          present: record.present,
+          editable: false
+        } as PeripheralPolicyRecord
+      })
+    }
+    this.state.hasRestorableRecords = this.hasRestorableRecords(records) ||
+      PeripheralDevicePolicyDispatchService.hasDisallowedUsbDeviceTypePolicies()
     this.state.records = records
     this.state.usbDefaultPolicyIndex = PeripheralDevicePolicyRepository.isUsbDefaultDeny()
       ? PeripheralPolicyOptionIndexes.DENY
@@ -143,10 +168,6 @@ export class PeripheralPolicyViewModel {
       return false
     }
     const stateRecords = await UsbDevicePolicyStateRepository.listAll()
-    if (stateRecords.length === 0) {
-      return true
-    }
-
     LogUtils.info(TAG, `clearAllPolicies start: usbStates=${stateRecords.length}`)
     return await UsbDevicePolicyStateService.clearAllPolicies()
   }

@@ -54,6 +54,10 @@ export class InterfaceControlViewModel {
 
   @Trace processingKey: string = ''
 
+  isUsbStorageDisabled(): boolean {
+    return this.state.usbStoragePolicyIndex === USB_STORAGE_POLICY_INDEX_DISABLED
+  }
+
   async reloadState(): Promise<void> {
     try {
       const btState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.BLUETOOTH)

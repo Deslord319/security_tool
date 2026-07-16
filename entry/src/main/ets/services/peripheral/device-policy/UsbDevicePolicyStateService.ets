@@ -250,18 +250,12 @@ export class UsbDevicePolicyStateService {
   static async clearAllPolicies(): Promise<boolean> {
     const records = await UsbDevicePolicyStateRepository.listAll()
     const restoredRecords: UsbDevicePolicyStateRecord[] = []
+    const clearResult = PeripheralDevicePolicyDispatchService.clearAllUsbDeviceTypePolicies()
+    if (!clearResult.success) {
+      LogUtils.error(TAG, `clearAllPolicies system cleanup failed: reason=${clearResult.reason ?? 'unknown'}`)
+      return false
+    }
     for (const record of records) {
-      if (record.activePolicy === 'deny') {
-        const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
-          deviceId: record.fingerprintKey,
-          deviceType: UsbDevicePolicyStateService.resolveDeviceType(record.baseClass),
-          policy: 'allow'
-        })
-        if (!dispatchResult.success) {
-          LogUtils.error(TAG, `clearAllPolicies dispatch failed: key=${record.fingerprintKey}, reason=${dispatchResult.reason ?? 'unknown'}`)
-          return false
-        }
-      }
       restoredRecords.push(UsbDevicePolicyStateService.copyStateWithPolicy(record, 'allow', 'none'))
     }
     const saved = await UsbDevicePolicyStateRepository.upsertAll(restoredRecords)

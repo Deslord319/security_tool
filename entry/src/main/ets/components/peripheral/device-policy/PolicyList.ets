@@ -78,7 +78,9 @@ export struct PolicyList {
               })
           }
         }
-      }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}-${record.present === false ? 'offline' : 'online'}`)
+      }, (record: PeripheralPolicyRecord) =>
+        `${record.deviceId}-${record.policyIndex}-${record.present === false ? 'offline' : 'online'}-` +
+        `${record.editable === false ? 'locked' : 'editable'}`)
     }
     .width('100%')
     .borderRadius(AppStyles.RADIUS_LG)

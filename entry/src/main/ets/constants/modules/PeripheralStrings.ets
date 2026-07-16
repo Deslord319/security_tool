@@ -266,7 +266,7 @@ export function resolvePeripheralReason(reason?: string | null): string {
     case PeripheralReasonCodes.DEVICE_POLICY_DISPATCH_NOT_IMPLEMENTED:
       return buildPeripheralRetryMessage('当前设备策略下发能力尚未接入')
     case PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE:
-      return '系统检测到 USB 存储账户级冲突策略，暂时无法修改单设备策略'
+      return 'USB 存储当前已禁止访问，请先将 USB 存储访问模式设置为只读或读写'
     case PeripheralReasonCodes.USB_GLOBAL_DISABLED:
       return 'USB 接口已全局禁用，请先启用 USB 接口后再调整设备策略'
     case PeripheralReasonCodes.USB_DISPATCH_FAILED:
@@ -286,7 +286,7 @@ export function resolvePeripheralReason(reason?: string | null): string {
     case PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT:
       return buildPeripheralRetryMessage('系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置')
     case PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT:
-      return buildPeripheralRetryMessage('系统检测与USB接口策略冲突，需先修改USB设备为启用')
+      return 'USB 接口当前已开启，但设备黑白名单限制与 USB 存储访问模式冲突，请先还原黑白名单策略后再设置'
     default:
       return reason && reason.trim().length > 0 ? reason : MessageText.RETRY_LATER
   }

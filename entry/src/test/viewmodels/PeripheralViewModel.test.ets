@@ -31,9 +31,22 @@ import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodel
 
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   reloadCount: number = 0
+  storagePolicyChangeCount: number = 0
 
   async reloadState(): Promise<void> {
     this.reloadCount++
+  }
+
+  async setUsbStoragePolicy(_index: number): Promise<string | null> {
+    this.storagePolicyChangeCount++
+    this.state.usbStoragePolicyIndex = _index
+    return null
+  }
+}
+
+class AdminReadyPeripheralViewModel extends PeripheralViewModel {
+  ensureAdminReady(): boolean {
+    return true
   }
 }
 
@@ -72,6 +85,7 @@ class FakePolicyViewModel extends PeripheralPolicyViewModel {
   clearResult: boolean = true
   nextHasRestorableRecords: boolean = false
   exportResult: ExportActionResult = new FakeExportResult(true, 'peripheral_policy_records.csv')
+  lastStorageDisabledOverride?: boolean
 
   async initialize(_context: common.UIAbilityContext): Promise<boolean> {
     this.initializeCount++
@@ -81,8 +95,9 @@ class FakePolicyViewModel extends PeripheralPolicyViewModel {
     return true
   }
 
-  async reloadRecords(): Promise<void> {
+  async reloadRecords(usbStorageDisabledOverride?: boolean): Promise<void> {
     this.reloadCount++
+    this.lastStorageDisabledOverride = usbStorageDisabledOverride
     this.state.records = []
     this.state.hasRestorableRecords = this.nextHasRestorableRecords
   }
@@ -359,6 +374,20 @@ export default function peripheralViewModelTest() {
     expect(fakePolicy.reloadCount).assertEqual(1)
     expect(viewModel.hasRestorablePolicyRecords()).assertFalse()
     done()
+  })
+
+  it('U-PVM-012 should refresh policy after usb storage policy changes successfully', 0, async () => {
+    viewModel = new AdminReadyPeripheralViewModel()
+    viewModel.policy = fakePolicy
+    viewModel.records = fakeRecords
+    viewModel.interfaceControl = fakeInterface
+
+    const success = await viewModel.setUsbStoragePolicy(1)
+
+    expect(success).assertTrue()
+    expect(fakeInterface.storagePolicyChangeCount).assertEqual(1)
+    expect(fakePolicy.reloadCount).assertEqual(1)
+    expect(fakePolicy.lastStorageDisabledOverride).assertFalse()
   })
 
   it('should keep basic defaults and admin check behavior stable', 0, async (done: Function) => {

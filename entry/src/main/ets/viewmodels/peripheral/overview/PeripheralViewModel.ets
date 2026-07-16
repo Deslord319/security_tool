@@ -148,6 +148,7 @@ export class PeripheralViewModel {
     if (this.reasonCode !== null) {
       return false
     }
+    await this.policy.reloadRecords(this.interfaceControl.isUsbStorageDisabled())
     this.notifyRefresh('setUsbStoragePolicy')
     return true
   }
