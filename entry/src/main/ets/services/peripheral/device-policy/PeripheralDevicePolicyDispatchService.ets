@@ -36,6 +36,28 @@ export interface PeripheralPolicyDispatchResult extends OperationResult<void> {
 const TAG = 'PeripheralDevicePolicyDispatchService'
 
 export class PeripheralDevicePolicyDispatchService {
+  static hasDisallowedUsbDeviceTypePolicies(): boolean {
+    try {
+      return usbManager.getDisallowedUsbDevices(ADMIN_WANT).length > 0
+    } catch (err) {
+      LogUtils.error(TAG, `get disallowed usb device types failed: ${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
+  static clearAllUsbDeviceTypePolicies(): PeripheralPolicyDispatchResult {
+    return PeripheralDevicePolicyDispatchService.tryRunOperation(
+      () => {
+        const disallowed = usbManager.getDisallowedUsbDevices(ADMIN_WANT)
+        if (disallowed.length > 0) {
+          usbManager.removeDisallowedUsbDevices(ADMIN_WANT, disallowed)
+        }
+      },
+      'usb',
+      PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED as PeripheralPolicyDispatchReason
+    )
+  }
+
   static async dispatch(request: PeripheralPolicyDispatchRequest): Promise<PeripheralPolicyDispatchResult> {
     if (!PeripheralDevicePolicyDispatchService.isSupportedPolicy(request.policy)) {
       return PeripheralDevicePolicyDispatchService.buildFailureResult(

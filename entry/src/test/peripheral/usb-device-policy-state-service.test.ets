@@ -91,6 +91,10 @@ export default function usbDevicePolicyStateServiceTest() {
       let getMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.get)
       let upsertMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.upsert)
       let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+      let clearUsbTypesMock = mockKit.mockFunc(
+        PeripheralDevicePolicyDispatchService,
+        PeripheralDevicePolicyDispatchService.clearAllUsbDeviceTypePolicies
+      )
       let defaultDenyMock = mockKit.mockFunc(
         PeripheralDevicePolicyRepository,
         PeripheralDevicePolicyRepository.isUsbDefaultDeny
@@ -118,6 +122,7 @@ export default function usbDevicePolicyStateServiceTest() {
         dispatchRequests.push(request)
         return Promise.resolve(dispatchResult)
       })
+      when(clearUsbTypesMock)().afterAction(() => dispatchResult)
     })
 
     afterEach(async () => {
@@ -133,10 +138,7 @@ export default function usbDevicePolicyStateServiceTest() {
       const success = await UsbDevicePolicyStateService.clearAllPolicies()
 
       expect(success).assertTrue()
-      expect(dispatchRequests.length).assertEqual(1)
-      expect(dispatchRequests[0].deviceId).assertEqual('USB-WEAK:1234:5678:AAAA0001')
-      expect(dispatchRequests[0].deviceType).assertEqual(PeripheralType.USB_STORAGE)
-      expect(dispatchRequests[0].policy).assertEqual('allow')
+      expect(dispatchRequests.length).assertEqual(0)
       expect(saveCalls).assertEqual(1)
       expect(savedStates.length).assertEqual(2)
       expect(savedStates[0].fingerprintKey).assertEqual('USB-WEAK:1234:5678:AAAA0001')
@@ -212,7 +214,7 @@ export default function usbDevicePolicyStateServiceTest() {
       expect(result.state === undefined).assertTrue()
     })
 
-    it('should not persist default allow when active deny restore dispatch fails', 0, async () => {
+    it('should not persist default allow when system usb type cleanup fails', 0, async () => {
       states = [
         createUsbState('USB-WEAK:1234:5678:AAAA0001', 0x08, 'deny', 'deny', true)
       ]
@@ -221,7 +223,7 @@ export default function usbDevicePolicyStateServiceTest() {
       const success = await UsbDevicePolicyStateService.clearAllPolicies()
 
       expect(success).assertFalse()
-      expect(dispatchRequests.length).assertEqual(1)
+      expect(dispatchRequests.length).assertEqual(0)
       expect(saveCalls).assertEqual(0)
       expect(savedStates.length).assertEqual(0)
     })
