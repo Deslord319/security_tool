@@ -17,6 +17,9 @@ import { FirewallPolicyService } from './FirewallPolicyService'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
 import { FirewallSystemRepository } from './FirewallSystemRepository'
 import { SystemUserProvider } from './providers/SystemUserProvider'
+import { LogUtils } from '../../utils/LogUtils'
+
+const TAG = 'FirewallModeSwitchService'
 
 interface FirewallModeSwitchSnapshot {
   previousMode: FirewallPresetMode
@@ -38,6 +41,7 @@ export class FirewallModeSwitchService {
     let usersResult = await SystemUserProvider.loadAvailableUserIds()
     let failedItems: FirewallFailedItem[] = []
     if (usersResult.users.length === 0) {
+      LogUtils.warn(TAG, `switchMode failed: no available users, message=${usersResult.message ?? 'unknown'}`)
       return {
         success: false,
         failedItems: failedItems,
@@ -49,6 +53,7 @@ export class FirewallModeSwitchService {
       usersResult.users.map((user: UserFirewallOption): number => user.userId)
     )
     if (!pruned) {
+      LogUtils.error(TAG, `switchMode failed: prune unavailable users, targetMode=${targetMode}`)
       return {
         success: false,
         failedItems: [{ errorMessage: FirewallModeSwitchErrorStrings.PRUNE_UNAVAILABLE_USERS_FAILED }],
@@ -66,6 +71,7 @@ export class FirewallModeSwitchService {
   ): Promise<FirewallOperationResult> {
     let failedItems: FirewallFailedItem[] = []
     if (users.length === 0) {
+      LogUtils.warn(TAG, `applyModeToUsers failed: no users, targetMode=${targetMode}`)
       return {
         success: false,
         failedItems: failedItems,
@@ -76,6 +82,7 @@ export class FirewallModeSwitchService {
     let snapshotResult = await FirewallModeSwitchService.createSnapshot(context, users)
     failedItems.push(...snapshotResult.failedItems)
     if (failedItems.length > 0) {
+      LogUtils.error(TAG, `applyModeToUsers failed: snapshot, targetMode=${targetMode}, failedCount=${failedItems.length}`)
       return {
         success: false,
         failedItems: failedItems,
@@ -150,6 +157,10 @@ export class FirewallModeSwitchService {
     }
     if (failedItems.length > 0) {
       failedItems.push(...await FirewallModeSwitchService.rollbackToSnapshot(context, users, snapshot))
+      LogUtils.error(
+        TAG,
+        `applyModeToUsers failed: targetMode=${targetMode}, failedCount=${failedItems.length}, rollbackAttempted=true`
+      )
     }
 
     return {

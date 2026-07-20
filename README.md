@@ -17,7 +17,7 @@
 | 防火墙管理 | 模式切换、规则详情、规则新增删除、用户分发控制 | `firewall` / `firewall-rules` |
 | 日志管理 | 审计与崩溃日志采集、分页展示、详情查看、导出、存储设置 | `log-manage` |
 | 外设管理 | USB/蓝牙接口控制、设备策略、连接记录 | `peripheral-manage` |
-| 权限管理 | 应用级安装、运行、目录、网络和保活管控入口 | `permission-manage` |
+| 权限管理 | 账号级禁止安装、应用卸载保护、运行、网络和 3D 目录权限管控 | `permission-manage` |
 | 身份鉴别 | 口令复杂度、密码有效期策略、PIN / 指纹认证基础能力 | `identity` |
 | 工具设置 | 启动认证、认证方式、系统设置相关项 | `tool-settings` |
 | 帮助与反馈 | 帮助入口、关于信息 | 顶部菜单 `help-feedback` |
@@ -107,7 +107,7 @@ Page -> ViewModel -> Service -> Repository / Store / Provider -> HarmonyOS API
 | 防火墙管理 | 体现网络访问控制能力 | 总开关、模式切换、自定义规则、用户级模式下发 |
 | 日志管理 | 提供可审计与可导出闭环 | 采集状态、筛选、分页、详情、导出、存储设置 |
 | 外设管理 | 体现终端设备侧控制能力 | 接口开关、连接记录、单设备策略 |
-| 权限管理 | 提供应用级管控入口 | 首版只读骨架，后续承载安装、运行、目录、网络和保活策略 |
+| 权限管理 | 提供应用级管控闭环 | 账号/应用清单、禁止安装、卸载保护、运行、网络和 3D 权限策略读写 |
 | 身份鉴别 | 提供账户安全基线设置 | 密码复杂度、有效期、管理员激活态感知 |
 | 工具设置 | 保护工具自身访问入口 | 启动认证、认证方式选择、系统密码入口 |
 | 帮助与反馈 | 提供辅助说明与支持入口 | 使用指南、FAQ、反馈邮箱 |
@@ -183,7 +183,7 @@ services/
 ├── identity/                      # 认证服务与身份设置服务
 ├── log-manage/                    # 日志采集、导出、归一化、仓储、数据源
 ├── peripheral/                    # 外设接口、连接记录、设备策略
-├── permission-manage/             # 权限管理首版只读状态服务
+├── permission-manage/             # 权限管理应用清单与策略读写服务
 └── tool-settings/                 # 系统设置与工具设置持久化
 ```
 
@@ -278,9 +278,9 @@ hdc shell aa start -a EntryAbility -b com.huawei.securitytool
 
 当前仓库中，按文件数统计包含：
 
-- `84` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
+- `93` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
 - `6` 个 `ohosTest` 设备侧测试文件：`entry/src/ohosTest/ets/test/**/*.test.ets`
-- `45` 个 E2E case：`scripts/e2e/cases/**/*.json`
+- `44` 个 E2E case：`scripts/e2e/cases/**/*.json`
 
 E2E case 以端到端功能闭环为主，覆盖规则创建/删除、日志筛选与存储设置保存、外设策略可逆变更、身份策略保存、工具设置系统入口跳转等场景。
 

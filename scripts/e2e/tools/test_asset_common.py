@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import base64
 import copy
 import io
@@ -1123,12 +1122,6 @@ def upsert_record(record: dict[str, Any]) -> dict[str, Any]:
     if not replaced:
         next_records.append(transformed)
     return save_catalog({"version": CATALOG_VERSION, "updated_at": utc_now(), "records": next_records})
-
-
-def parse_args_with_catalog(description: str) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--rebuild", action="store_true", help="Rebuild catalog before running this command when applicable.")
-    return parser
 
 
 def decode_base64_file(content_base64: str) -> bytes:

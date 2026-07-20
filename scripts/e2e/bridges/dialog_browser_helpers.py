@@ -62,18 +62,6 @@ class DialogBrowserHelpersMixin:
             await asyncio.sleep(0.3)
         return self._unknown({"action": "wait_dialog_select", "params": {"index": index, "expected_text": expected_text}}, "MCP_ACTION_PENDING", f"Dialog select did not update to {expected_text}")
 
-    async def _wait_for_dialog_input_value(self, target_node: dict[str, Any], expected_value: str, *, timeout_sec: float = 2.5) -> dict[str, Any]:
-        deadline = time.time() + timeout_sec
-        while time.time() < deadline:
-            ui_tree = await self._get_ui_tree()
-            inputs = self._dialog_nodes_by_type(ui_tree, "TextInput")
-            for node in inputs:
-                if abs((node.get("left") or 0) - (target_node.get("left") or 0)) <= 8 and abs((node.get("top") or 0) - (target_node.get("top") or 0)) <= 8:
-                    if expected_value in str(node.get("text", "")):
-                        return self._pass("Dialog input updated", {"input": node, "expected_value": expected_value})
-            await asyncio.sleep(0.25)
-        return self._unknown({"action": "wait_dialog_input", "params": {"expected_value": expected_value}}, "MCP_ACTION_PENDING", f"Dialog input did not update to {expected_value}")
-
     async def _choose_dialog_option(self, select_node: dict[str, Any], labels: list[str], *, timeout_sec: float = 3.0) -> dict[str, Any]:
         wanted = {label.strip() for label in labels if label.strip()}
         deadline = time.time() + timeout_sec

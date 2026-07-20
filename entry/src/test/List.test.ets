@@ -1,12 +1,9 @@
-import localUnitTest from './common/LocalUnit.test'
 import appConstantsTest from './common/app-constants.test'
 import dialogServiceTest from './common/dialog-service.test'
 import dialogStringsTest from './common/dialog-strings.test'
 import errorUtilsTest from './common/error-utils.test'
-import secureStorageTest from './common/secure-storage.test'
 import csvFileExportServiceTest from './common/csv-file-export-service.test'
 import authServiceBehaviorTest from './auth/auth-service.behavior.test'
-import authServiceTest from './auth/service.test'
 import dashboardViewModelTest from './dashboard/viewmodel.test'
 import enterpriseAdminAbilityTest from './enterprise/admin-ability.test'
 import entryAbilityTest from './entryability/entryability.test'
@@ -95,15 +92,12 @@ import peripheralPageTest from './views/PeripheralPage.test'
 import settingsPagesStateTest from './views/SettingsPagesState.test'
 
 export default function testsuite() {
-  localUnitTest()
   appConstantsTest()
   dialogServiceTest()
   dialogStringsTest()
   errorUtilsTest()
-  secureStorageTest()
   csvFileExportServiceTest()
   authServiceBehaviorTest()
-  authServiceTest()
   entryAbilityTest()
   dashboardViewModelTest()
   enterpriseAdminAbilityTest()

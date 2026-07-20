@@ -64,21 +64,6 @@ class UiRuntimeHelpersMixin:
         queries = [{"bundle_name": bundle_name, "text": text} for text in texts if text.strip()]
         return await self._wait_for(queries, timeout_sec=timeout_sec, interval_sec=interval_sec)
 
-    async def _wait_until_text_gone(self, text: str, *, timeout_sec: float = 5.0) -> dict[str, Any]:
-        result = await self._call_tool(
-            "wait_element",
-            {
-                "bundle_name": "com.huawei.securitytool",
-                "text": text,
-                "state": "gone",
-                "timeout_ms": int(timeout_sec * 1000),
-                "interval_ms": 300,
-            },
-        )
-        if result.get("ok", False):
-            return self._pass("Text disappeared", {"text": text})
-        return self._unknown({"action": "__driver_wait_until_gone", "params": {"text": text}}, "MCP_ACTION_PENDING", f"Text did not disappear: {text}")
-
     async def _get_ui_tree(self) -> dict[str, Any]:
         result = await self._call_tool("get_ui_tree", {"bundle_name": "com.huawei.securitytool"})
         structured = result.get("result", result)

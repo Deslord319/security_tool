@@ -20,10 +20,6 @@ def load_adapter_suite(name: str, suite_name: str) -> list[str]:
     return suites[suite_name]
 
 
-def load_adapter_flow_registry(name: str) -> dict[str, dict[str, object]]:
-    return _load_adapter_attr(name, "FLOW_REGISTRY")
-
-
 def load_adapter_flow_executor(name: str) -> Type[object]:
     return _load_adapter_attr(name, "SecurityToolFlowExecutor")
 

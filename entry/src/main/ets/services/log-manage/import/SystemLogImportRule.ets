@@ -5,7 +5,10 @@ import {
   LogEventType
 } from '../../../models/LogModels'
 import { TimeConstants } from '../../../constants/TimeConstants'
-import { LogManageImportDetailStrings } from '../../../constants/modules/LogManageStrings'
+import {
+  LogManageDetailStrings,
+  LogManageImportDetailStrings
+} from '../../../constants/modules/LogManageStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogImportHash } from './LogImportHash'
 import {
@@ -319,7 +322,11 @@ export class SystemLogImportRule implements LogImportRule {
       { key: 'system.ruleId', label: LogManageImportDetailStrings.RULE_ID, value: rule.id },
       { key: 'system.category', label: LogManageImportDetailStrings.CATEGORY, value: rule.category },
       { key: 'import.sourceFile', label: LogManageImportDetailStrings.SOURCE_FILE, value: file.relativePath },
-      { key: 'system.summary', label: '摘要', value: SystemLogImportRule.truncate(summary, MAX_ROW_VALUE_LENGTH) }
+      {
+        key: 'system.summary',
+        label: LogManageDetailStrings.SUMMARY,
+        value: SystemLogImportRule.truncate(summary, MAX_ROW_VALUE_LENGTH)
+      }
     ]
     if (lineNumber !== undefined) {
       rows.push({ key: 'import.lineNumber', label: LogManageImportDetailStrings.LINE_NUMBER, value: `${lineNumber}` })

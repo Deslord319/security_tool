@@ -60,7 +60,7 @@ SecurityTool 是面向 HarmonyOS 2in1 设备的企业安全管理工具，交付
 | 防火墙管理 | `firewall` / `firewall-rules` | 是 |
 | 日志管理 | `log-manage` | 是 |
 | 外设管理 | `peripheral-manage` | 是 |
-| 权限管理 | `permission-manage` | 首版只读骨架 |
+| 权限管理 | `permission-manage` | 是 |
 | 身份鉴别 | `identity` | 是 |
 | 工具设置 | `tool-settings` | 是 |
 | 帮助与反馈 | `help-feedback` | 辅助页，不是核心卖点 |
@@ -184,7 +184,7 @@ EntryAbility
 - 工具设置负责工具自身启动认证；防火墙敏感操作认证直接复用身份认证能力，不消费工具设置配置。
 - 日志管理作为审计留痕模块，运行时采集由 `ApplicationRuntimeManager` 拉起，页面只展示和操作日志查询/导出。
 - 外设运行时采集由 `ApplicationRuntimeManager` 拉起，外设页面不直接启动后台采集管线。
-- 权限管理首版只提供路由、只读骨架和状态模型，不新增签名权限，不触发应用安装、卸载、运行、网络或保活写操作。
+- 权限管理按账号聚合应用清单和策略状态，通过 ViewModel / Service / Repository 下发禁止安装、卸载保护、运行、网络和 3D 权限策略；页面不直接调用 MDM API。
 - 帮助与反馈是静态辅助页，不进入核心安全闭环，不引入 Service、Repository 或权限依赖。
 
 #### 5.4.1 文档与实现对齐矩阵
@@ -195,7 +195,7 @@ EntryAbility
 | 防火墙管理 | `firewall`、`firewall-rules` | `FirewallPage.ets`、`FirewallRulesPage.ets`、`FirewallOverviewViewModel.ets`、`FirewallRulesViewModel.ets` | `services/firewall/**`、Preferences 本地意图与系统防火墙 Provider | `entry/src/test/firewall/*`、`entry/src/ohosTest/ets/test/firewall/subroute-state.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/firewall/*` |
 | 日志管理 | `log-manage` | `LogManagePage.ets`、`LogManageViewModel.ets`、`LogStorageSettingsViewModel.ets` | `services/log-manage/**`、`storage/rdb/**` | `entry/src/test/log-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/logs/*` |
 | 外设管理 | `peripheral-manage` | `PeripheralPage.ets`、`PeripheralViewModel.ets`、`InterfaceControlViewModel.ets`、`PeripheralRecordViewModel.ets`、`PeripheralPolicyViewModel.ets` | `services/peripheral/**`、运行时 Producer / Pipeline、RDB trace、设备策略 Preferences | `entry/src/test/peripheral/*`、`entry/src/test/viewmodels/Peripheral*.test.ets`、`entry/src/ohosTest/ets/test/peripheral/connection-record-contract.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/peripheral/*` |
-| 权限管理 | `permission-manage` | `PermissionPage.ets`、`PermissionViewModel.ets` | `PermissionService.ets` 首版只读初始态；后续真实能力再拆 Repository / Provider | `entry/src/test/permission-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets` |
+| 权限管理 | `permission-manage` | `PermissionPage.ets`、`PermissionViewModel.ets` | `services/permission-manage/**`、应用/账号 Provider、RDB 3D 策略记录与 MDM Repository | `entry/src/test/permission-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets` |
 | 身份鉴别 | `identity` | `IdentityPage.ets`、`IdentitySettingsViewModel.ets` | `IdentityService.ets`、`IdentityPasswordPolicyMapper.ets`、`AuthService.ets` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/identity/*` |
 | 工具设置 | `tool-settings` | `ToolSettingsPage.ets`、`ToolSettingsViewModel.ets` | `ToolSettingsRepository.ets`、`SystemSettingsService.ets`、`EntryAbility.ets` 启动消费链路 | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/tool_settings/*` |
 | 帮助与反馈 | `help-feedback` | `HelpFeedbackPage.ets` | 无 Service / Repository / Storage；静态内容来自 `HelpFeedbackStrings.ets` | `entry/src/test/help/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/navigation/help_feedback*.json` |
@@ -215,7 +215,7 @@ EntryAbility
 
 #### 5.5.1 RFC 分层与实现走样检查
 
-当前检查结论：总体 RFC 的主分层与现有实现基本一致，未发现页面绕过 ViewModel 直接下发系统能力、`MainPage` 承担模块核心业务、或模块专项设计散落到独立过程目录的走样。需要记录的实现差异是：共享 ViewModel 并非全部由 `ApplicationRuntimeManager` 持有，防火墙总览、规则页和权限管理首版 ViewModel 目前由 `MainPage` 持有，用于保持路由状态；该差异仍在“路由壳层装配页面、不承载模块业务”的边界内。
+当前检查结论：总体 RFC 的主分层与现有实现基本一致，未发现页面绕过 ViewModel 直接下发系统能力、`MainPage` 承担模块核心业务、或模块专项设计散落到独立过程目录的走样。防火墙、日志、外设、权限等共享 ViewModel 由 `ApplicationRuntimeManager` 持有，`MainPage` 只负责取得实例、装配页面和维护路由状态。
 
 | RFC 分层 | RFC 预期职责 | 当前实现落点 | 走样检查结论 |
 |---|---|---|---|
@@ -569,54 +569,58 @@ EntryAbility
 
 ### 6.5.1 模块定位
 
-权限管理模块是应用级安全管控入口，用于把非系统预装应用的安装、运行、目录权限、网络和保活策略收敛到同一账号上下文内。当前首版只交付入口和只读骨架，不开放系统写操作。
+权限管理模块是应用级安全管控入口，用于把非系统预装应用的禁止安装、卸载保护、运行、网络和 3D 目录权限策略收敛到同一账号上下文内。当前版本已开放受企业管理员和签名权限约束的策略读写。
 
 ### 6.5.2 当前版本具体功能
 
-当前交付三类内容：
+当前交付五类内容：
 
 1. 侧边栏和首页快捷入口
-2. 策略摘要只读骨架
-3. 应用管控对象空态
+2. 账号、应用清单和当前策略读取
+3. 账号级禁止安装策略
+4. 应用级卸载保护、运行禁止和网络禁止策略
+5. 目标应用已声明 3D 目录权限的托管态读写
 
 具体动作包括：
 
-- 从侧边栏进入权限管理页
-- 从安全总览快捷入口进入权限管理页
-- 查看首版范围说明
-- 查看后续应用清单接入空态
+- 选择或刷新账号和目标应用
+- 输入真实 `appId` / `appIdentifier` 下发账号级禁止安装策略
+- 设置或恢复卸载保护、运行和网络策略
+- 读取并设置目标应用已声明的 3D 权限托管态
+- 在当前策略表中确认并删除已生效策略
 
 ### 6.5.3 用户在本模块具体做什么
 
-- 打开权限管理入口
-- 确认该模块后续承载应用级管控能力
-- 在首版看到清晰的只读范围和管理员依赖说明
+- 查看当前账号下可管控应用及已生效策略
+- 下发、恢复或删除允许范围内的应用策略
+- 在管理员、权限或应用身份不满足要求时获得明确失败提示
 
 ### 6.5.4 关键动作链路
 
 页面进入
--> 初始化 `PermissionViewModel`
--> `PermissionService` 返回首版只读初始态
--> 页面展示策略摘要、首版范围和应用清单空态
--> 不触发任何安装、卸载、运行、网络或保活写操作
+-> 从 `ApplicationRuntimeManager` 取得并初始化 `PermissionViewModel`
+-> 加载账号、应用清单和账号级策略快照
+-> 用户选择目标应用后读取 3D 权限详情
+-> 用户动作经 ViewModel / Service / Repository 调用 MDM API
+-> 写入成功后精确更新或回读状态，失败时保留原状态并提示原因
 
 ### 6.5.5 商业价值
 
-- 为应用级安全治理留出清晰入口
+- 提供可执行、可回读、可清理的应用级安全治理闭环
 - 让安全中心能力从设备、网络、账户扩展到应用维度
-- 便于后续按阶段接入真实企业管理 API
+- 统一账号、应用实例和系统策略之间的状态归属
 
 ### 6.5.6 成功标准
 
-- 权限管理在侧边栏和首页快捷入口中可达
-- 页面可渲染且无白屏
-- 首版不新增签名权限，不触发 MDM 写操作
+- 权限管理在侧边栏和首页快捷入口中可达，账号、应用和当前策略可读取
+- 禁止安装、卸载保护、运行、网络和已声明 3D 权限策略可写入、恢复或删除
+- 管理员未激活、权限不足、应用身份变化或能力不支持时拒绝写入且不伪装成功
 
 ### 6.5.7 当前不做
 
-- 不读取真实应用清单
-- 不设置安装、卸载或运行策略
-- 不设置 6D 权限、网络策略、保活或自启动策略
+- 不直接安装或卸载 HAP 文件，不承担应用分发职责
+- 不开放目标应用保活或自启动策略
+- 不给目标应用注入未声明权限，不绕过系统权限模型
 
 ## 6.6 身份鉴别
 
@@ -796,7 +800,7 @@ back:
 1. 首页可进入且状态可读
 2. 防火墙可切换并能编辑规则
 3. 外设可控制并可看到设备连接记录
-4. 权限管理可进入并展示首版只读骨架
+4. 权限管理可按账号读取应用并完成禁止安装、卸载保护、运行、网络和 3D 权限策略操作
 5. 身份策略可读取和保存
 6. 日志可查询和导出
 7. 工具设置可启用启动认证
@@ -809,7 +813,7 @@ back:
 1. 从首页进入
 2. 演示防火墙总开关与模式切换
 3. 演示外设控制与连接记录
-4. 演示权限管理入口和首版范围
+4. 演示权限管理账号/应用选择、策略读写和当前策略清理
 5. 演示身份鉴别策略编辑
 6. 演示日志筛选与导出
 7. 演示启动认证设置

@@ -395,7 +395,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--case", action="append", dest="cases", help="Path to a case JSON file. Can be repeated.")
     parser.add_argument("--suite", default=None, help="Logical suite name exposed by the adapter.")
     parser.add_argument("--cases-dir", default=None, help="Directory containing case JSON files.")
-    parser.add_argument("--output-dir", default="scripts/e2e/results", help="Directory for result JSON files.")
+    parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR, help="Directory for result JSON files.")
     parser.add_argument("--device-id", default=None, help="Target HarmonyOS device id.")
     parser.add_argument("--bundle-name", default=None, help="Override adapter bundle name.")
     parser.add_argument("--adapter", default="security_tool", help="Project adapter to load.")

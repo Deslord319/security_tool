@@ -271,7 +271,7 @@ ohos.permission.PRIVACY_WINDOW
 | `firewall-rules` | FirewallRulesPage | 防火墙规则详情 |
 | `log-manage` | LogManagePage | 日志管理（已完成） |
 | `peripheral-manage` | PeripheralPage | 外设管理（已完成） |
-| `permission-manage` | PermissionPage | 权限管理（首版只读骨架） |
+| `permission-manage` | PermissionPage | 权限管理（应用清单与策略读写） |
 | `identity` | IdentityPage | 身份鉴别（已完成） |
 | `tool-settings` | ToolSettingsPage | 工具设置（已完成） |
 | `help-feedback` | HelpFeedbackPage | 帮助与反馈 |

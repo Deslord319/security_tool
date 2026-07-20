@@ -1,5 +1,10 @@
+export type DashboardModuleCardId = 'admin-status' | 'firewall' | 'log-manage' | 'peripheral-manage'
+
+export type DashboardQuickEntryId =
+  'firewall' | 'log-manage' | 'peripheral-manage' | 'permission-manage' | 'identity' | 'tool-settings'
+
 export interface DashboardModuleCardState {
-  id: 'admin-status' | 'firewall' | 'log-manage' | 'peripheral-manage'
+  id: DashboardModuleCardId
   title: string
   primaryText: string
   secondaryText: string
@@ -9,7 +14,7 @@ export interface DashboardModuleCardState {
 }
 
 export interface DashboardQuickEntryState {
-  id: 'firewall' | 'log-manage' | 'peripheral-manage' | 'permission-manage' | 'identity' | 'tool-settings'
+  id: DashboardQuickEntryId
   title: string
   icon: Resource
   accentStart: string

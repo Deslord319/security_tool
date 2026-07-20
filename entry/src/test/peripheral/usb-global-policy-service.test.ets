@@ -73,7 +73,7 @@ export default function usbGlobalPolicyServiceTest() {
       )
 
       when(storageMock)().afterAction(() => storageResult)
-      when(globalSetMock)(ArgumentMatchers.any, ArgumentMatchers.any).afterAction((
+      when(globalSetMock)(ArgumentMatchers.any).afterAction((
         feature: PeripheralInterfaceFeature,
         disabled: boolean
       ) => {
