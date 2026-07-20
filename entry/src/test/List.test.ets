@@ -5,6 +5,7 @@ import dialogStringsTest from './common/dialog-strings.test'
 import errorUtilsTest from './common/error-utils.test'
 import secureStorageTest from './common/secure-storage.test'
 import csvFileExportServiceTest from './common/csv-file-export-service.test'
+import authServiceBehaviorTest from './auth/auth-service.behavior.test'
 import authServiceTest from './auth/service.test'
 import dashboardViewModelTest from './dashboard/viewmodel.test'
 import enterpriseAdminAbilityTest from './enterprise/admin-ability.test'
@@ -69,6 +70,7 @@ import peripheralDevicePolicyRepositoryTest from './peripheral/device-policy-rep
 import peripheralPolicySnapshotTraceServiceTest from './peripheral/policy-snapshot-trace-service.test'
 import bluetoothPolicySnapshotTraceServiceTest from './peripheral/bluetooth-policy-snapshot-trace-service.test'
 import runtimeProducerAdapterTest from './peripheral/runtime-producer-adapter.test'
+import usbGlobalPolicyServiceTest from './peripheral/usb-global-policy-service.test'
 import permissionViewModelTest from './permission-manage/viewmodel.test'
 import themeManagerTest from './theme/theme-manager.test'
 import toolSettingsRepositoryTest from './tool-settings/repository.test'
@@ -100,6 +102,7 @@ export default function testsuite() {
   errorUtilsTest()
   secureStorageTest()
   csvFileExportServiceTest()
+  authServiceBehaviorTest()
   authServiceTest()
   entryAbilityTest()
   dashboardViewModelTest()
@@ -161,6 +164,7 @@ export default function testsuite() {
   peripheralPolicySnapshotTraceServiceTest()
   bluetoothPolicySnapshotTraceServiceTest()
   runtimeProducerAdapterTest()
+  usbGlobalPolicyServiceTest()
   permissionViewModelTest()
   themeManagerTest()
   toolSettingsRepositoryTest()
