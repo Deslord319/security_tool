@@ -46,13 +46,3 @@ class HdcDriver:
     ):
         command_text = f"edm enable-admin -n {bundle_name} -a {ability_name} -t {admin_type}"
         return self.shell(command_text, timeout_sec)
-
-    def disable_admin(
-        self,
-        *,
-        bundle_name: str,
-        ability_name: str,
-        timeout_sec: int = 20,
-    ):
-        command_text = f"edm disable-admin -n {bundle_name} -a {ability_name}"
-        return self.shell(command_text, timeout_sec)

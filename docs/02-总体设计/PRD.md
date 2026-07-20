@@ -211,19 +211,20 @@ flowchart TB
 
 ### 7.5 权限管理
 
-模块目标：提供应用级安装、运行、目录权限、网络和保活策略的统一入口，首版先完成可导航只读骨架。
+模块目标：提供账号和应用维度的禁止安装、卸载保护、运行、网络和 3D 目录权限策略管控；直接 HAP 分发、保活和自启动不在当前范围。
 
 核心需求：
 
-1. 在侧边栏和安全总览快捷入口中提供权限管理入口。
-2. 首版页面展示策略摘要、首版范围和应用清单空态，不执行系统写操作。
-3. 后续真实能力接入前，必须完成管理员激活态、权限声明和签名模板闭环。
+1. 在侧边栏和安全总览快捷入口中提供权限管理入口，并按账号读取非系统、非 SecurityTool 自身的应用清单。
+2. 支持账号级禁止安装，以及应用级卸载保护、运行禁止、网络禁止和已声明 3D 目录权限托管；恢复默认或删除策略后同步更新页面状态。
+3. 所有写操作必须检查企业管理员激活态，使用已声明和签名授权的企业权限，并在失败时保留原状态和给出明确提示。
+4. 当前不直接安装或卸载 HAP，不开放目标应用保活和自启动策略。
 
 核心验收信号：
 
-- 入口可达，页面不白屏。
-- 首版不新增企业权限声明，也不触发安装、卸载、运行、网络或保活写操作。
-- 后续能力拆分能回到模块设计文档中找到阶段边界。
+- 入口可达，账号、应用和当前策略状态可读取，页面不白屏。
+- 禁止安装、卸载保护、运行、网络和 3D 权限策略可下发、恢复默认或删除，写后状态与系统结果一致。
+- 管理员未激活、应用身份变化、权限未声明或设备能力不支持时拒绝写入并保留原状态。
 
 ### 7.6 身份鉴别
 
@@ -310,7 +311,7 @@ flowchart TB
 | 防火墙管理 | 已完成并持续增强 | 已具备总开关、模式切换、自定义规则和用户级模式下发设计说明 |
 | 日志管理 | 已完成并持续增强 | 已具备采集、查询、分页、详情、导出和存储配置设计说明 |
 | 外设管理 | 已完成并持续增强 | 已具备接口管控、连接记录、设备策略和运行时采集设计说明 |
-| 权限管理 | 首版接入中 | 已具备设计说明、路由、首页快捷入口和只读骨架页；真实 MDM 写操作后续分阶段开放 |
+| 权限管理 | 已完成并持续增强 | 已具备账号/应用清单、禁止安装、卸载保护、运行、网络和 3D 权限策略读写及当前策略清理闭环 |
 | 身份鉴别 | 已完成 | 已具备密码复杂度、有效期、管理员激活态和保存流程设计说明 |
 | 工具设置 | 已完成 | 已具备启动认证、认证方式、系统密码入口和启动阶段消费链路设计说明 |
 | 帮助与反馈 | 已完成 | 辅助页，已具备使用指南、FAQ、反馈邮箱和静态页面边界设计说明 |
@@ -325,7 +326,7 @@ flowchart TB
 | 防火墙管理 | 总开关、模式切换、自定义规则、规则页 | 总体 RFC 6.2；`docs/03-模块设计/防火墙管理组件设计说明.md` | `views/firewall/**`、`viewmodels/firewall/**`、`services/firewall/**` | `entry/src/test/firewall/*`、`entry/src/ohosTest/ets/test/firewall/subroute-state.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/firewall/*` |
 | 日志管理 | 采集、查询、筛选、分页、详情、导出、留存配置 | 总体 RFC 6.3；`docs/03-模块设计/日志管理组件设计说明.md` | `views/log-manage/**`、`viewmodels/log-manage/**`、`services/log-manage/**`、`storage/rdb/**` | `entry/src/test/log-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/logs/*` |
 | 外设管理 | 接口管控、USB/蓝牙策略、连接记录、运行时采集 | 总体 RFC 6.4；`docs/03-模块设计/外设管理组件设计说明.md` | `views/peripheral/**`、`viewmodels/peripheral/**`、`services/peripheral/**`、`runtime/ApplicationRuntimeManager.ets` | `entry/src/test/peripheral/*`、`entry/src/test/viewmodels/Peripheral*.test.ets`、`entry/src/ohosTest/ets/test/peripheral/connection-record-contract.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/peripheral/*` |
-| 权限管理 | 应用级管控入口、首版只读骨架 | 总体 RFC 6.5；`docs/03-模块设计/权限管理组件设计说明.md` | `views/permission-manage/**`、`viewmodels/permission-manage/**`、`services/permission-manage/**` | `entry/src/test/permission-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets` |
+| 权限管理 | 账号/应用清单、禁止安装、卸载保护、运行、网络和 3D 权限策略 | 总体 RFC 6.5；`docs/03-模块设计/权限管理组件设计说明.md` | `views/permission-manage/**`、`viewmodels/permission-manage/**`、`services/permission-manage/**` | `entry/src/test/permission-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets` |
 | 身份鉴别 | 口令复杂度、有效期、企业管理员状态、认证能力 | 总体 RFC 6.6；`docs/03-模块设计/身份鉴别组件设计说明.md` | `views/identity/**`、`viewmodels/identity/**`、`services/identity/**` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/identity/*` |
 | 工具设置 | 启动认证、认证方式、系统密码入口 | 总体 RFC 6.7；`docs/03-模块设计/工具设置组件设计说明.md` | `views/tool-settings/**`、`viewmodels/tool-settings/**`、`services/tool-settings/**`、`entryability/EntryAbility.ets` | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/entryability.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/tool_settings/*` |
 | 帮助与反馈 | 使用指南、FAQ、反馈邮箱、辅助入口 | 总体 RFC 6.8；`docs/03-模块设计/帮助与反馈组件设计说明.md` | `views/help-feedback/overview/HelpFeedbackPage.ets`、`constants/modules/HelpFeedbackStrings.ets` | `entry/src/test/help/strings.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/navigation/help_feedback*.json` |
@@ -344,8 +345,8 @@ flowchart TB
 
 ### M1：当前可用基线
 
-- 七个核心模块均已可进入，其中权限管理为首版只读骨架
-- 权限管理首版可从侧边栏和首页快捷入口进入
+- 七个核心模块均已可进入，权限管理已形成应用策略读写闭环
+- 权限管理可从侧边栏和首页快捷入口进入，并按账号管理应用策略
 - 帮助与反馈辅助页可从顶部菜单进入
 - 构建、签名、安装链路稳定
 - 基础文档已与代码结构对齐

@@ -190,67 +190,6 @@ class McpDriver:
             "evidence": execution.evidence,
         }
 
-    def wait_until_gone(
-        self,
-        *,
-        bundle_name: str,
-        text: str = "",
-        element_id: str = "",
-        timeout_ms: int = 5000,
-        interval_ms: int = 300,
-        window_id: str = "",
-    ) -> dict[str, Any]:
-        request = MpcActionRequest(
-            action="__driver_wait_element",
-            params={
-                "bundle_name": bundle_name,
-                "text": text,
-                "element_id": element_id,
-                "state": "gone",
-                "timeout_ms": timeout_ms,
-                "interval_ms": interval_ms,
-                "window_id": window_id,
-            },
-            expected="Wait until element is gone",
-        )
-        execution = self.execute(request)
-        return {
-            "status": execution.status,
-            "failure_code": execution.failure_code,
-            "message": execution.message,
-            "evidence": execution.evidence,
-        }
-
-    def element_exists(
-        self,
-        *,
-        bundle_name: str,
-        text: str = "",
-        element_id: str = "",
-        element_type: str = "",
-        window_id: str = "",
-    ) -> dict[str, Any]:
-        request = MpcActionRequest(
-            action="__driver_element_exists",
-            params={
-                "bundle_name": bundle_name,
-                "text": text,
-                "element_id": element_id,
-                "element_type": element_type,
-                "window_id": window_id,
-            },
-            expected="Check whether element exists",
-        )
-        execution = self.execute(request)
-        return {
-            "status": execution.status,
-            "failure_code": execution.failure_code,
-            "message": execution.message,
-            "exists": bool(execution.evidence.get("exists", False)),
-            "element": execution.evidence.get("element", {}),
-            "evidence": execution.evidence,
-        }
-
     def scroll_until_text(
         self,
         *,
@@ -281,38 +220,6 @@ class McpDriver:
             "evidence": execution.evidence,
         }
 
-    def wait_for_page(
-        self,
-        *,
-        bundle_name: str,
-        page_id: str,
-        marker_text: str,
-        page_text: str = "",
-        route_element_id: str = "",
-        timeout_ms: int = 5000,
-        interval_ms: int = 300,
-    ) -> dict[str, Any]:
-        request = MpcActionRequest(
-            action="__driver_wait_for_page",
-            params={
-                "bundle_name": bundle_name,
-                "page_id": page_id,
-                "marker_text": marker_text,
-                "page_text": page_text,
-                "route_element_id": route_element_id,
-                "timeout_ms": timeout_ms,
-                "interval_ms": interval_ms,
-            },
-            expected=f"Wait for page {page_id}",
-        )
-        execution = self.execute(request)
-        return {
-            "status": execution.status,
-            "failure_code": execution.failure_code,
-            "message": execution.message,
-            "element": execution.evidence.get("element", {}),
-            "evidence": execution.evidence,
-        }
 
     def input_password_if_prompted(
         self,

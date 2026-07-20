@@ -8,7 +8,6 @@ import {
 } from '../../main/ets/models/PeripheralModels'
 import {
   PeripheralDevicePolicyDispatchService,
-  PeripheralPolicyDispatchRequest,
   PeripheralPolicyDispatchResult
 } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyDispatchService'
 import {
