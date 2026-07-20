@@ -1,5 +1,5 @@
 import { netFirewall } from '@kit.NetworkKit'
-import { OperationResult } from '../../models/CommonModels'
+import { OperationResult } from '../CommonModels'
 
 export type FirewallPresetMode = 'public' | 'private' | 'custom'
 export type FirewallUserPolicyMode = 'allowlist' | 'denylist'

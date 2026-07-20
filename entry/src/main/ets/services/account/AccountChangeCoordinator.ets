@@ -2,7 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { AccountChangeSource, AccountSnapshotChange, buildAccountUserIdsSignature, normalizeAccountUserIds } from './AccountSnapshotModels'
 import { AccountChangeHandler } from './AccountChangeHandler'
 import { AccountChangeEventBus } from './AccountChangeEventBus'
-import { UserFirewallOption } from '../firewall/FirewallModels'
+import { UserFirewallOption } from '../../models/firewall/FirewallModels'
 import { SystemUserProvider } from '../firewall/providers/SystemUserProvider'
 import { LogUtils } from '../../utils/LogUtils'
 

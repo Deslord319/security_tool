@@ -8,7 +8,7 @@ import {
   FirewallUserPolicyApplyResult,
   FirewallUserPolicyStateResult,
   UserFirewallOption
-} from '../../main/ets/services/firewall/FirewallModels'
+} from '../../main/ets/models/firewall/FirewallModels'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { FirewallUserDispatchViewModel } from '../../main/ets/viewmodels/firewall/user-dispatch/FirewallUserDispatchViewModel'
 

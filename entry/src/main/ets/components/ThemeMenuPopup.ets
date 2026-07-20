@@ -1,5 +1,4 @@
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
-import { bundleManager } from '@kit.AbilityKit'
 import { AppColors, AppStyles, InteractiveItemStyles } from '../constants/AppConstants'
 import { AppResources } from '../constants/AppResources'
 import { ActionText, AppText, ModuleText, ThemeText } from '../constants/StringCatalog'
@@ -83,6 +82,7 @@ export struct InteractiveMenuRow {
 export struct AboutDialogContent {
   controller: CustomDialogController
   currentTheme: ThemeMode = ThemeMode.LIGHT
+  appVersion: string = ''
   onConfirm: () => void = () => {}
 
   @Builder
@@ -100,7 +100,7 @@ export struct AboutDialogContent {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-      Text(`${AppText.VERSION} ${this.resolveAppVersion()}`)
+      Text(`${AppText.VERSION} ${this.appVersion}`)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -139,17 +139,6 @@ export struct AboutDialogContent {
         this.aboutContent()
       }
     })
-  }
-
-  private resolveAppVersion(): string {
-    try {
-      const bundleInfo = bundleManager.getBundleInfoForSelfSync(
-        bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION
-      )
-      return bundleInfo.versionName
-    } catch (_) {
-      return ''
-    }
   }
 }
 

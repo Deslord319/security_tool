@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 
-import { FirewallOperationResult, FirewallOverviewState, FirewallPresetMode } from '../../main/ets/services/firewall/FirewallModels'
+import { FirewallOperationResult, FirewallOverviewState, FirewallPresetMode } from '../../main/ets/models/firewall/FirewallModels'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { FirewallOverviewViewModel } from '../../main/ets/viewmodels/firewall/overview/FirewallOverviewViewModel'
 

@@ -113,7 +113,8 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     let rawPayload = ''
     try {
       rawPayload = JSON.stringify(rawData)
-    } catch (_err) {
+    } catch (err) {
+      LogUtils.warn(TAG, `serialize usb payload failed: deviceId=${info.deviceId}, err=${JSON.stringify(err)}`)
       rawPayload = ''
     }
 

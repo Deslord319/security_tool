@@ -14,7 +14,7 @@ import {
   FIREWALL_RULE_TYPE_OPTIONS,
   normalizeFirewallRuleUserIds,
   UserFirewallOption
-} from '../../../services/firewall/FirewallModels'
+} from '../../../models/firewall/FirewallModels'
 import { FirewallRuleFormModel, FirewallRuleFormState } from './FirewallRuleFormModel'
 
 @CustomDialog

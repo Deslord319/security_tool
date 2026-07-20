@@ -20,7 +20,7 @@ import {
   FirewallPresetConfig,
   FirewallPresetMode,
   UserFirewallOption
-} from './FirewallModels'
+} from '../../models/firewall/FirewallModels'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
 import { SystemUserProvider } from './providers/SystemUserProvider'
 

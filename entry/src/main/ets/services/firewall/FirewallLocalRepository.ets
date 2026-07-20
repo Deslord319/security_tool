@@ -18,7 +18,7 @@ import {
   PREF_STORE_NAME_FIREWALL_MODE,
   PREF_STORE_NAME_FIREWALL_RULE_MAPPING,
   PREF_STORE_NAME_FIREWALL_USER_POLICY
-} from './FirewallModels'
+} from '../../models/firewall/FirewallModels'
 
 const TAG = 'FirewallLocalRepository'
 

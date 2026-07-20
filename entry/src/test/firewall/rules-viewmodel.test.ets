@@ -11,9 +11,8 @@ import {
   FirewallUserPolicyStateResult,
   UserFirewallListResult,
   UserFirewallOption
-} from '../../main/ets/services/firewall/FirewallModels'
+} from '../../main/ets/models/firewall/FirewallModels'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
-import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 import { FirewallRulesViewModel } from '../../main/ets/viewmodels/firewall/rules/FirewallRulesViewModel'
 
 function buildUsers(userIds: number[]): UserFirewallOption[] {
@@ -156,7 +155,7 @@ export default function firewallRulesViewModelTest() {
 
     it('should refresh page data after add success and keep success message', 0, async (done: Function) => {
       let createRuleMock = mockKit.mockFunc(FirewallService, FirewallService.createRule)
-      let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+      let userMock = mockKit.mockFunc(FirewallService, FirewallService.loadAvailableUsers)
       let policyMock = mockKit.mockFunc(FirewallService, FirewallService.loadUserPolicyState)
       let listRulesMock = mockKit.mockFunc(FirewallService, FirewallService.listRulesForDisplay)
       when(createRuleMock)(ArgumentMatchers.any).afterReturn({
@@ -184,7 +183,7 @@ export default function firewallRulesViewModelTest() {
 
     it('should delete rule without switching rule list to loading state', 0, async (done: Function) => {
       let deleteRuleMock = mockKit.mockFunc(FirewallService, FirewallService.deleteRule)
-      let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+      let userMock = mockKit.mockFunc(FirewallService, FirewallService.loadAvailableUsers)
       let policyMock = mockKit.mockFunc(FirewallService, FirewallService.loadUserPolicyState)
       let listRulesMock = mockKit.mockFunc(FirewallService, FirewallService.listRulesForDisplay)
       let resolveDelete: (value: FirewallRuleMutationResult) => void = (_value: FirewallRuleMutationResult): void => {}

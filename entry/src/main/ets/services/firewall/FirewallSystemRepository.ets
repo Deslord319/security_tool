@@ -2,7 +2,7 @@ import { netFirewall } from '@kit.NetworkKit'
 import { FirewallSystemErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import { SafeRunner } from '../../utils/SafeRunner'
 import { CommonErrorUtils } from '../../utils/CommonErrorUtils'
-import { FirewallBatchOperationResult, FirewallFailedItem } from './FirewallModels'
+import { FirewallBatchOperationResult, FirewallFailedItem } from '../../models/firewall/FirewallModels'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
 
 const TAG = 'FirewallSystemRepository'

@@ -20,10 +20,9 @@ import {
   normalizeFirewallRuleUserIds,
   resolveFirewallUserPolicyModeFromActions,
   UserFirewallOption
-} from '../../../services/firewall/FirewallModels'
+} from '../../../models/firewall/FirewallModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
-import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'FirewallRulesViewModel'
@@ -393,7 +392,7 @@ export class FirewallRulesViewModel {
 
   private async reloadUserOptions(context: common.UIAbilityContext): Promise<void> {
     try {
-      let result = await SystemUserProvider.loadAvailableUserIds()
+      let result = await FirewallService.loadAvailableUsers()
       this.userOptions = result.users
     } catch (err) {
       LogUtils.error(TAG, `reloadUserOptions failed: ${JSON.stringify(err)}`)

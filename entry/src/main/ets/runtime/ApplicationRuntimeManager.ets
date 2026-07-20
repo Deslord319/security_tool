@@ -11,7 +11,7 @@ import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/co
 import { BluetoothConnectionRecordCoordinator } from '../services/peripheral/connection-record/BluetoothConnectionRecordCoordinator'
 import { AccountChangeEventPayload } from '../services/account/AccountChangeEventBus'
 import { AccountRuntimeService } from '../services/account/AccountRuntimeService'
-import { UserFirewallOption } from '../services/firewall/FirewallModels'
+import { UserFirewallOption } from '../models/firewall/FirewallModels'
 import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider'
 import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
 import { FirewallRulesViewModel } from '../viewmodels/firewall/rules/FirewallRulesViewModel'

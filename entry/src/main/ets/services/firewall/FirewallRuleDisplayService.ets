@@ -8,7 +8,7 @@ import {
   FirewallRuleIntent,
   FirewallScopedRule,
   UserFirewallOption
-} from './FirewallModels'
+} from '../../models/firewall/FirewallModels'
 import { FirewallRuleMutationService } from './FirewallRuleMutationService'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
 import { common } from '@kit.AbilityKit'

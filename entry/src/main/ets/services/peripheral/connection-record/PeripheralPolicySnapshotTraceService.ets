@@ -278,7 +278,8 @@ export class PeripheralPolicySnapshotTraceService {
         subClass: device.subClass,
         protocol: device.protocol
       })
-    } catch (_err) {
+    } catch (err) {
+      LogUtils.warn(TAG, `serialize usb snapshot failed: ${JSON.stringify(err)}`)
       return ''
     }
   }

@@ -1,6 +1,6 @@
 import { PermissionAccountListResult, PermissionManagedAccount } from '../../models/PermissionModels'
 import { PermissionAccountStrings } from '../../constants/modules/PermissionStrings'
-import { UserFirewallOption } from '../firewall/FirewallModels'
+import { UserFirewallOption } from '../../models/firewall/FirewallModels'
 import { SystemUserProvider } from '../firewall/providers/SystemUserProvider'
 
 export class PermissionAccountProvider {

@@ -1,6 +1,6 @@
 import { osAccount } from '@kit.BasicServicesKit'
 
-import { UserFirewallListResult, UserFirewallOption } from '../FirewallModels'
+import { UserFirewallListResult, UserFirewallOption } from '../../../models/firewall/FirewallModels'
 import { FirewallUserStrings, buildFirewallUserLabel } from '../../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 

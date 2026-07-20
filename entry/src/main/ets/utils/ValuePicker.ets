@@ -1,8 +1,11 @@
 import { cryptoFramework } from '@kit.CryptoArchitectureKit'
 import { LooseRecord } from '../types/LooseValueTypes'
+import { LogUtils } from './LogUtils'
 
+const TAG = 'ValuePicker'
 const RANDOM_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'
 let fallbackSuffixCounter = 0
+let randomFallbackLogged = false
 
 export function generateRandomSuffix(length: number = 8): string {
   let normalizedLength = normalizeSuffixLength(length)
@@ -18,10 +21,20 @@ export function generateRandomSuffix(length: number = 8): string {
     if (result.length === normalizedLength) {
       return result
     }
+    logRandomFallbackOnce('random byte length mismatch')
     return generateFallbackSuffix(normalizedLength)
-  } catch (_err) {
+  } catch (err) {
+    logRandomFallbackOnce(`random generation failed: ${JSON.stringify(err)}`)
     return generateFallbackSuffix(normalizedLength)
   }
+}
+
+function logRandomFallbackOnce(reason: string): void {
+  if (randomFallbackLogged) {
+    return
+  }
+  randomFallbackLogged = true
+  LogUtils.warn(TAG, `generateRandomSuffix fallback activated: ${reason}`)
 }
 
 function normalizeSuffixLength(length: number): number {

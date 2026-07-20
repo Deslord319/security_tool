@@ -1,7 +1,8 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { netFirewall } from '@kit.NetworkKit'
 import { FirewallRuleUtils } from '../../main/ets/services/firewall/FirewallRuleUtils'
-import { FirewallRuleIntent } from '../../main/ets/services/firewall/FirewallModels'
+import { FirewallRuleIntent } from '../../main/ets/models/firewall/FirewallModels'
+import { FirewallRulePresentationMapper } from '../../main/ets/viewmodels/firewall/rules/FirewallRulePresentationMapper'
 
 interface BuildIpIntentOptions {
   localIps?: netFirewall.NetFirewallIpParams[]
@@ -102,14 +103,14 @@ function buildDnsIntent(
 export default function firewallRuleUtilsTest() {
   describe('FirewallRuleUtils', () => {
     it('should format ip params for single ip, cidr and range display', 0, () => {
-      expect(FirewallRuleUtils.formatIpParamsForDisplay([buildIpv4Address('110.110.110.110', 32)])).assertEqual('110.110.110.110')
-      expect(FirewallRuleUtils.formatIpParamsForDisplay([buildIpv4Address('8.8.8.0', 24)])).assertEqual('8.8.8.0/24')
-      expect(FirewallRuleUtils.formatIpParamsForDisplay([buildIpv4Range('10.0.0.1', '10.0.0.20')])).assertEqual('10.0.0.1-10.0.0.20')
-      expect(FirewallRuleUtils.formatIpParamsForDisplay(undefined)).assertEqual('')
+      expect(FirewallRulePresentationMapper.formatIpParams([buildIpv4Address('110.110.110.110', 32)])).assertEqual('110.110.110.110')
+      expect(FirewallRulePresentationMapper.formatIpParams([buildIpv4Address('8.8.8.0', 24)])).assertEqual('8.8.8.0/24')
+      expect(FirewallRulePresentationMapper.formatIpParams([buildIpv4Range('10.0.0.1', '10.0.0.20')])).assertEqual('10.0.0.1-10.0.0.20')
+      expect(FirewallRulePresentationMapper.formatIpParams(undefined)).assertEqual('')
     })
 
     it('should sort and deduplicate port params for display', 0, () => {
-      expect(FirewallRuleUtils.formatPortParamsForDisplay([
+      expect(FirewallRulePresentationMapper.formatPortParams([
         { startPort: 443, endPort: 443 },
         { startPort: 80, endPort: 80 },
         { startPort: 80, endPort: 80 },

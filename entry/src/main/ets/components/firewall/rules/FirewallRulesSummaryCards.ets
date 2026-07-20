@@ -10,7 +10,7 @@ import { CompactSummaryCard } from '../../CompactSummaryCard'
 import {
   FirewallDefaultPolicyDisplayItem,
   FirewallDefaultPolicyMode
-} from '../../../services/firewall/FirewallModels'
+} from '../../../models/firewall/FirewallModels'
 
 const USER_POLICY_DESCRIPTION_MAX_LINES: number = 2
 

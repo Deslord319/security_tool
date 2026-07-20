@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 
-import { FirewallOperationResult, FirewallOverviewState, FirewallPresetMode, FirewallToggleOperationResult } from '../../../services/firewall/FirewallModels'
+import { FirewallOperationResult, FirewallOverviewState, FirewallPresetMode, FirewallToggleOperationResult } from '../../../models/firewall/FirewallModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 import { LogUtils } from '../../../utils/LogUtils'
 

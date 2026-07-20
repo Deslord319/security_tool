@@ -20,7 +20,7 @@ import { ThemeMode } from '../../../theme/ThemeColors'
 import {
   FirewallPresetMode,
   FirewallUserPolicyMode
-} from '../../../services/firewall/FirewallModels'
+} from '../../../models/firewall/FirewallModels'
 import { DialogService } from '../../../utils/DialogService'
 import { FirewallRulesViewModel } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
 

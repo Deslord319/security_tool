@@ -1,6 +1,7 @@
 import { netFirewall } from '@kit.NetworkKit'
 import { FirewallRuleValidationErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import { Ipv4Utils } from '../../utils/Ipv4Utils'
+import { FirewallRuleValueUtils } from '../../models/firewall/FirewallRuleValueUtils'
 import {
   FirewallConflictSummary,
   FirewallRuleDeployment,
@@ -17,40 +18,10 @@ import {
   FIREWALL_IPV4_PARAM_TYPE,
   FIREWALL_IPV4_RANGE_PARAM_TYPE,
   FIREWALL_PORT_MAX,
-  FIREWALL_PORT_MIN,
   normalizeFirewallRuleUserIds
-} from './FirewallModels'
+} from '../../models/firewall/FirewallModels'
 
 export class FirewallRuleUtils {
-  static formatIpParamsForDisplay(params?: netFirewall.NetFirewallIpParams[]): string {
-    if (!params || params.length === 0) {
-      return ''
-    }
-    let ip = params[0]
-    if (typeof ip.startIp === 'string' && typeof ip.endIp === 'string' &&
-      ip.startIp.trim().length > 0 && ip.endIp.trim().length > 0) {
-      return `${ip.startIp.trim()}-${ip.endIp.trim()}`
-    }
-    if (typeof ip.address !== 'string' || ip.address.trim().length === 0) {
-      return ''
-    }
-    let address = ip.address.trim()
-    let mask = FirewallRuleUtils.normalizeNumber(ip.mask)
-    return mask === undefined || mask >= FIREWALL_IPV4_MASK_MAX ? address : `${address}/${mask}`
-  }
-
-  static formatPortParamsForDisplay(params?: netFirewall.NetFirewallPortParams[]): string {
-    let normalized = FirewallRuleUtils.clonePortParams(params)
-    if (!normalized || normalized.length === 0) {
-      return ''
-    }
-    return normalized.map((port: netFirewall.NetFirewallPortParams): string => {
-      let startPort = port.startPort ?? 0
-      let endPort = port.endPort ?? startPort
-      return startPort === endPort ? `${startPort}` : `${startPort}-${endPort}`
-    }).join(',')
-  }
-
   static buildSystemRuleFromIntent(intent: FirewallRuleIntent, userId: number): netFirewall.NetFirewallRule {
     let rule: netFirewall.NetFirewallRule = {
       userId: userId,
@@ -543,45 +514,7 @@ export class FirewallRuleUtils {
   }
 
   private static clonePortParams(source?: netFirewall.NetFirewallPortParams[]): netFirewall.NetFirewallPortParams[] | undefined {
-    if (!source || source.length === 0) {
-      return undefined
-    }
-    let result: netFirewall.NetFirewallPortParams[] = []
-    source.forEach((item: netFirewall.NetFirewallPortParams) => {
-      let startPort = FirewallRuleUtils.normalizeNumber(item.startPort)
-      let endPort = FirewallRuleUtils.normalizeNumber(item.endPort)
-      if (startPort === undefined && endPort === undefined) {
-        return
-      }
-      let resolvedStartPort = startPort ?? endPort ?? FIREWALL_PORT_MIN
-      let resolvedEndPort = endPort ?? startPort ?? resolvedStartPort
-      result.push({ startPort: resolvedStartPort, endPort: resolvedEndPort })
-    })
-    if (result.length === 0) {
-      return undefined
-    }
-    return FirewallRuleUtils.sortAndDedupPortParams(result)
-  }
-
-  static sortAndDedupPortParams(ports: netFirewall.NetFirewallPortParams[]): netFirewall.NetFirewallPortParams[] {
-    let sorted = ports.slice().sort((left: netFirewall.NetFirewallPortParams, right: netFirewall.NetFirewallPortParams): number => {
-      let startDiff = (left.startPort ?? 0) - (right.startPort ?? 0)
-      if (startDiff !== 0) {
-        return startDiff
-      }
-      return (left.endPort ?? left.startPort ?? 0) - (right.endPort ?? right.startPort ?? 0)
-    })
-    let deduped: netFirewall.NetFirewallPortParams[] = []
-    sorted.forEach((item: netFirewall.NetFirewallPortParams) => {
-      let previous = deduped[deduped.length - 1]
-      if (previous &&
-        previous.startPort === item.startPort &&
-        previous.endPort === item.endPort) {
-        return
-      }
-      deduped.push(item)
-    })
-    return deduped
+    return FirewallRuleValueUtils.normalizePortParams(source)
   }
 
   private static cloneDomainParams(source?: netFirewall.NetFirewallDomainParams[]): netFirewall.NetFirewallDomainParams[] | undefined {

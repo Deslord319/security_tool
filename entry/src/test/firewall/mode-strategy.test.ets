@@ -11,7 +11,7 @@ import {
   FirewallRuleIntent,
   UserFirewallListResult,
   UserFirewallOption
-} from '../../main/ets/services/firewall/FirewallModels'
+} from '../../main/ets/models/firewall/FirewallModels'
 import { FirewallModeStrategy } from '../../main/ets/services/firewall/FirewallModeStrategy'
 import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 

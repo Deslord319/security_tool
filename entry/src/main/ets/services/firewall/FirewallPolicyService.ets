@@ -15,7 +15,7 @@ import {
   FirewallUserPolicyModeRecord,
   FirewallUserPolicyStateResult,
   UserFirewallOption
-} from './FirewallModels'
+} from '../../models/firewall/FirewallModels'
 import { FirewallSystemRepository } from './FirewallSystemRepository'
 import { SystemUserProvider } from './providers/SystemUserProvider'
 

@@ -8,7 +8,7 @@ import {
   FirewallScopedRule,
   getFirewallRuleUserIds,
   UserFirewallOption
-} from '../../main/ets/services/firewall/FirewallModels'
+} from '../../main/ets/models/firewall/FirewallModels'
 import {
   FirewallRuleFormModel,
   FirewallRuleFormState

@@ -8,7 +8,7 @@ import { DashboardAdminStrings, DashboardLogCardStrings, DashboardPeripheralCard
 import { DashboardModuleCardState } from '../../main/ets/models/DashboardModels'
 import { LogStatistics } from '../../main/ets/models/LogModels'
 import { PeripheralTraceStats } from '../../main/ets/models/PeripheralModels'
-import { FirewallOverviewState, FirewallPresetMode } from '../../main/ets/services/firewall/FirewallModels'
+import { FirewallOverviewState, FirewallPresetMode } from '../../main/ets/models/firewall/FirewallModels'
 import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
