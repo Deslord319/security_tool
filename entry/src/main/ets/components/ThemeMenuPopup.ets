@@ -5,6 +5,9 @@ import { AppResources } from '../constants/AppResources'
 import { ActionText, AppText, ModuleText, ThemeText } from '../constants/StringCatalog'
 import { RouteIds } from '../constants/RouteIds'
 import { DetailDialogShell } from './DetailDialogShell'
+import { LogUtils } from '../utils/LogUtils'
+
+const TAG = 'ThemeMenuPopup'
 
 @ComponentV2
 export struct InteractiveMenuRow {
@@ -147,7 +150,8 @@ export struct AboutDialogContent {
         bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION
       )
       return bundleInfo.versionName
-    } catch (_) {
+    } catch (err) {
+      LogUtils.warn(TAG, `resolveAppVersion failed: ${JSON.stringify(err)}`)
       return ''
     }
   }

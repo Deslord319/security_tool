@@ -372,7 +372,8 @@ export class BluetoothConnectionRecordCoordinator {
   private serializeAclPayload(event: PeripheralConnectionRecordProducerEvent): string {
     try {
       return JSON.stringify(event.bluetoothAcl ?? {})
-    } catch (_err) {
+    } catch (err) {
+      LogUtils.warn(TAG, `serialize bluetooth acl event failed: ${JSON.stringify(err)}`)
       return ''
     }
   }

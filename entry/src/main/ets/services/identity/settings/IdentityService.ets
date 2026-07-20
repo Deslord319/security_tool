@@ -9,6 +9,9 @@ import {
   getPasswordPolicyWithResultTask,
   setPasswordPolicyWithResultTask
 } from './IdentityPasswordPolicyTasks'
+import { LogUtils } from '../../../utils/LogUtils'
+
+const TAG = 'IdentityService'
 
 export class IdentityService {
   static setPasswordPolicyWithResult(config: PasswordComplexityConfig): OperationResult<void> {
@@ -27,6 +30,7 @@ export class IdentityService {
       }
       return IdentityService.getPasswordPolicyWithResult()
     } catch (err) {
+      LogUtils.error(TAG, `getPasswordPolicyWithResultAsync failed: ${JSON.stringify(err)}`)
       return OperationResultUtils.buildFailureResult<securityManager.PasswordPolicy | null>(
         IdentityActionStrings.READ_PASSWORD_POLICY,
         err as ErrorLike,

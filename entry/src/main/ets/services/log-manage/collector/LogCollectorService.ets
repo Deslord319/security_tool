@@ -57,6 +57,7 @@ export class LogCollectorService {
       return LogCollectorService.buildStartResult(true, 'ok')
     }
     if (!LogCollectorService.initialized) {
+      LogUtils.warn(TAG, 'start rejected: collector not initialized')
       return LogCollectorService.buildStartResult(false, 'not_initialized')
     }
     LogCollectorService.auditEnabled = true
@@ -73,6 +74,10 @@ export class LogCollectorService {
     let success = LogCollectorService.auditReady || LogCollectorService.crashReady
     LogCollectorService.running = success
     if (!success) {
+      LogUtils.error(
+        TAG,
+        `start failed: no source available, auditCode=${auditResult.code}, crashCode=${crashResult.code}`
+      )
       return LogCollectorService.buildStartResult(false, 'no_source_available')
     }
     if (LogCollectorService.pendingEntries.length > 0) {
@@ -80,6 +85,12 @@ export class LogCollectorService {
     }
     let allEnabledSourcesReady = (!LogCollectorService.auditEnabled || LogCollectorService.auditReady) &&
       (!LogCollectorService.crashEnabled || LogCollectorService.crashReady)
+    if (!allEnabledSourcesReady) {
+      LogUtils.warn(
+        TAG,
+        `start degraded: auditCode=${auditResult.code}, crashCode=${crashResult.code}, failedAuditEventIds=${JSON.stringify(auditResult.failedEventIds)}`
+      )
+    }
     return LogCollectorService.buildStartResult(
       true,
       allEnabledSourcesReady ? 'ok' : 'partial'

@@ -88,7 +88,8 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
         action: payload.action,
         occurAt: payload.occurAt
       })
-    } catch (_err) {
+    } catch (err) {
+      LogUtils.warn(TAG, `serialize bluetooth acl payload failed: ${JSON.stringify(err)}`)
       rawPayload = ''
     }
     return {

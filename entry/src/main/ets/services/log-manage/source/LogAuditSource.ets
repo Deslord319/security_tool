@@ -65,6 +65,7 @@ export class LogAuditSource {
       if (eventIds.length === 0) {
         LogAuditSource.callback = null
         LogAuditSource.lastSubscribeErrorCode = CommonSystemErrorCodes.INVALID_PARAMS
+        LogUtils.warn(TAG, 'subscribe rejected: no supported audit event ids')
         return LogAuditSource.buildSubscribeResult(false, [], 'permission_denied', [])
       }
 
@@ -73,11 +74,21 @@ export class LogAuditSource {
       LogAuditSource.isSubscribed = clientResult.successCount > 0
       if (!LogAuditSource.isSubscribed) {
         LogAuditSource.callback = null
+        LogUtils.error(
+          TAG,
+          `subscribe failed: no event subscribed, failedEventIds=${JSON.stringify(clientResult.failedEventIds)}`
+        )
         return LogAuditSource.buildSubscribeResult(
           false,
           clientResult.failedEventIds,
           clientResult.unsupported ? 'unsupported' : 'permission_denied',
           []
+        )
+      }
+      if (clientResult.failedEventIds.length > 0) {
+        LogUtils.warn(
+          TAG,
+          `subscribe partial: subscribedCount=${clientResult.successCount}, failedEventIds=${JSON.stringify(clientResult.failedEventIds)}`
         )
       }
       return LogAuditSource.buildSubscribeResult(
