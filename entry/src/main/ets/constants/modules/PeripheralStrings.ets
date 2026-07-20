@@ -129,7 +129,6 @@ export class PeripheralMatchedPolicyStrings {
   static readonly BLUETOOTH_CONNECTION: string = '蓝牙连接事件'
   static readonly DEFAULT_ALLOW: string = '默认允许接入'
   static readonly DISCONNECT_EVENT: string = '设备断开连接'
-  static readonly PENDING: string = '待判定'
   static readonly UNKNOWN_DEVICE: string = '未知设备'
 }
 

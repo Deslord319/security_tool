@@ -11,7 +11,12 @@ import {
   DashboardPeripheralCardStrings
 } from '../../../constants/modules/DashboardStrings'
 import { getFirewallModeTitle } from '../../../constants/modules/FirewallStrings'
-import { DashboardModuleCardState, DashboardQuickEntryState } from '../../../models/DashboardModels'
+import {
+  DashboardModuleCardId,
+  DashboardModuleCardState,
+  DashboardQuickEntryId,
+  DashboardQuickEntryState
+} from '../../../models/DashboardModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 import { LogEntryRepository } from '../../../services/log-manage/repository/LogEntryRepository'
@@ -20,7 +25,6 @@ import { PeripheralTraceMaintenanceService } from '../../../services/peripheral/
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'DashboardViewModel'
-type DashboardQuickEntryId = 'firewall' | 'log-manage' | 'peripheral-manage' | 'permission-manage' | 'identity' | 'tool-settings'
 
 @ObservedV2
 export class DashboardViewModel {
@@ -296,7 +300,7 @@ export class DashboardViewModel {
   }
 
   private createModuleCard(
-    id: 'admin-status' | 'firewall' | 'log-manage' | 'peripheral-manage',
+    id: DashboardModuleCardId,
     title: string,
     primaryText: string,
     secondaryText: string,

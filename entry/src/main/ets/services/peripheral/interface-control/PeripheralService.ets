@@ -83,7 +83,10 @@ export class PeripheralService {
   static setUsbStoragePolicyWithCleanupResult(policy: usbManager.UsbPolicy): OperationResult<void> {
     const snapshotResult = PeripheralService.getUsbConflictSnapshot()
     if (!snapshotResult.success) {
-      return PeripheralService.copyFailureAsVoid(snapshotResult, 'read_usb_storage_policy')
+      return PeripheralService.copyFailureAsVoid(
+        snapshotResult,
+        PeripheralReasonCodes.READ_USB_STORAGE_POLICY_FAILED
+      )
     }
 
     try {
@@ -97,7 +100,7 @@ export class PeripheralService {
       LogUtils.error(TAG, `setUsbStoragePolicyWithCleanupResult failed: ${JSON.stringify(err)}`)
       if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === PeripheralErrorCodes.POLICY_CONFLICT) {
         return PeripheralService.buildUserFailureResult<void>(
-          'set_usb_storage_policy',
+          PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT,
           PeripheralServiceErrorStrings.USB_POLICY_CONFLICT
         )
       }
@@ -147,7 +150,7 @@ export class PeripheralService {
         userMessage: PeripheralServiceErrorStrings.READ_USB_STORAGE_POLICY_FAILED,
         suggestion: storagePolicyResult.suggestion,
         isAdminMissing: storagePolicyResult.isAdminMissing,
-        stage: 'read_usb_storage_policy'
+        stage: PeripheralReasonCodes.READ_USB_STORAGE_POLICY_FAILED
       } as OperationResult<UsbConflictSnapshot>
     }
 

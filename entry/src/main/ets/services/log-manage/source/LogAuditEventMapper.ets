@@ -1,6 +1,9 @@
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import { LogPathUtils } from '../../../utils/LogPathUtils'
-import { LogManageAuditStrings } from '../../../constants/modules/LogManageStrings'
+import {
+  LogManageAuditStrings,
+  LogManageCsvStrings
+} from '../../../constants/modules/LogManageStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   generateLogEntryId,
@@ -192,7 +195,12 @@ function buildDetailRows(
       const newPermission = findNestedJson([extra, contentJson, metadataJson], 'newPermission')
       const newPermissionSources = compactSources(newPermission, extra, contentJson, metadataJson, ...sources)
       appendTextRow(rows, 'permission.bundleName', '应用包名', pickString(extraSources, ['bundleName', 'bundle_name']))
-      appendNumberRow(rows, 'permission.pid', 'PID', pickNumber(extraSources, ['pid', 'processId', 'process_id']))
+      appendNumberRow(
+        rows,
+        'permission.pid',
+        LogManageCsvStrings.PID,
+        pickNumber(extraSources, ['pid', 'processId', 'process_id'])
+      )
       appendNumberRow(rows, 'permission.uid', 'UID', pickNumber(extraSources, ['uid', 'userId', 'user_id']))
       appendTextRow(rows, 'permission.newPermissionName', '新权限名称', pickString(newPermissionSources, ['PermissionName', 'permissionName', 'name']))
       appendTextRow(rows, 'permission.newPermissionState', '新权限状态', pickString(newPermissionSources, ['PermissionState', 'permissionState', 'state']))
@@ -201,8 +209,19 @@ function buildDetailRows(
       break
     }
     case LogEventType.FILE: {
-      appendTextRow(rows, 'file.description', '事件说明', resolveFileAuditEventDescription(event.eventId))
-      appendTextRow(rows, 'file.operation', '操作类型', pickString(sources, ['event_name', 'eventName', 'name']) || pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state']))
+      appendTextRow(
+        rows,
+        'file.description',
+        LogManageAuditStrings.DESCRIPTION_LABEL,
+        resolveFileAuditEventDescription(event.eventId)
+      )
+      appendTextRow(
+        rows,
+        'file.operation',
+        LogManageAuditStrings.EDM_OPERATION_TYPE_LABEL,
+        pickString(sources, ['event_name', 'eventName', 'name']) ||
+          pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state'])
+      )
       appendTextRow(rows, 'file.filePath', '文件路径', fileAuditPathInfo.primaryPath)
       appendTextRow(rows, 'file.oldPath', '原文件路径', fileAuditPathInfo.oldPath)
       appendTextRow(rows, 'file.newPath', '新文件路径', fileAuditPathInfo.newPath)
@@ -214,8 +233,16 @@ function buildDetailRows(
       appendNumberRow(rows, 'file.newGid', '新属组 GID', pickNumber(sources, ['file_newgid']))
       appendTextRow(rows, 'file.xattrName', '扩展属性名', pickString(sources, ['file_xattrname']))
       appendNumberRow(rows, 'file.size', '文件大小', pickNumber(sources, ['file_size']))
-      appendTextRow(rows, 'file.processName', '进程名', pickString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']))
-      appendNumberRow(rows, 'file.pid', 'PID', pickNumber(sources, ['pid', 'processId', 'process_id']))
+      appendTextRow(
+        rows,
+        'file.processName',
+        LogManageCsvStrings.PROCESS_NAME,
+        pickString(
+          sources,
+          ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']
+        )
+      )
+      appendNumberRow(rows, 'file.pid', LogManageCsvStrings.PID, pickNumber(sources, ['pid', 'processId', 'process_id']))
       appendNumberRow(rows, 'file.uid', 'UID', pickNumber(sources, ['uid', 'userId', 'user_id']))
       appendTextRow(rows, 'file.timestamp', '事件时间', formatStandardDateTime(timestamp))
       appendNumberRow(rows, 'file.eventId', '事件 ID', event.eventId)
@@ -227,7 +254,7 @@ function buildDetailRows(
         'processName', 'procName', 'proc_name', 'process', 'process_name', 'bundleName', 'bundle_name',
         'CALLER_NAME', 'CALLER_PNAMEID', 'PNAMEID'
       ]))
-      appendNumberRow(rows, 'crash.pid', 'PID', pickNumber(sources, ['pid', 'processId', 'process_id']))
+      appendNumberRow(rows, 'crash.pid', LogManageCsvStrings.PID, pickNumber(sources, ['pid', 'processId', 'process_id']))
       appendNumberRow(rows, 'crash.uid', 'UID', pickNumber(sources, ['uid', 'userId', 'user_id']))
       appendTextRow(rows, 'crash.timestamp', '事件时间', formatStandardDateTime(timestamp))
       appendNumberRow(rows, 'crash.eventId', '事件 ID', event.eventId)
