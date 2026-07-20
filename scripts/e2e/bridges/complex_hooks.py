@@ -3,8 +3,6 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import Any
-from urllib.parse import urlparse
-
 from scripts.e2e.adapters.security_tool.strategies import (
     FIREWALL_ADD_RULE_TEXTS,
     FIREWALL_CUSTOM_RULE_TEXT,

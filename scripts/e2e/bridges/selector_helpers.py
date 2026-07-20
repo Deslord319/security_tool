@@ -13,7 +13,6 @@ from scripts.e2e.adapters.security_tool.resolvers import (
 from scripts.e2e.adapters.security_tool.strategies import (
     CONFIRM_DELETE_LABELS,
     CONFIRM_DIALOG_LABELS,
-    DELETE_ACTION_LABELS,
     FIREWALL_DIALOG_REGION,
 )
 
@@ -72,23 +71,6 @@ class SelectorHelpersMixin:
         if buttons:
             return max(buttons, key=lambda node: ((node.get("top") or 0), (node.get("width") or 0)))
         return None
-
-    def _pick_firewall_rule_card(self, ui_tree: dict[str, Any], rule_type: str) -> dict[str, Any] | None:
-        clickable_texts = [
-            node for node in self._nodes_by_type(ui_tree, "Text")
-            if node.get("clickable")
-            and (node.get("left") or 0) >= 850
-            and 700 <= (node.get("top") or 0) <= 1250
-            and (node.get("width") or 0) >= 60
-        ]
-        if not clickable_texts:
-            return None
-        ordered = sorted(clickable_texts, key=lambda node: ((node.get("left") or 0), (node.get("top") or 0)))
-        index_map = {"ip": 0, "domain": 1, "dns": 2}
-        target_index = index_map.get(rule_type, 0)
-        if target_index >= len(ordered):
-            target_index = len(ordered) - 1
-        return ordered[target_index]
 
     def _pick_sidebar_entry(self, ui_tree: dict[str, Any], page_id: str) -> dict[str, Any] | None:
         return resolve_sidebar_entry(

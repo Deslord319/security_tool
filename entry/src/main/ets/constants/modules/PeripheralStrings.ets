@@ -225,7 +225,6 @@ export class PeripheralActionStrings {
 }
 
 export class PeripheralEmptyStateStrings {
-  static readonly HISTORY_TO_CLEAR: string = '暂无可清理的记录'
   static readonly CLEAR_FAILED: string = '清理未完成，请稍后重试'
   static readonly CLEAR_HISTORY_SUCCESS: string = '记录已清理'
   static readonly CLEAR_POLICY_SUCCESS: string = '黑白名单已还原，设备已恢复默认允许接入'

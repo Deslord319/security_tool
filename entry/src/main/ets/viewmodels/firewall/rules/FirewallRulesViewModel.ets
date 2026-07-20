@@ -146,10 +146,6 @@ export class FirewallRulesViewModel {
       : this.rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.type === ruleType)
   }
 
-  countRulesByType(type: netFirewall.NetFirewallRuleType): number {
-    return this.rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.type === type).length
-  }
-
   countRulesByDirection(direction: netFirewall.NetFirewallRuleDirection): number {
     return this.rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.direction === direction).length
   }

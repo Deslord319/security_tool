@@ -115,14 +115,6 @@ export class KernelLogImportRule implements LogImportRule {
     return result
   }
 
-  static async parseTextForTest(file: ImportedLogFile, path: string): Promise<LogImportRuleResult> {
-    let result = createEmptyLogImportRuleResult()
-    await KernelLogImportRule.forEachLine(path, async (rawLine: string, lineNumber: number): Promise<void> => {
-      KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
-    })
-    return result
-  }
-
   private static parseLineIntoResult(
     rawLine: string,
     lineNumber: number,

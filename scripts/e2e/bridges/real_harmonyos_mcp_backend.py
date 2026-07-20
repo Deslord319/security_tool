@@ -13,7 +13,6 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.e2e.adapters.security_tool.runtime_config import load_runtime_config
 from scripts.e2e.adapters.security_tool.strategies import (
     DELETE_ACTION_LABELS,
-    FIREWALL_DIALOG_TITLE,
     FIREWALL_DIRECTION_OPTION_LABELS,
     FIREWALL_PAGE_TEXT,
     FIREWALL_POLICY_OPTION_LABELS,
@@ -553,22 +552,6 @@ class RealHarmonyOsMcpBackend(
 
         return self._unknown(payload, "MCP_ACTION_PENDING", "Toggle state could not be resolved")
 
-    async def _click_and_wait(
-        self,
-        payload: dict[str, Any],
-        *,
-        click_params: dict[str, Any],
-        wait_params: dict[str, Any],
-        success_message: str,
-    ) -> dict[str, Any]:
-        click_result = await self._call_tool("click_element", click_params)
-        if not click_result.get("ok", False):
-            return self._fail("MCP_EXECUTION_FAILED", "Click action failed", {"click_result": click_result, "click_params": click_params})
-        wait_result = await self._wait_for([wait_params])
-        if not wait_result.get("ok", False):
-            return self._unknown(payload, "MCP_ACTION_PENDING", f"Click succeeded but wait condition did not resolve: {wait_params}")
-        return self._pass(success_message, {"click_params": click_params, "wait_match": wait_result.get("match", {})})
-
     async def _configure_firewall_dialog_selects(self, params: dict[str, Any]) -> dict[str, Any]:
         rule_type = str(params.get("rule_type", "")).lower()
         direction = str(params.get("direction", "")).lower()
@@ -850,20 +833,6 @@ class RealHarmonyOsMcpBackend(
                 "option_group": option_group,
             },
         )
-
-    async def _fill_inputs_with_fallback_touch(self, values: list[str], *, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        await self._ensure_auth_dialog_cleared()
-        fill_result = await self._fill_text_inputs(values)
-        if fill_result.get("status") == "PASS":
-            return self._pass("Inputs populated", {"params": params or {}, "fill": fill_result.get("evidence", {}), "values": values})
-        action_result = await self._touch_identity_controls()
-        if action_result.get("status") != "PASS":
-            return fill_result
-        return self._pass("Fallback controls interacted", {"params": params or {}, "interaction": action_result.get("evidence", {}), "values": values})
-
-    def _first_node_by_type(self, ui_tree: dict[str, Any], node_type: str) -> dict[str, Any] | None:
-        nodes = self._nodes_by_type(ui_tree, node_type)
-        return nodes[0] if nodes else None
 
     async def _wait_for_page_marker(
         self,

@@ -117,10 +117,6 @@ export class LogManageCsvStrings {
       LogManageCsvStrings.PID
     ]
   }
-
-  static buildHeader(): string {
-    return LogManageCsvStrings.HEADERS.join(',')
-  }
 }
 
 export class LogManageAuditStrings {

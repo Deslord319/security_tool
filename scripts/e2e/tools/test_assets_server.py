@@ -13,7 +13,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.e2e.tools.test_asset_common import (
-    COVERAGE_PATH,
     IMPORT_REPORT_PATH,
     VALIDATION_REPORT_PATH,
     batch_delete_catalog_records,
