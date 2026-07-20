@@ -40,10 +40,12 @@ export class PeripheralTraceMaintenanceService {
   static async initialize(context: common.UIAbilityContext): Promise<PeripheralTraceInitializeResult> {
     let ready = await PeripheralTraceEntryRepository.init(context)
     if (!ready) {
+      LogUtils.error(TAG, 'initialize failed: stage=storage')
       return { success: false, code: 'storage_init_failed' }
     }
     let reconciled = await PeripheralTraceMaintenanceService.reconcileStorageConfig()
     if (!reconciled.success) {
+      LogUtils.error(TAG, `initialize failed: stage=reconcile, code=${reconciled.code}`)
       return { success: false, code: 'storage_init_failed' }
     }
     return { success: true, code: 'ok' }
@@ -72,6 +74,7 @@ export class PeripheralTraceMaintenanceService {
         return { success: true, code: 'ok' }
       }
       if (!PeripheralTraceEntryRepository.isReady()) {
+        LogUtils.warn(TAG, `appendEntries skipped: repository not initialized, count=${records.length}`)
         return { success: false, code: 'not_initialized' }
       }
       let normalized: PeripheralTraceRecord[] = []
@@ -86,6 +89,7 @@ export class PeripheralTraceMaintenanceService {
       }
       let saved = await PeripheralTraceEntryRepository.upsertBatch(normalized)
       if (!saved) {
+        LogUtils.error(TAG, `appendEntries failed: count=${normalized.length}`)
         return { success: false, code: 'save_failed' }
       }
       return PeripheralTraceMaintenanceService.reconcileStorageConfig()
@@ -98,6 +102,7 @@ export class PeripheralTraceMaintenanceService {
   static async reconcileStorageConfig(): Promise<PeripheralTraceMutationResult> {
     try {
       if (!PeripheralTraceEntryRepository.isReady()) {
+        LogUtils.warn(TAG, 'reconcileStorageConfig skipped: repository not initialized')
         return { success: false, code: 'not_initialized' }
       }
       let now = PeripheralTraceMaintenanceService.nowProvider()
@@ -105,10 +110,13 @@ export class PeripheralTraceMaintenanceService {
       let cutoff = now - retentionMs
       let deletedExpired = await PeripheralTraceEntryRepository.deleteExpired(cutoff)
       if (!deletedExpired) {
+        LogUtils.error(TAG, `reconcileStorageConfig failed: stage=deleteExpired, cutoff=${cutoff}`)
         return { success: false, code: 'save_failed' }
       }
       let trimmed = await PeripheralTraceEntryRepository.trimToMaxEntries(PeripheralTraceMaintenanceService.maxEntries)
       if (!trimmed) {
+        LogUtils.error(TAG,
+          `reconcileStorageConfig failed: stage=trim, maxEntries=${PeripheralTraceMaintenanceService.maxEntries}`)
         return { success: false, code: 'save_failed' }
       }
       PeripheralTraceEntryRepository.notifyChanged()
@@ -122,10 +130,12 @@ export class PeripheralTraceMaintenanceService {
   static async clearAll(): Promise<PeripheralTraceClearResult> {
     try {
       if (!PeripheralTraceEntryRepository.isReady()) {
+        LogUtils.warn(TAG, 'clearAll skipped: repository not initialized')
         return { success: false, code: 'clear_failed' }
       }
       let cleared = await PeripheralTraceEntryRepository.clearAll()
       if (!cleared) {
+        LogUtils.error(TAG, 'clearAll failed: repository clear returned false')
         return { success: false, code: 'clear_failed' }
       }
       PeripheralTraceEntryRepository.notifyChanged()

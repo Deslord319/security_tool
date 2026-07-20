@@ -34,11 +34,13 @@ export class WiredNetworkService {
       }
       const interfaces = interfaceResult.data ?? []
       if (interfaces.length === 0) {
+        LogUtils.warn(TAG, `setDisabled skipped: no active wired network interface, disabled=${disabled}`)
         return { success: false, stage: PeripheralReasonCodes.WIRED_NETWORK_NOT_CONNECTED } as OperationResult<void>
       }
       for (const item of interfaces) {
         networkManager.setNetworkInterfaceDisabledSync(ADMIN_WANT, item, disabled)
         if (networkManager.isNetworkInterfaceDisabledSync(ADMIN_WANT, item) !== disabled) {
+          LogUtils.error(TAG, `setDisabled verify failed: interface=${item}, expectedDisabled=${disabled}`)
           return { success: false, stage: 'verify_wired_network_disabled' } as OperationResult<void>
         }
       }
