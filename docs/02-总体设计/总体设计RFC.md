@@ -174,9 +174,10 @@ EntryAbility
 | 路由壳层 | `entry/src/main/ets/pages/MainPage.ets` | 持有当前路由，装配侧边栏、顶部菜单和模块页面，不承载模块内部业务 |
 | 页面层 | `entry/src/main/ets/views/**` | 展示、交互转发、弹窗、局部 UI 状态 |
 | 状态层 | `entry/src/main/ets/viewmodels/**` | 初始化、刷新、保存、提交、结果映射和页面状态收口 |
+| 模型层 | `entry/src/main/ets/models/**` | 页面、ViewModel 与 Service 共享的业务实体、状态和结果契约；不得依赖具体 Service 实现取得跨层 DTO |
 | 领域层 | `entry/src/main/ets/services/**` | 系统能力编排、策略下发、采集、导出、认证等业务动作 |
 | 持久化层 | `entry/src/main/ets/storage/**`、模块 Repository | Preferences / RDB 访问、表结构、配置读写、查询和裁剪 |
-| 公共能力 | `entry/src/main/ets/components/**`、`utils/**`、`constants/**`、`theme/**` | UI 复用、日志、弹窗、导出文案、路径处理、主题和文案常量 |
+| 公共能力 | `entry/src/main/ets/components/**`、`services/common/**`、`utils/**`、`constants/**`、`theme/**` | UI 复用、应用信息等公共系统能力封装、日志、弹窗、导出文案、路径处理、主题和文案常量；组件不直接访问非 UI 系统能力 |
 
 跨模块依赖边界：
 
@@ -224,6 +225,7 @@ EntryAbility
 | 路由壳层 | 持有当前路由、装配侧边栏/顶部菜单/模块页面，不承载模块业务 | `entry/src/main/ets/pages/MainPage.ets`、`RouteStateUtils.ets`、`RouteIds.ets` | 一致。`MainPage` 只做路由、主题、弹窗入口和 ViewModel 注入；防火墙子路由恢复通过 `lastFirewallRoute` 收口。 |
 | 页面层 | 负责展示、交互转发、弹窗和局部 UI 状态 | `entry/src/main/ets/views/**`、`entry/src/main/ets/components/**` | 一致。页面消费 ViewModel state 和回调；`FirewallRulesPage` 引入 `netFirewall` 仅用于规则类型/枚举展示和弹窗参数，新增/编辑/删除仍经 `FirewallRulesViewModel`，不是页面直接下发系统能力。 |
 | 状态层 | 收口初始化、刷新、保存、提交、结果映射和页面状态 | `entry/src/main/ets/viewmodels/**` | 一致。业务状态集中在各模块 ViewModel，页面没有成为持久业务真相源。 |
+| 模型层 | 提供跨 View、ViewModel、Service 的稳定业务契约，不反向依赖服务实现 | `entry/src/main/ets/models/**` | 一致。日志导入结果和防火墙共享领域模型由模型层承载，页面不再从具体 Service 文件取得这些 DTO。 |
 | 领域服务层 | 编排系统能力、认证、策略下发、采集、导出等业务动作 | `entry/src/main/ets/services/**`、`entry/src/main/ets/services/admin/**` | 一致。防火墙、身份、日志、外设、工具设置均有明确 Service / task / adapter 边界。 |
 | 仓储/适配层 | 负责 Preferences、RDB、系统 Provider / Adapter，不把存储细节泄漏给页面 | `entry/src/main/ets/storage/**`、`services/**/repository/**`、`services/**/providers/**`、`UserAuthAdapter.ets` | 一致。仓储分布在模块 service 目录和公共 storage 目录，没有单独根 `repositories` 目录，但职责符合 RFC。 |
 | 测试层 | 用 UT / ohosTest / E2E 分别覆盖纯逻辑、页面/设备能力和端到端链路 | `entry/src/test/**`、`entry/src/ohosTest/ets/test/**`、`scripts/e2e/cases/**` | 一致。各模块已有对应测试入口，具体覆盖边界以模块设计 4.1 为准。 |

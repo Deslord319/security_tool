@@ -20,7 +20,7 @@ import {
 import { LogManageViewModel } from '../../main/ets/viewmodels/log-manage/overview/LogManageViewModel'
 import { LogImportServicePort } from '../../main/ets/viewmodels/log-manage/overview/LogManageViewModel'
 import { LogStorageSettingsViewModel } from '../../main/ets/viewmodels/log-manage/storage-settings/LogStorageSettingsViewModel'
-import { ImportLogsResult, LogImportSelectionResult } from '../../main/ets/services/log-manage/import/LogImportService'
+import { ImportLogsResult, LogImportSelectionResult } from '../../main/ets/models/LogImportModels'
 
 function createEntry(
   id: string,

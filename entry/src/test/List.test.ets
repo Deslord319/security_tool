@@ -1,4 +1,5 @@
 import appConstantsTest from './common/app-constants.test'
+import appInfoServiceTest from './common/app-info-service.test'
 import dialogServiceTest from './common/dialog-service.test'
 import dialogStringsTest from './common/dialog-strings.test'
 import errorUtilsTest from './common/error-utils.test'
@@ -92,6 +93,7 @@ import peripheralPageTest from './views/PeripheralPage.test'
 import settingsPagesStateTest from './views/SettingsPagesState.test'
 
 export default function testsuite() {
+  appInfoServiceTest()
   appConstantsTest()
   dialogServiceTest()
   dialogStringsTest()

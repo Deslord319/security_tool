@@ -10,7 +10,7 @@ import {
   FirewallRuleIntentMappingData,
   FirewallScopedRule,
   UserFirewallOption
-} from './FirewallModels'
+} from '../../models/firewall/FirewallModels'
 import { FirewallLocalRepository } from './FirewallLocalRepository'
 import { FirewallModeStrategy } from './FirewallModeStrategy'
 import { FirewallPolicyService } from './FirewallPolicyService'

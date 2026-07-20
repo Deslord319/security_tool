@@ -4,7 +4,7 @@
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
 import { TestLogUtils } from '../../utils/TestLogUtils'
-import { clickById, existsById, existsByText, safeDelay, sleep } from '../../utils/TestDriverUtils'
+import { clickById, clickByText, existsById, existsByText, safeDelay, sleep } from '../../utils/TestDriverUtils'
 
 const TAG = 'ThemeMenuPopupTest'
 const BUNDLE_NAME = 'com.huawei.securitytool'
@@ -47,6 +47,22 @@ export default function themeMenuPopupTest() {
       await driver.assertComponentExist(ON.text('深色模式'))
       await driver.assertComponentExist(ON.text('帮助与反馈'))
       await driver.assertComponentExist(ON.text('关于'))
+    })
+
+    it('should open about dialog and display app version', 0, async () => {
+      const opened = await ensureMenuOpen(driver)
+      expect(opened).assertTrue()
+
+      const aboutClicked = await clickByText(driver, '关于')
+      expect(aboutClicked).assertTrue()
+      await safeDelay(driver, 500)
+
+      const versionExists = await existsByText(driver, '版本 1.0.6')
+      expect(versionExists).assertTrue()
+
+      const confirmClicked = await clickByText(driver, '确定')
+      expect(confirmClicked).assertTrue()
+      await safeDelay(driver, 300)
     })
 
     it('should switch theme by menu id', 0, async () => {

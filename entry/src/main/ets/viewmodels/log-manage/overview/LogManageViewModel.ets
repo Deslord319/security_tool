@@ -25,7 +25,8 @@ import {
   SaveSettingsResult
 } from '../../../services/log-manage/common/LogManagePorts'
 import { LogExportService } from '../../../services/log-manage/export/LogExportService'
-import { ImportLogsResult, LogImportSelectionResult, LogImportService } from '../../../services/log-manage/import/LogImportService'
+import { ImportLogsResult, LogImportSelectionResult } from '../../../models/LogImportModels'
+import { LogImportService } from '../../../services/log-manage/import/LogImportService'
 import { LogStorageMaintenanceService } from '../../../services/log-manage/maintenance/LogStorageMaintenanceService'
 import { LogEntryRepository } from '../../../services/log-manage/repository/LogEntryRepository'
 import { LogUtils } from '../../../utils/LogUtils'

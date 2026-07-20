@@ -19,8 +19,8 @@ import {
   FIREWALL_PROTOCOL_TCP,
   FIREWALL_PROTOCOL_UDP,
   FirewallScopedRule
-} from '../../../services/firewall/FirewallModels'
-import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
+} from '../../../models/firewall/FirewallModels'
+import { FirewallRulePresentationMapper } from '../../../viewmodels/firewall/rules/FirewallRulePresentationMapper'
 
 @ComponentV2
 export struct FirewallRuleList {
@@ -164,7 +164,7 @@ struct FirewallRuleCard {
   private getRuleAddress(): string {
     if (this.rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
       let ipParams = this.rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? this.rule.localIps : this.rule.remoteIps
-      return FirewallRuleUtils.formatIpParamsForDisplay(ipParams) || FirewallDialogStrings.ALL_VALUE
+      return FirewallRulePresentationMapper.formatIpParams(ipParams) || FirewallDialogStrings.ALL_VALUE
     }
     if (this.rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
       return this.rule.domains?.[0]?.domain ?? '-'
@@ -176,11 +176,11 @@ struct FirewallRuleCard {
   }
 
   private getRuleLocalPort(): string {
-    return FirewallRuleUtils.formatPortParamsForDisplay(this.rule.localPorts) || FirewallDialogStrings.ALL_VALUE
+    return FirewallRulePresentationMapper.formatPortParams(this.rule.localPorts) || FirewallDialogStrings.ALL_VALUE
   }
 
   private getRuleRemotePort(): string {
-    return FirewallRuleUtils.formatPortParamsForDisplay(this.rule.remotePorts) || FirewallDialogStrings.ALL_VALUE
+    return FirewallRulePresentationMapper.formatPortParams(this.rule.remotePorts) || FirewallDialogStrings.ALL_VALUE
   }
 
   private getIpAddressLabel(): string {

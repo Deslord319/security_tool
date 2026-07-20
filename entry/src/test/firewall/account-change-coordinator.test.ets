@@ -6,7 +6,7 @@ import { AccountChangeEventBus } from '../../main/ets/services/account/AccountCh
 import { AccountChangeHandler } from '../../main/ets/services/account/AccountChangeHandler'
 import { AccountChangeCoordinator } from '../../main/ets/services/account/AccountChangeCoordinator'
 import { AccountSnapshotChange } from '../../main/ets/services/account/AccountSnapshotModels'
-import { UserFirewallListResult, UserFirewallOption } from '../../main/ets/services/firewall/FirewallModels'
+import { UserFirewallListResult, UserFirewallOption } from '../../main/ets/models/firewall/FirewallModels'
 import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 
 class CaptureAccountChangeHandler implements AccountChangeHandler {

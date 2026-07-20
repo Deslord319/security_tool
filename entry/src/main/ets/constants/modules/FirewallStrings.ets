@@ -1,4 +1,4 @@
-import { FirewallPresetMode, FirewallToggleRejectReason } from '../../services/firewall/FirewallModels'
+import { FirewallPresetMode, FirewallToggleRejectReason } from '../../models/firewall/FirewallModels'
 import { AppColors } from '../AppConstants'
 import { CommonSystemErrorCodes } from '../SystemErrorCodes'
 

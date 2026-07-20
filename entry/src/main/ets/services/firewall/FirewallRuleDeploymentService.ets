@@ -6,7 +6,7 @@ import {
   FirewallRuleDeployment,
   FirewallRuleIntent,
   FirewallScopedRule
-} from './FirewallModels'
+} from '../../models/firewall/FirewallModels'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
 import { FirewallSystemRepository } from './FirewallSystemRepository'
 

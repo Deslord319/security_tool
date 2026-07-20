@@ -19,7 +19,7 @@ import {
   FirewallUserPolicyModeRecord,
   UserFirewallListResult,
   UserFirewallOption
-} from '../../main/ets/services/firewall/FirewallModels'
+} from '../../main/ets/models/firewall/FirewallModels'
 import { FirewallModeStrategy } from '../../main/ets/services/firewall/FirewallModeStrategy'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { FirewallSystemRepository } from '../../main/ets/services/firewall/FirewallSystemRepository'
@@ -344,6 +344,20 @@ export default function firewallServiceTest() {
 
     afterEach(() => {
       mockKit.clearAll()
+    })
+
+    describe('available users', () => {
+      it('should expose system users through the service facade', 0, async (done: Function) => {
+        let expected = buildUserResult(buildUsers(), 101)
+        let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+        when(userMock)().afterReturn(expected)
+
+        let result = await FirewallService.loadAvailableUsers()
+
+        expect(result.users.length).assertEqual(3)
+        expect(result.selectedUserId).assertEqual(101)
+        done()
+      })
     })
 
     describe('overview state', () => {

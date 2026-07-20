@@ -3,6 +3,7 @@ import { fileUri, picker } from '@kit.CoreFileKit'
 import { taskpool } from '@kit.ArkTS'
 import fileIo from '@ohos.file.fs'
 import { LogEntry } from '../../../models/LogModels'
+import { ImportLogsCode, ImportLogsResult, LogImportSelectionResult } from '../../../models/LogImportModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogEntryRepository } from '../repository/LogEntryRepository'
 import { buildLogStorageNaturalDayCutoff, LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
@@ -12,28 +13,6 @@ import { LogImportParseTaskResult, runLogImportParseTask } from './LogImportBack
 
 const TAG = 'LogImportService'
 const IMPORT_WORKSPACE_DIR = 'log_import_tmp'
-
-export type ImportLogsCode = 'ok' | 'user_canceled' | 'invalid_archive' | 'extract_failed' | 'save_failed'
-
-export interface ImportLogsResult {
-  success: boolean
-  code: ImportLogsCode
-  extractedFileCount: number
-  scannedFileCount: number
-  parsedEntryCount: number
-  insertedEntryCount: number
-  skippedDuplicateCount: number
-  skippedExpiredCount: number
-  droppedEntryCount: number
-  failedEntryCount: number
-}
-
-export interface LogImportSelectionResult {
-  success: boolean
-  code: 'ok' | 'user_canceled'
-  archivePath: string
-  targetDirectory: string
-}
 
 interface ImportBaseStats {
   extractedFileCount?: number

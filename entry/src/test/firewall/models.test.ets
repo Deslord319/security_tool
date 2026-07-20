@@ -8,7 +8,7 @@ import {
 } from '../../main/ets/constants/modules/FirewallStrings'
 import {
   resolveFirewallUserPolicyModeFromActions
-} from '../../main/ets/services/firewall/FirewallModels'
+} from '../../main/ets/models/firewall/FirewallModels'
 
 export default function firewallModelsTest() {
   describe('Firewall Models', () => {

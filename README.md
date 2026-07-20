@@ -278,7 +278,7 @@ hdc shell aa start -a EntryAbility -b com.huawei.securitytool
 
 当前仓库中，按文件数统计包含：
 
-- `93` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
+- `94` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
 - `6` 个 `ohosTest` 设备侧测试文件：`entry/src/ohosTest/ets/test/**/*.test.ets`
 - `44` 个 E2E case：`scripts/e2e/cases/**/*.json`
 

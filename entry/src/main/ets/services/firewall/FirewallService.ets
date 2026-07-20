@@ -13,14 +13,20 @@ import {
   FirewallUserPolicyApplyResult,
   FirewallUserPolicyMode,
   FirewallUserPolicyStateResult,
+  UserFirewallListResult,
   UserFirewallOption
-} from './FirewallModels'
+} from '../../models/firewall/FirewallModels'
 import { FirewallModeSwitchService } from './FirewallModeSwitchService'
 import { FirewallPolicyService } from './FirewallPolicyService'
 import { FirewallRuleDisplayService } from './FirewallRuleDisplayService'
 import { FirewallRuleMutationService } from './FirewallRuleMutationService'
+import { SystemUserProvider } from './providers/SystemUserProvider'
 
 export class FirewallService {
+  static async loadAvailableUsers(): Promise<UserFirewallListResult> {
+    return SystemUserProvider.loadAvailableUserIds()
+  }
+
   static async loadOverviewState(context: common.UIAbilityContext): Promise<FirewallOverviewState> {
     return FirewallPolicyService.loadOverviewState(context)
   }

@@ -16,6 +16,7 @@ import { RouteIds } from '../constants/RouteIds'
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
 import { ThemeManager } from '../theme/ThemeManager'
 import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager'
+import { AppInfoService } from '../services/common/app-info/AppInfoService'
 
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
@@ -184,6 +185,7 @@ struct MainPage {
         builder: AboutDialogContent({
           controller: this.aboutDialogController,
           currentTheme: this.currentTheme,
+          appVersion: AppInfoService.getVersionName(),
           onConfirm: () => {
             this.closeAboutDialog()
           }

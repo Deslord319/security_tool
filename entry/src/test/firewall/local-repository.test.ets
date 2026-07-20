@@ -17,7 +17,7 @@ import {
   PREF_STORE_NAME_FIREWALL_MODE,
   PREF_STORE_NAME_FIREWALL_RULE_MAPPING,
   PREF_STORE_NAME_FIREWALL_USER_POLICY
-} from '../../main/ets/services/firewall/FirewallModels'
+} from '../../main/ets/models/firewall/FirewallModels'
 import { PreferencesAccessor } from '../../main/ets/storage/preferences/PreferencesAccessor'
 
 class FakePreferencesAccessor {

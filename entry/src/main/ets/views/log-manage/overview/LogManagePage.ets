@@ -29,7 +29,7 @@ import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } f
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
 import { DialogService } from '../../../utils/DialogService'
 import { LogManageViewModel } from '../../../viewmodels/log-manage/overview/LogManageViewModel'
-import { ImportLogsResult, LogImportSelectionResult } from '../../../services/log-manage/import/LogImportService'
+import { ImportLogsResult, LogImportSelectionResult } from '../../../models/LogImportModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogEntriesPanel } from '../../../components/log-manage/entries/LogEntriesPanel'
 import { LogPaginationBar } from '../../../components/log-manage/entries/LogPaginationBar'

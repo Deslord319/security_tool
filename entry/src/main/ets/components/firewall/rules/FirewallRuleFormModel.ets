@@ -16,8 +16,9 @@ import {
   getFirewallRuleUserIds,
   normalizeFirewallRuleUserIds,
   UserFirewallOption
-} from '../../../services/firewall/FirewallModels'
-import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
+} from '../../../models/firewall/FirewallModels'
+import { FirewallRuleValueUtils } from '../../../models/firewall/FirewallRuleValueUtils'
+import { FirewallRulePresentationMapper } from '../../../viewmodels/firewall/rules/FirewallRulePresentationMapper'
 
 export interface FirewallRuleFormParseResult<T> {
   success: boolean
@@ -92,7 +93,7 @@ export class FirewallRuleFormModel {
   static resolveAddressForRule(rule: netFirewall.NetFirewallRule): string {
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
       let ipParams = rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? rule.localIps : rule.remoteIps
-      return FirewallRuleUtils.formatIpParamsForDisplay(ipParams)
+      return FirewallRulePresentationMapper.formatIpParams(ipParams)
     }
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
       return rule.domains?.[0]?.domain ?? ''
@@ -108,7 +109,7 @@ export class FirewallRuleFormModel {
       return ''
     }
     let ports = rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? rule.localPorts : rule.remotePorts
-    return FirewallRuleUtils.formatPortParamsForDisplay(ports)
+    return FirewallRulePresentationMapper.formatPortParams(ports)
   }
 
   static parseIpInput(raw: string): FirewallRuleFormParseResult<netFirewall.NetFirewallIpParams[] | undefined> {
@@ -367,7 +368,7 @@ export class FirewallRuleFormModel {
   }
 
   private static normalizePorts(ports: netFirewall.NetFirewallPortParams[]): netFirewall.NetFirewallPortParams[] {
-    return FirewallRuleUtils.sortAndDedupPortParams(ports)
+    return FirewallRuleValueUtils.sortAndDedupPortParams(ports)
   }
 
   private static isValidPort(port: number): boolean {

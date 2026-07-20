@@ -12,7 +12,7 @@ import {
   FirewallOperationResult,
   FirewallPresetMode,
   UserFirewallOption
-} from '../../main/ets/services/firewall/FirewallModels'
+} from '../../main/ets/models/firewall/FirewallModels'
 
 function buildUsers(userIds: number[] = [100, 101]): UserFirewallOption[] {
   return userIds.map((userId: number): UserFirewallOption => {

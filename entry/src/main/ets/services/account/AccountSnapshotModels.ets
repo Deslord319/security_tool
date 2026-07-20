@@ -1,4 +1,4 @@
-import { UserFirewallOption } from '../firewall/FirewallModels'
+import { UserFirewallOption } from '../../models/firewall/FirewallModels'
 
 export type AccountChangeSource = 'account-added' | 'account-removed' | 'manual'
 

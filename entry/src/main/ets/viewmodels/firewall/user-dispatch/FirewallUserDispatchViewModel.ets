@@ -8,7 +8,7 @@ import {
   FirewallUserPolicyStateResult,
   resolveFirewallUserPolicyModeFromActions,
   UserFirewallOption
-} from '../../../services/firewall/FirewallModels'
+} from '../../../models/firewall/FirewallModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 
 const TAG = 'FirewallUserDispatchViewModel'

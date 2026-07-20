@@ -11,7 +11,7 @@ import {
   FirewallRuleIntent,
   FirewallRuleIntentInput,
   FirewallRuleMutationResult
-} from './FirewallModels'
+} from '../../models/firewall/FirewallModels'
 import { FirewallRuleDeploymentService } from './FirewallRuleDeploymentService'
 import { FirewallSystemRepository } from './FirewallSystemRepository'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
