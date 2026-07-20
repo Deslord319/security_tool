@@ -411,7 +411,8 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
     this.listeners.forEach((listener: PeripheralConnectionRecordProducerListener) => {
       try {
         listener(event)
-      } catch (_err) {
+      } catch (err) {
+        LogUtils.warn(TAG, `runtime event listener failed: ${JSON.stringify(err)}`)
       }
     })
   }
