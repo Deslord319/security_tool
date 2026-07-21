@@ -22,6 +22,7 @@ import {
   PreparedSelectedAppContext
 } from './PermissionPolicyActionUseCase'
 import { PermissionPolicyRecordMapper } from './PermissionPolicyRecordMapper'
+import { PermissionRefreshCoordinator } from './PermissionRefreshCoordinator'
 import {
   PermissionAppSnapshotPatch,
   PermissionStateReducer,
@@ -35,10 +36,7 @@ const PERMISSION_RENDER_READY_DELAY_MS = 32
 export class PermissionViewModel {
   @Trace state: PermissionPageState = new PermissionPageState()
   private permissionProfileRequestSeq: number = 0
-  private dataRefreshPromise: Promise<boolean> | null = null
-  private dataRefreshIncludesAccounts: boolean = false
-  private accountChangeRefreshPromise: Promise<boolean> | null = null
-  private accountChangeRefreshPending: boolean = false
+  private readonly refreshCoordinator: PermissionRefreshCoordinator = new PermissionRefreshCoordinator()
 
   async loadInitialState(): Promise<void> {
     if (this.state.loading || this.state.initialized) {
@@ -63,19 +61,9 @@ export class PermissionViewModel {
       await this.loadInitialState()
       return this.state.initialized
     }
-    this.accountChangeRefreshPending = true
-    if (this.accountChangeRefreshPromise !== null) {
-      return await this.accountChangeRefreshPromise
-    }
-    let refreshPromise = this.runAccountChangeRefreshLoop()
-    this.accountChangeRefreshPromise = refreshPromise
-    try {
-      return await refreshPromise
-    } finally {
-      if (this.accountChangeRefreshPromise === refreshPromise) {
-        this.accountChangeRefreshPromise = null
-      }
-    }
+    return await this.refreshCoordinator.enqueueAccountChange(async (): Promise<boolean> =>
+      await this.executeAccountsAndApplicationRefresh()
+    )
   }
 
   async refreshApplications(): Promise<boolean> {
@@ -91,47 +79,7 @@ export class PermissionViewModel {
   }
 
   private async runCurrentAccountRefresh(task: () => Promise<boolean>): Promise<boolean> {
-    if (this.dataRefreshPromise !== null) {
-      return await this.dataRefreshPromise
-    }
-    return await this.startDataRefresh(false, task)
-  }
-
-  private async startDataRefresh(
-    includesAccounts: boolean,
-    task: () => Promise<boolean>
-  ): Promise<boolean> {
-    this.dataRefreshIncludesAccounts = includesAccounts
-    let refreshPromise = task()
-    this.dataRefreshPromise = refreshPromise
-    try {
-      return await refreshPromise
-    } finally {
-      if (this.dataRefreshPromise === refreshPromise) {
-        this.dataRefreshPromise = null
-        this.dataRefreshIncludesAccounts = false
-      }
-    }
-  }
-
-  private async runAccountChangeRefreshLoop(): Promise<boolean> {
-    while (this.accountChangeRefreshPending) {
-      await this.waitForActiveDataRefresh()
-      this.accountChangeRefreshPending = false
-      let success = await this.startDataRefresh(true, async (): Promise<boolean> =>
-        await this.executeAccountsAndApplicationRefresh()
-      )
-      if (!success) {
-        return false
-      }
-    }
-    return true
-  }
-
-  private async waitForActiveDataRefresh(): Promise<void> {
-    while (this.dataRefreshPromise !== null) {
-      await this.dataRefreshPromise
-    }
+    return await this.refreshCoordinator.runCurrentAccount(task)
   }
 
   private async executeApplicationRefresh(replaceEmptyInventory: boolean): Promise<boolean> {
@@ -197,13 +145,7 @@ export class PermissionViewModel {
   }
 
   async refreshAccountsAndApplicationList(): Promise<boolean> {
-    while (this.dataRefreshPromise !== null) {
-      if (this.dataRefreshIncludesAccounts) {
-        return await this.dataRefreshPromise
-      }
-      await this.dataRefreshPromise
-    }
-    return await this.startDataRefresh(true, async (): Promise<boolean> =>
+    return await this.refreshCoordinator.runIncludingAccounts(async (): Promise<boolean> =>
       await this.executeAccountsAndApplicationRefresh()
     )
   }
