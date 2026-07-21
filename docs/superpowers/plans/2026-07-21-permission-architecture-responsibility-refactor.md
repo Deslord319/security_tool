@@ -1,7 +1,7 @@
 # 权限管理职责拆分与 Presentation 层归位方案
 
 > 日期：2026-07-21
-> 状态：待实施
+> 状态：已实施并完成验证
 > 类型：行为保持型架构重构
 > 总体风险：中等；按提交边界分步实施时可控
 
@@ -515,3 +515,21 @@ hvigorw assembleHap --mode module -p product=default -p module=entry@ohosTest
 7. 新增刷新协调器专项测试全部通过。
 8. 页面外观、交互、错误提示和 MDM 调用参数无变化。
 9. 文档、UT、ohosTest 编译、HAP 构建和设备手工验证闭环通过。
+
+## 13. 实施结果
+
+本方案已按工作包拆分为独立本地提交完成，未修改权限管理业务规则、MDM 调用参数、状态模型、持久化结构、权限声明、签名模板或 ukey 代码。
+
+1. 三个 `PresentationMapper` 已迁入 `presentation` 层，主代码与测试 import 已同步更新。
+2. `PermissionPolicyTable` 已承接当前策略表格及删除按钮的纯展示和局部交互状态。
+3. `PermissionTargetPanel` 已承接账号选择、禁止安装输入、目标应用选择和清单空态。
+4. `PermissionRefreshCoordinator` 已承接普通刷新复用、完整刷新排队和账号事件尾部补刷；ViewModel 仍持有唯一页面状态并执行 Service 调用和状态提交。
+5. `PermissionPage` 从约 807 行降至 433 行，`PermissionViewModel` 从约 662 行降至 604 行。
+
+### 13.1 验证结论
+
+1. 文档一致性检查通过，无乱码、异常问号、路由、权限或测试路径问题。
+2. entry 单元测试全量通过，新增 10 个刷新协调器并发用例，原有 56 个权限 ViewModel 用例未删减。
+3. 主 HAP、ohosTest HAP 均构建成功并完成签名、安装。
+4. 设备 `route_action` 路由与主题回归共执行 24 项，失败 0、错误 0；权限管理浅色、深色、跟随系统场景均通过。
+5. 新组件无 ViewModel、Service、Repository、Dialog 或平台能力依赖；协调器无业务状态、Service、UI 或定时器依赖。
