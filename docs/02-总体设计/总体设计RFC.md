@@ -115,7 +115,9 @@ MainPage
 统一分层如下：
 
 ```text
-Page -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
+Page / Component -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
+
+Page / Component / ViewModel -> PresentationMapper -> Model / Constants
 ```
 
 ### 5.2 每层要做什么
@@ -173,6 +175,7 @@ EntryAbility
 | 运行时服务 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` | 管理跨页面运行态，如日志采集、外设连接记录采集、共享 ViewModel |
 | 路由壳层 | `entry/src/main/ets/pages/MainPage.ets` | 持有当前路由，装配侧边栏、顶部菜单和模块页面，不承载模块内部业务 |
 | 页面层 | `entry/src/main/ets/views/**` | 展示、交互转发、弹窗、局部 UI 状态 |
+| 展示转换层 | `entry/src/main/ets/presentation/**` | 为 View、Component、ViewModel 提供纯展示格式化；只依赖 Model、Constants 和纯工具，不访问 Service、Repository、Storage 或系统能力 |
 | 状态层 | `entry/src/main/ets/viewmodels/**` | 初始化、刷新、保存、提交、结果映射和页面状态收口 |
 | 模型层 | `entry/src/main/ets/models/**` | 页面、ViewModel 与 Service 共享的业务实体、状态和结果契约；不得依赖具体 Service 实现取得跨层 DTO |
 | 领域层 | `entry/src/main/ets/services/**` | 系统能力编排、策略下发、采集、导出、认证等业务动作 |
@@ -196,7 +199,7 @@ EntryAbility
 | 防火墙管理 | `firewall`、`firewall-rules` | `FirewallPage.ets`、`FirewallRulesPage.ets`、`FirewallOverviewViewModel.ets`、`FirewallRulesViewModel.ets` | `services/firewall/**`、Preferences 本地意图与系统防火墙 Provider | `entry/src/test/firewall/*`、`entry/src/ohosTest/ets/test/firewall/subroute-state.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/firewall/*` |
 | 日志管理 | `log-manage` | `LogManagePage.ets`、`LogManageViewModel.ets`、`LogStorageSettingsViewModel.ets` | `services/log-manage/**`、`storage/rdb/**` | `entry/src/test/log-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/logs/*` |
 | 外设管理 | `peripheral-manage` | `PeripheralPage.ets`、`PeripheralViewModel.ets`、`InterfaceControlViewModel.ets`、`PeripheralRecordViewModel.ets`、`PeripheralPolicyViewModel.ets` | `services/peripheral/**`、运行时 Producer / Pipeline、RDB trace、设备策略 Preferences | `entry/src/test/peripheral/*`、`entry/src/test/viewmodels/Peripheral*.test.ets`、`entry/src/ohosTest/ets/test/peripheral/connection-record-contract.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/peripheral/*` |
-| 权限管理 | `permission-manage` | `PermissionPage.ets`、`PermissionViewModel.ets` | `services/permission-manage/**`、应用/账号 Provider、RDB 3D 策略记录与 MDM Repository | `entry/src/test/permission-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets` |
+| 权限管理 | `permission-manage` | `PermissionPage.ets`、`components/permission-manage/**`、`PermissionViewModel.ets`、`PermissionRefreshCoordinator.ets` | `services/permission-manage/**`、应用/账号 Provider、RDB 3D 策略记录与 MDM Repository | `entry/src/test/permission-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets` |
 | 身份鉴别 | `identity` | `IdentityPage.ets`、`IdentitySettingsViewModel.ets` | `IdentityService.ets`、`IdentityPasswordPolicyMapper.ets`、`AuthService.ets` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/identity/*` |
 | 工具设置 | `tool-settings` | `ToolSettingsPage.ets`、`ToolSettingsViewModel.ets` | `ToolSettingsRepository.ets`、`SystemSettingsService.ets`、`EntryAbility.ets` 启动消费链路 | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/tool_settings/*` |
 | 帮助与反馈 | `help-feedback` | `HelpFeedbackPage.ets` | 静态内容来自 `HelpFeedbackStrings.ets`；公共 `AppInfoService` 为关于弹窗提供版本信息，无 Repository / Storage | `entry/src/test/help/*`、`entry/src/test/common/app-info-service.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`entry/src/ohosTest/ets/test/theme/theme-menu-popup.test.ets`、`scripts/e2e/cases/navigation/help_feedback*.json` |
@@ -224,6 +227,7 @@ EntryAbility
 | 运行时服务层 | 管理跨页面运行态和后台采集，不让页面直接启动采集管线 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` 管理日志采集、外设运行时、共享身份/日志/外设/工具设置 ViewModel | 基本一致。防火墙和权限管理 ViewModel 由 `MainPage` 持有是路由状态需要，不涉及系统能力直接下发。 |
 | 路由壳层 | 持有当前路由、装配侧边栏/顶部菜单/模块页面，不承载模块业务 | `entry/src/main/ets/pages/MainPage.ets`、`RouteStateUtils.ets`、`RouteIds.ets` | 一致。`MainPage` 只做路由、主题、弹窗入口和 ViewModel 注入；防火墙子路由恢复通过 `lastFirewallRoute` 收口。 |
 | 页面层 | 负责展示、交互转发、弹窗和局部 UI 状态 | `entry/src/main/ets/views/**`、`entry/src/main/ets/components/**` | 一致。页面消费 ViewModel state 和回调；`FirewallRulesPage` 引入 `netFirewall` 仅用于规则类型/枚举展示和弹窗参数，新增/编辑/删除仍经 `FirewallRulesViewModel`，不是页面直接下发系统能力。 |
+| 展示转换层 | 负责纯展示格式化，不让组件为了显示转换依赖具体 ViewModel 目录 | `entry/src/main/ets/presentation/**` | 一致。防火墙规则、日志和外设连接记录的展示 Mapper 统一归位；系统事件到领域模型的 Mapper 继续留在 Service。 |
 | 状态层 | 收口初始化、刷新、保存、提交、结果映射和页面状态 | `entry/src/main/ets/viewmodels/**` | 一致。业务状态集中在各模块 ViewModel，页面没有成为持久业务真相源。 |
 | 模型层 | 提供跨 View、ViewModel、Service 的稳定业务契约，不反向依赖服务实现 | `entry/src/main/ets/models/**` | 一致。日志导入结果和防火墙共享领域模型由模型层承载，页面不再从具体 Service 文件取得这些 DTO。 |
 | 领域服务层 | 编排系统能力、认证、策略下发、采集、导出等业务动作 | `entry/src/main/ets/services/**`、`entry/src/main/ets/services/admin/**` | 一致。防火墙、身份、日志、外设、工具设置均有明确 Service / task / adapter 边界。 |
