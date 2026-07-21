@@ -186,7 +186,7 @@ EntryAbility
 - 日志管理作为审计留痕模块，运行时采集由 `ApplicationRuntimeManager` 拉起，页面只展示和操作日志查询/导出。
 - 外设运行时采集由 `ApplicationRuntimeManager` 拉起，外设页面不直接启动后台采集管线。
 - 权限管理按账号聚合应用清单和策略状态，通过 ViewModel / Service / Repository 下发禁止安装、卸载保护、运行、网络和 3D 权限策略；页面不直接调用 MDM API。
-- 帮助与反馈是静态辅助页，不进入核心安全闭环，不引入 Service、Repository 或权限依赖。
+- 帮助与反馈是静态辅助页，不进入核心安全闭环；帮助内容不引入 ViewModel、Repository、Storage 或权限依赖，应用壳层仅通过公共 `AppInfoService` 读取关于弹窗所需的应用版本。
 
 #### 5.4.1 文档与实现对齐矩阵
 
@@ -199,7 +199,7 @@ EntryAbility
 | 权限管理 | `permission-manage` | `PermissionPage.ets`、`PermissionViewModel.ets` | `services/permission-manage/**`、应用/账号 Provider、RDB 3D 策略记录与 MDM Repository | `entry/src/test/permission-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets` |
 | 身份鉴别 | `identity` | `IdentityPage.ets`、`IdentitySettingsViewModel.ets` | `IdentityService.ets`、`IdentityPasswordPolicyMapper.ets`、`AuthService.ets` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/identity/*` |
 | 工具设置 | `tool-settings` | `ToolSettingsPage.ets`、`ToolSettingsViewModel.ets` | `ToolSettingsRepository.ets`、`SystemSettingsService.ets`、`EntryAbility.ets` 启动消费链路 | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/tool_settings/*` |
-| 帮助与反馈 | `help-feedback` | `HelpFeedbackPage.ets` | 无 Service / Repository / Storage；静态内容来自 `HelpFeedbackStrings.ets` | `entry/src/test/help/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/navigation/help_feedback*.json` |
+| 帮助与反馈 | `help-feedback` | `HelpFeedbackPage.ets` | 静态内容来自 `HelpFeedbackStrings.ets`；公共 `AppInfoService` 为关于弹窗提供版本信息，无 Repository / Storage | `entry/src/test/help/*`、`entry/src/test/common/app-info-service.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`entry/src/ohosTest/ets/test/theme/theme-menu-popup.test.ets`、`scripts/e2e/cases/navigation/help_feedback*.json` |
 
 ### 5.5 实施步骤
 
