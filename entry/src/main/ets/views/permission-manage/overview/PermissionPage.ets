@@ -20,11 +20,11 @@ import { StyledTextInput } from '../../../components/StyledTextInput'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import { AsyncSelectRow } from '../../../components/AsyncSelectRow'
 import { PermissionApplicationPolicyPanel } from '../../../components/permission-manage/ApplicationPolicyPanel'
+import { PermissionPolicyTable } from '../../../components/permission-manage/PermissionPolicyTable'
 import {
   PermissionActionResult,
   PermissionAppSnapshot,
   PermissionManagedAccount,
-  PermissionPolicyRecord,
   PermissionPolicyState,
   ThreeDManagedState,
   ThreeDPermissionItem
@@ -48,15 +48,12 @@ const TARGET_APPLICATION_SELECT_WIDTH =
     AppStyles.CONTROL_ROW_ACTION_GAP -
     (AppStyles.CONTROL_ROW_HORIZONTAL_PADDING - AppStyles.PADDING_MD)
 const POLICY_EMPTY_VERTICAL_PADDING = 28
-const POLICY_ACTION_COLUMN_WIDTH = 88
 
 @ComponentV2
 export struct PermissionPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param viewModel: PermissionViewModel = new PermissionViewModel()
   @Event onBack: () => void = () => {}
-  @Local private hoveredPolicyActionKey: string = ''
-  @Local private activePolicyActionKey: string = ''
   private readonly loadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
 
   aboutToAppear() {
@@ -187,16 +184,8 @@ export struct PermissionPage {
     return this.viewModel.state.processingActionKey === actionKey
   }
 
-  private canOperateAction(actionKey: string): boolean {
-    return !this.hasProcessingAction() || this.isActionProcessing(actionKey)
-  }
-
   private getInstallActionKey(): string {
     return 'install-deny'
-  }
-
-  private getDeletePolicyActionKey(recordKey: string): string {
-    return `delete-policy:${recordKey}`
   }
 
   private executePolicyAction(action: () => Promise<PermissionActionResult>): void {
@@ -216,18 +205,6 @@ export struct PermissionPage {
       return false
     }
     return true
-  }
-
-  private getPolicyDeleteButtonBackground(recordKey: string): ResourceColor {
-    return ActionButtonStyles.getDangerBackground(
-      this.currentTheme,
-      this.hoveredPolicyActionKey === recordKey && !this.hasProcessingAction(),
-      this.activePolicyActionKey === recordKey && !this.hasProcessingAction()
-    )
-  }
-
-  private getPolicyDeleteButtonForeground(): ResourceColor {
-    return ActionButtonStyles.getDangerForeground(this.currentTheme)
   }
 
   private showDeletePolicyConfirm(recordKey: string): void {
@@ -616,191 +593,14 @@ export struct PermissionPage {
 
   @Builder
   private currentPolicyContent() {
-    if (this.viewModel.state.loadingSelectedApp && this.viewModel.state.policyRecords.length === 0) {
-      LoadingStatePanel({
-        indicatorSize: 22,
-        currentTheme: this.currentTheme
-      })
-        .height(92)
-    } else if (this.viewModel.state.policyRecords.length === 0) {
-      Text(PermissionEmptyStrings.POLICIES)
-        .width('100%')
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .textAlign(TextAlign.Center)
-        .padding({
-          left: AppStyles.TABLE_HORIZONTAL_PADDING,
-          right: AppStyles.TABLE_HORIZONTAL_PADDING,
-          top: POLICY_EMPTY_VERTICAL_PADDING,
-          bottom: POLICY_EMPTY_VERTICAL_PADDING
-        })
-    } else {
-      Column({ space: 0 }) {
-        this.policyTableHeader()
-        ForEach(this.viewModel.state.policyRecords, (record: PermissionPolicyRecord, index: number) => {
-          Column({ space: 0 }) {
-            this.policyTableRow(record)
-            if (index < this.viewModel.state.policyRecords.length - 1) {
-              Divider()
-                .color(AppColors.getColors(this.currentTheme).BORDER)
-                .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-                .margin({
-                  left: AppStyles.TABLE_DIVIDER_MARGIN,
-                  right: AppStyles.TABLE_DIVIDER_MARGIN
-                })
-            }
-          }
-        }, (record: PermissionPolicyRecord): string => record.key)
+    PermissionPolicyTable({
+      records: this.viewModel.state.policyRecords,
+      loadingSelectedApp: this.viewModel.state.loadingSelectedApp,
+      processingActionKey: this.viewModel.state.processingActionKey,
+      currentTheme: this.currentTheme,
+      onRequestDelete: (recordKey: string): void => {
+        this.showDeletePolicyConfirm(recordKey)
       }
-      .width('100%')
-    }
-  }
-
-  @Builder
-  private policyTableHeader() {
-    Row() {
-      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_TYPE, 1.15)
-      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_TARGET, 2.2)
-      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_STATUS, 0.9)
-      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_SCOPE, 1.1)
-      this.policyActionHeaderCell(PermissionApplicationStrings.POLICY_TABLE_ACTION)
-    }
-    .width('100%')
-    .padding({
-      left: AppStyles.TABLE_HORIZONTAL_PADDING,
-      right: AppStyles.TABLE_HORIZONTAL_PADDING,
-      top: AppStyles.TABLE_HEADER_VERTICAL_PADDING,
-      bottom: AppStyles.TABLE_HEADER_VERTICAL_PADDING
-    })
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-  }
-
-  @Builder
-  private policyHeaderCell(label: string, weight: number) {
-    Text(label)
-      .fontSize(AppStyles.FONT_SIZE_CAPTION)
-      .fontWeight(FontWeight.Medium)
-      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .maxLines(1)
-      .textOverflow({ overflow: TextOverflow.Ellipsis })
-      .layoutWeight(weight)
-  }
-
-  @Builder
-  private policyActionHeaderCell(label: string) {
-    Text(label)
-      .fontSize(AppStyles.FONT_SIZE_CAPTION)
-      .fontWeight(FontWeight.Medium)
-      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .maxLines(1)
-      .textOverflow({ overflow: TextOverflow.Ellipsis })
-      .textAlign(TextAlign.Center)
-      .width(POLICY_ACTION_COLUMN_WIDTH)
-  }
-
-  @Builder
-  private policyTableRow(record: PermissionPolicyRecord) {
-    Row() {
-      this.policyTextCell(record.policyType, 1.15)
-      this.policyTargetCell(record, 2.2)
-      this.policyTextCell(record.statusLabel, 0.9)
-      this.policyTextCell(record.scopeLabel, 1.1)
-      this.policyDeleteActionCell(record)
-    }
-    .width('100%')
-    .alignItems(VerticalAlign.Center)
-    .padding({
-      left: AppStyles.TABLE_HORIZONTAL_PADDING,
-      right: AppStyles.TABLE_HORIZONTAL_PADDING,
-      top: AppStyles.TABLE_ROW_VERTICAL_PADDING,
-      bottom: AppStyles.TABLE_ROW_VERTICAL_PADDING
-    })
-  }
-
-  @Builder
-  private policyTextCell(value: string, weight: number) {
-    Text(value)
-      .fontSize(AppStyles.FONT_SIZE_BODY)
-      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .maxLines(1)
-      .textOverflow({ overflow: TextOverflow.Ellipsis })
-      .layoutWeight(weight)
-  }
-
-  @Builder
-  private policyTargetCell(record: PermissionPolicyRecord, weight: number) {
-    Column({ space: 2 }) {
-      Text(record.targetName)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-      Text(record.targetDetail)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .alignItems(HorizontalAlign.Start)
-    .layoutWeight(weight)
-  }
-
-  @Builder
-  private policyDeleteActionCell(record: PermissionPolicyRecord) {
-    Row({ space: 6 }) {
-      if (this.isActionProcessing(this.getDeletePolicyActionKey(record.key))) {
-        LoadingProgress()
-          .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-          .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-          .color(this.getPolicyDeleteButtonForeground())
-      }
-
-      Text(PermissionApplicationStrings.DELETE_POLICY_ACTION)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(FontWeight.Regular)
-        .fontColor(this.getPolicyDeleteButtonForeground())
-    }
-    .height(ActionButtonStyles.CHIP_HEIGHT)
-    .padding({
-      left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
-      right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
-    })
-    .justifyContent(FlexAlign.Center)
-    .borderRadius(AppStyles.RADIUS_MD)
-    .backgroundColor(this.getPolicyDeleteButtonBackground(record.key))
-    .opacity(this.canOperateAction(this.getDeletePolicyActionKey(record.key)) ? 1 : 0.56)
-    .width(POLICY_ACTION_COLUMN_WIDTH)
-    .onHover((isHover: boolean) => {
-      if (this.hasProcessingAction()) {
-        return
-      }
-      this.hoveredPolicyActionKey = isHover ? record.key : ''
-    })
-    .onTouch((event: TouchEvent) => {
-      if (this.hasProcessingAction()) {
-        return
-      }
-      if (event.type === TouchType.Down) {
-        this.activePolicyActionKey = record.key
-        return
-      }
-      if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-        this.activePolicyActionKey = ''
-      }
-    })
-    .onClick(() => {
-      if (this.hasProcessingAction()) {
-        return
-      }
-      this.activePolicyActionKey = ''
-      this.showDeletePolicyConfirm(record.key)
     })
   }
 
