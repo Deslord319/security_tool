@@ -7,7 +7,7 @@ import {
   PeripheralType,
   isUsbPeripheralType
 } from '../../../models/PeripheralModels'
-import { getPeripheralTypeLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+import { getPeripheralTypeLabel } from '../../../presentation/peripheral/PeripheralRecordPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'

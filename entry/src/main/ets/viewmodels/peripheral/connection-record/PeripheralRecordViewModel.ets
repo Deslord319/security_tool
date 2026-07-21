@@ -14,7 +14,7 @@ import {
   getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel,
   PeripheralConnectionHistoryItem
-} from './PeripheralRecordPresentationMapper'
+} from '../../../presentation/peripheral/PeripheralRecordPresentationMapper'
 import { CsvFileExportService } from '../../../services/common/export/CsvFileExportService'
 
 const TAG = 'PeripheralRecordViewModel'

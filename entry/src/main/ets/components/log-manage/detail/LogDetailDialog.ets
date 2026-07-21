@@ -8,7 +8,7 @@ import {
 import {
   formatLogTimestamp,
   getLogEventTypeLabel
-} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
+} from '../../../presentation/log-manage/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { LogDetailTable } from './LogDetailTable'

@@ -7,7 +7,7 @@ import {
 } from '../../main/ets/models/LogModels'
 import {
   formatLogTimestamp
-} from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
+} from '../../main/ets/presentation/log-manage/LogPresentationMapper'
 import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
 import {
   API26_VERIFIED_FILE_AUDIT_EVENT_IDS,

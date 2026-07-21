@@ -23,7 +23,7 @@ import { LOG_PAGE_SIZE_OPTIONS } from '../../../models/LogManageModels'
 import {
   LOG_EVENT_TYPE_OPTIONS,
   LOG_TIME_RANGE_OPTIONS
-} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
+} from '../../../presentation/log-manage/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'

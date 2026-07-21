@@ -11,7 +11,7 @@ import {
   getPeripheralMatchedPolicyKindLabel,
   getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel
-} from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+} from '../../main/ets/presentation/peripheral/PeripheralRecordPresentationMapper'
 
 function createConnectionRecord(): PeripheralConnectionRecord {
   return {

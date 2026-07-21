@@ -14,7 +14,7 @@ import {
   getPeripheralConnectionActionLabel,
   formatPeripheralTimestamp,
   getPeripheralTypeLabel
-} from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+} from '../../../presentation/peripheral/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 import { PeripheralDeviceIdentityCell, PeripheralHeaderCell, PeripheralTypeTag } from '../common/PeripheralTableCells'

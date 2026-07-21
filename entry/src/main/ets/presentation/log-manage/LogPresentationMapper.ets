@@ -1,13 +1,13 @@
 import {
   LogManageFilterStrings,
   resolveLogEventTypeLabel
-} from '../../../constants/modules/LogManageStrings'
+} from '../../constants/modules/LogManageStrings'
 import {
   ALL_LOG_EVENT_TYPES,
   LogEventType
-} from '../../../models/LogModels'
-import { LOG_TIME_RANGE_DEFINITIONS } from '../../../models/LogManageModels'
-import { formatStandardDateTime } from '../../../utils/DateTimeFormatUtils'
+} from '../../models/LogModels'
+import { LOG_TIME_RANGE_DEFINITIONS } from '../../models/LogManageModels'
+import { formatStandardDateTime } from '../../utils/DateTimeFormatUtils'
 
 export interface LogEventTypeOption {
   label: string

@@ -20,7 +20,7 @@ import {
   FIREWALL_PROTOCOL_UDP,
   FirewallScopedRule
 } from '../../../models/firewall/FirewallModels'
-import { FirewallRulePresentationMapper } from '../../../viewmodels/firewall/rules/FirewallRulePresentationMapper'
+import { FirewallRulePresentationMapper } from '../../../presentation/firewall/FirewallRulePresentationMapper'
 
 @ComponentV2
 export struct FirewallRuleList {
