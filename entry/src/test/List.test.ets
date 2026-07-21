@@ -70,6 +70,7 @@ import bluetoothPolicySnapshotTraceServiceTest from './peripheral/bluetooth-poli
 import runtimeProducerAdapterTest from './peripheral/runtime-producer-adapter.test'
 import usbGlobalPolicyServiceTest from './peripheral/usb-global-policy-service.test'
 import permissionViewModelTest from './permission-manage/viewmodel.test'
+import permissionRefreshCoordinatorTest from './permission-manage/refresh-coordinator.test'
 import themeManagerTest from './theme/theme-manager.test'
 import toolSettingsRepositoryTest from './tool-settings/repository.test'
 import systemSettingsServiceTest from './tool-settings/system-settings-service.test'
@@ -162,6 +163,7 @@ export default function testsuite() {
   runtimeProducerAdapterTest()
   usbGlobalPolicyServiceTest()
   permissionViewModelTest()
+  permissionRefreshCoordinatorTest()
   themeManagerTest()
   toolSettingsRepositoryTest()
   systemSettingsServiceTest()

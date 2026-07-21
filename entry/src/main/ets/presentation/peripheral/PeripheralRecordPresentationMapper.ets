@@ -5,18 +5,18 @@ import {
   PeripheralRecordPolicyHit,
   PeripheralRecordSource,
   PeripheralType
-} from '../../../models/PeripheralModels'
-import { SecurityEventResult } from '../../../models/CommonModels'
-import { LabelText, PLACEHOLDER_TEXT, ResultText, StatusText } from '../../../constants/StringCatalog'
-import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
+} from '../../models/PeripheralModels'
+import { SecurityEventResult } from '../../models/CommonModels'
+import { LabelText, PLACEHOLDER_TEXT, ResultText, StatusText } from '../../constants/StringCatalog'
+import { FirewallDialogStrings } from '../../constants/modules/FirewallStrings'
 import {
   DeviceTypeLabels,
   PeripheralMatchedPolicyStrings,
   PeripheralRecordActionPresentationStrings,
   PeripheralRecordResultPresentationStrings,
   PeripheralSourcePresentationStrings
-} from '../../../constants/modules/PeripheralStrings'
-import { formatStandardDateTimeOrFallback } from '../../../utils/DateTimeFormatUtils'
+} from '../../constants/modules/PeripheralStrings'
+import { formatStandardDateTimeOrFallback } from '../../utils/DateTimeFormatUtils'
 
 export interface PeripheralConnectionHistoryItem {
   time: string

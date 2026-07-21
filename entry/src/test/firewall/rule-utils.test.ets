@@ -2,7 +2,7 @@ import { describe, expect, it } from '@ohos/hypium'
 import { netFirewall } from '@kit.NetworkKit'
 import { FirewallRuleUtils } from '../../main/ets/services/firewall/FirewallRuleUtils'
 import { FirewallRuleIntent } from '../../main/ets/models/firewall/FirewallModels'
-import { FirewallRulePresentationMapper } from '../../main/ets/viewmodels/firewall/rules/FirewallRulePresentationMapper'
+import { FirewallRulePresentationMapper } from '../../main/ets/presentation/firewall/FirewallRulePresentationMapper'
 
 interface BuildIpIntentOptions {
   localIps?: netFirewall.NetFirewallIpParams[]

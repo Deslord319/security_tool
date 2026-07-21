@@ -18,7 +18,7 @@ import {
   UserFirewallOption
 } from '../../../models/firewall/FirewallModels'
 import { FirewallRuleValueUtils } from '../../../models/firewall/FirewallRuleValueUtils'
-import { FirewallRulePresentationMapper } from '../../../viewmodels/firewall/rules/FirewallRulePresentationMapper'
+import { FirewallRulePresentationMapper } from '../../../presentation/firewall/FirewallRulePresentationMapper'
 
 export interface FirewallRuleFormParseResult<T> {
   success: boolean

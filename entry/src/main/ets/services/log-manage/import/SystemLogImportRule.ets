@@ -362,7 +362,8 @@ export class SystemLogImportRule implements LogImportRule {
       if (stat.mtime > 0) {
         return SystemLogImportRule.normalizeEpochMillis(stat.mtime)
       }
-    } catch (_) {
+    } catch (err) {
+      LogUtils.warn(TAG, `resolve timestamp mtime failed: path=${file.path}, err=${JSON.stringify(err)}`)
     }
     return Date.now()
   }

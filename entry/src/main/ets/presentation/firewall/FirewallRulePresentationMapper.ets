@@ -1,6 +1,6 @@
 import { netFirewall } from '@kit.NetworkKit'
-import { FIREWALL_IPV4_MASK_MAX } from '../../../models/firewall/FirewallModels'
-import { FirewallRuleValueUtils } from '../../../models/firewall/FirewallRuleValueUtils'
+import { FIREWALL_IPV4_MASK_MAX } from '../../models/firewall/FirewallModels'
+import { FirewallRuleValueUtils } from '../../models/firewall/FirewallRuleValueUtils'
 
 export class FirewallRulePresentationMapper {
   static formatIpParams(params?: netFirewall.NetFirewallIpParams[]): string {

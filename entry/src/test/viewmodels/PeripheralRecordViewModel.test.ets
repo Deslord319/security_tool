@@ -10,7 +10,7 @@ import {
   getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel
-} from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+} from '../../main/ets/presentation/peripheral/PeripheralRecordPresentationMapper'
 import {
   PeripheralExportStrings,
   PeripheralReasonCodes
@@ -24,7 +24,7 @@ import {
   formatPeripheralTimestamp,
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel
-} from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+} from '../../main/ets/presentation/peripheral/PeripheralRecordPresentationMapper'
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
 
 function createConnectionRecord(

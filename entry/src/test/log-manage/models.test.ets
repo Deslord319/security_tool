@@ -10,7 +10,7 @@ import {
   formatLogTimestamp,
   getLogEventTypeLabel,
   LOG_EVENT_TYPE_OPTIONS
-} from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
+} from '../../main/ets/presentation/log-manage/LogPresentationMapper'
 
 export default function logManageDataModelsTest() {
   describe('LogManage DataModels', () => {

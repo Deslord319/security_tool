@@ -6,7 +6,7 @@ import { LogFilterState, LogListState } from '../../../models/LogManageModels'
 import {
   formatLogTimestamp,
   getLogEventTypeLabel
-} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
+} from '../../../presentation/log-manage/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { EmptyStatePanel } from '../../EmptyStatePanel'

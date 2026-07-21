@@ -10,7 +10,7 @@ import {
   formatBluetoothDeviceId,
   inferPeripheralTypeFromBaseClass
 } from '../../main/ets/models/PeripheralModels'
-import { getPeripheralTypeLabel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+import { getPeripheralTypeLabel } from '../../main/ets/presentation/peripheral/PeripheralRecordPresentationMapper'
 
 export default function peripheralModelsTest() {
   describe('Peripheral Models', () => {

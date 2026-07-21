@@ -13,7 +13,7 @@ import {
   getPeripheralMatchedPolicyKindLabel,
   getPeripheralRecordSourceLabel,
   PeripheralConnectionHistoryItem
-} from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+} from '../../../presentation/peripheral/PeripheralRecordPresentationMapper'
 import { DeviceDetailStrings } from '../../../constants/modules/PeripheralStrings'
 import { PLACEHOLDER_TEXT } from '../../../constants/StringCatalog'
 

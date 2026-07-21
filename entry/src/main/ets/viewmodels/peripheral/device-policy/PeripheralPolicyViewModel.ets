@@ -17,7 +17,7 @@ import {
   formatUsbDeviceId,
   isUsbPeripheralType
 } from '../../../models/PeripheralModels'
-import { getPeripheralTypeLabel } from '../connection-record/PeripheralRecordPresentationMapper'
+import { getPeripheralTypeLabel } from '../../../presentation/peripheral/PeripheralRecordPresentationMapper'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { UsbDevicePolicyStateRepository } from '../../../services/peripheral/device-policy/UsbDevicePolicyStateRepository'
 import { PeripheralDevicePolicyDispatchService } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyDispatchService'
