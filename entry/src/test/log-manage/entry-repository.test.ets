@@ -7,6 +7,7 @@ import {
 } from '../../main/ets/models/LogModels'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
 import {
+  buildExistingEntryIdsQuery,
   buildLogEntryWhereClause,
   deserializeLogEntryExtraData,
   LogEntryRepository,
@@ -59,6 +60,36 @@ export default function logEntryRepositoryTest() {
       expect(where.args.length).assertEqual(5)
       expect(where.args[1] as number).assertEqual(1700000000000)
       expect(where.args[2] as string).assertEqual('%alpha%')
+    })
+
+    it('should build one existing-id query for up to 1000 import entries', 0, () => {
+      let entryIds: string[] = []
+      for (let index = 0; index < 1000; index++) {
+        entryIds.push(`entry-${index}`)
+      }
+
+      let query = buildExistingEntryIdsQuery(entryIds)
+
+      expect(query.sql.indexOf('SELECT record_id FROM log_entries WHERE record_id IN (') === 0).assertTrue()
+      expect(query.args.length).assertEqual(1000)
+      expect(query.args[0] as string).assertEqual('entry-0')
+      expect(query.args[999] as string).assertEqual('entry-999')
+    })
+
+    it('should reject an import existing-id query larger than 1000', 0, () => {
+      let entryIds: string[] = []
+      for (let index = 0; index < 1001; index++) {
+        entryIds.push(`entry-${index}`)
+      }
+      let thrown = false
+
+      try {
+        buildExistingEntryIdsQuery(entryIds)
+      } catch (_) {
+        thrown = true
+      }
+
+      expect(thrown).assertTrue()
     })
   })
 

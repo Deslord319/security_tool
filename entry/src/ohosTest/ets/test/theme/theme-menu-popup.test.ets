@@ -57,7 +57,7 @@ export default function themeMenuPopupTest() {
       expect(aboutClicked).assertTrue()
       await safeDelay(driver, 500)
 
-      const versionExists = await existsByText(driver, '版本 1.0.6')
+      const versionExists = await existsByText(driver, '版本 1.0.7')
       expect(versionExists).assertTrue()
 
       const confirmClicked = await clickByText(driver, '确定')

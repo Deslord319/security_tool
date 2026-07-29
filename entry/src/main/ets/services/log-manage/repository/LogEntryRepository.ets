@@ -20,6 +20,7 @@ import { LooseRecord } from '../../../types/LooseValueTypes'
 
 const TAG = 'LogEntryRepository'
 const TABLE_NAME = 'log_entries'
+const MAX_IMPORT_LOOKUP_IDS = 1000
 
 const CREATE_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS log_entries (
@@ -135,6 +136,25 @@ export function buildLogEntryWhereClause(query?: LogQuery): SqlBundle {
   }
 }
 
+export function buildExistingEntryIdsQuery(entryIds: string[]): SqlBundle {
+  if (entryIds.length === 0) {
+    return {
+      sql: '',
+      args: []
+    }
+  }
+  if (entryIds.length > MAX_IMPORT_LOOKUP_IDS) {
+    throw new Error(`too_many_import_entry_ids:${entryIds.length}`)
+  }
+  let placeholders = entryIds.map(() => '?').join(', ')
+  let args: Array<relationalStore.ValueType> = []
+  entryIds.forEach((entryId: string) => args.push(entryId))
+  return {
+    sql: `SELECT record_id FROM ${TABLE_NAME} WHERE record_id IN (${placeholders})`,
+    args
+  }
+}
+
 class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   constructor() {
     super({
@@ -170,6 +190,27 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
     )
   }
 
+  async insertImportEntries(entries: LogEntry[]): Promise<boolean> {
+    return this.replaceBatch(
+      entries,
+      `INSERT OR IGNORE INTO ${TABLE_NAME} (
+        record_id, timestamp, event_type, source, detail,
+        process_name, file_path, extra_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (entry: LogEntry) => [
+        entry.id,
+        entry.timestamp,
+        this.serializeEventType(entry.eventType),
+        this.resolveSource(entry),
+        entry.detail,
+        entry.processName ?? null,
+        entry.filePath ?? null,
+        this.buildExtraJson(entry)
+      ],
+      'insertImportEntries'
+    )
+  }
+
   async listByQuery(query?: LogQuery, limit?: number, offset?: number): Promise<LogEntry[]> {
     return this.queryRowsStrict(
       this.buildSelectSqlForQuery(query, limit, offset),
@@ -191,6 +232,21 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
       args = args.concat(where.args)
     }
     return (await this.queryCountStrict({ sql, args }, 'hasEntry')) > 0
+  }
+
+  async findExistingEntryIds(entryIds: string[]): Promise<Set<string>> {
+    let sqlBundle = buildExistingEntryIdsQuery(entryIds)
+    let result = new Set<string>()
+    if (sqlBundle.sql.length === 0) {
+      return result
+    }
+    let rows = await this.queryRowsStrict(
+      sqlBundle,
+      (reader: RdbResultSetReader) => this.mapRecordIds(reader),
+      'findExistingEntryIds'
+    )
+    rows.forEach((entryId: string) => result.add(entryId))
+    return result
   }
 
   async getStatistics(): Promise<LogStatistics> {
@@ -265,6 +321,18 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
       })
     } while (reader.moveToNext())
     return entries
+  }
+
+  private mapRecordIds(reader: RdbResultSetReader): string[] {
+    let recordIds: string[] = []
+    if (!reader.moveToFirst()) {
+      return recordIds
+    }
+    let recordIdIndex = reader.getColumnIndex('record_id')
+    do {
+      recordIds.push(reader.getRequiredString(recordIdIndex))
+    } while (reader.moveToNext())
+    return recordIds
   }
 
   private buildSelectSqlForQuery(query?: LogQuery, limit?: number, offset?: number): SqlBundle {

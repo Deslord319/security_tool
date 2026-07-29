@@ -1,11 +1,10 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 
-@CustomDialog
-export struct CommonLoadingDialog {
-  controller?: CustomDialogController
-  message: string = ''
-  currentTheme: ThemeMode = ThemeMode.LIGHT
+@ComponentV2
+export struct CommonLoadingContent {
+  @Param message: string = ''
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
     Column({ space: 14 }) {
@@ -16,10 +15,9 @@ export struct CommonLoadingDialog {
       Text(this.message)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         .textAlign(TextAlign.Center)
     }
-    .width(AppStyles.LOADING_DIALOG_WIDTH)
+    .width('100%')
     .padding({
       left: AppStyles.LOADING_DIALOG_PADDING_HORIZONTAL,
       right: AppStyles.LOADING_DIALOG_PADDING_HORIZONTAL,
@@ -35,6 +33,20 @@ export struct CommonLoadingDialog {
       color: this.currentTheme === ThemeMode.DARK ? AppColors.MODAL_SHADOW_DARK : AppColors.MODAL_SHADOW_LIGHT,
       offsetX: 0,
       offsetY: AppStyles.LOADING_DIALOG_SHADOW_OFFSET_Y
+    })
+  }
+}
+
+@CustomDialog
+export struct CommonLoadingDialog {
+  controller?: CustomDialogController
+  message: string = ''
+  currentTheme: ThemeMode = ThemeMode.LIGHT
+
+  build() {
+    CommonLoadingContent({
+      message: this.message,
+      currentTheme: this.currentTheme
     })
   }
 }

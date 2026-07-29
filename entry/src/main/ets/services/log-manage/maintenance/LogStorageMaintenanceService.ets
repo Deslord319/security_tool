@@ -55,6 +55,26 @@ export class LogStorageMaintenanceService {
     return LogStorageMaintenanceService.reconcileAfterAppend(normalizedBatch)
   }
 
+  static async appendImportBatch(entries: LogEntry[]): Promise<MutationResult> {
+    if (entries.length === 0) {
+      return { success: true, code: 'ok' }
+    }
+    if (!LogEntryRepository.isReady()) {
+      LogUtils.warn(TAG, `appendImportBatch skipped: repository not initialized, count=${entries.length}`)
+      return { success: false, code: 'not_initialized' }
+    }
+    let normalizedBatch = LogEntryNormalizer.normalizeEntriesForAppend(entries)
+    if (normalizedBatch.length === 0) {
+      return { success: true, code: 'ok' }
+    }
+    let saved = await LogEntryRepository.insertImportEntries(normalizedBatch)
+    if (!saved) {
+      LogUtils.error(TAG, `appendImportBatch failed: count=${normalizedBatch.length}`)
+      return { success: false, code: 'save_failed' }
+    }
+    return { success: true, code: 'ok' }
+  }
+
   static async reconcileStorageConfig(): Promise<MutationResult> {
     if (!LogEntryRepository.isReady()) {
       LogUtils.warn(TAG, 'reconcileStorageConfig skipped: repository not initialized')
@@ -64,7 +84,19 @@ export class LogStorageMaintenanceService {
     let retentionDays = LogEntryNormalizer.normalizeRetentionDays(config.retentionDays)
     let maxEntries = LogEntryNormalizer.normalizeMaxEntries(config.maxLocalEntries)
     let cutoff = buildLogStorageNaturalDayCutoff(Date.now(), retentionDays)
-    return LogStorageMaintenanceService.applyStorageLimits(maxEntries, cutoff)
+    return LogStorageMaintenanceService.applyStorageLimits(maxEntries, cutoff, true)
+  }
+
+  static async reconcileImportStorage(notifyChanged: boolean): Promise<MutationResult> {
+    if (!LogEntryRepository.isReady()) {
+      LogUtils.warn(TAG, 'reconcileImportStorage skipped: repository not initialized')
+      return { success: false, code: 'not_initialized' }
+    }
+    let config = await LogSettingsRepository.loadStorageConfig()
+    let retentionDays = LogEntryNormalizer.normalizeRetentionDays(config.retentionDays)
+    let maxEntries = LogEntryNormalizer.normalizeMaxEntries(config.maxLocalEntries)
+    let cutoff = buildLogStorageNaturalDayCutoff(Date.now(), retentionDays)
+    return LogStorageMaintenanceService.applyStorageLimits(maxEntries, cutoff, notifyChanged)
   }
 
   static async clearAll(): Promise<ClearLogsResult> {
@@ -88,17 +120,21 @@ export class LogStorageMaintenanceService {
     let cutoff = buildLogStorageNaturalDayCutoff(Date.now(), retentionDays)
     let hasExpiredEntry = entries.some((entry: LogEntry) => entry.timestamp < cutoff)
     if (hasExpiredEntry) {
-      return LogStorageMaintenanceService.applyStorageLimits(maxEntries, cutoff)
+      return LogStorageMaintenanceService.applyStorageLimits(maxEntries, cutoff, true)
     }
     let totalCount = await LogEntryRepository.countByQuery()
     if (totalCount > maxEntries) {
-      return LogStorageMaintenanceService.applyStorageLimits(maxEntries, cutoff)
+      return LogStorageMaintenanceService.applyStorageLimits(maxEntries, cutoff, true)
     }
     LogEntryRepository.notifyChanged()
     return { success: true, code: 'ok' }
   }
 
-  private static async applyStorageLimits(maxEntries: number, cutoff: number): Promise<MutationResult> {
+  private static async applyStorageLimits(
+    maxEntries: number,
+    cutoff: number,
+    notifyChanged: boolean
+  ): Promise<MutationResult> {
     let cleaned = await LogEntryRepository.deleteExpired(cutoff)
     if (!cleaned) {
       LogUtils.error(TAG, `applyStorageLimits failed: stage=deleteExpired, cutoff=${cutoff}`)
@@ -109,7 +145,9 @@ export class LogStorageMaintenanceService {
       LogUtils.error(TAG, `applyStorageLimits failed: stage=trim, maxEntries=${maxEntries}`)
       return { success: false, code: 'save_failed' }
     }
-    LogEntryRepository.notifyChanged()
+    if (notifyChanged) {
+      LogEntryRepository.notifyChanged()
+    }
     return { success: true, code: 'ok' }
   }
 }

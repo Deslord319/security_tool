@@ -9,23 +9,34 @@ import { LogEntryRepository } from '../repository/LogEntryRepository'
 import { buildLogStorageNaturalDayCutoff, LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
 import { LogSettingsRepository } from '../repository/LogSettingsRepository'
-import { LogImportParseTaskResult, runLogImportParseTask } from './LogImportBackgroundTask'
+import {
+  LogImportPrepareTaskResult,
+  runLogImportFileParseTask,
+  runLogImportPrepareTask
+} from './LogImportBackgroundTask'
+import { ImportedLogFile, LogImportRuleResult } from './LogImportRule'
 
 const TAG = 'LogImportService'
 const IMPORT_WORKSPACE_DIR = 'log_import_tmp'
+const IMPORT_PERSIST_BATCH_SIZE = 1000
+const IMPORT_RECONCILE_INTERVAL = 10000
 
-interface ImportBaseStats {
-  extractedFileCount?: number
-  scannedFileCount?: number
+interface ImportResultStats {
+  extractedFileCount: number
+  scannedFileCount: number
+  parsedEntryCount: number
+  insertedEntryCount: number
+  skippedDuplicateCount: number
+  skippedExpiredCount: number
+  droppedEntryCount: number
+  failedEntryCount: number
 }
 
-interface ImportResultStats extends ImportBaseStats {
-  parsedEntryCount?: number
-  insertedEntryCount?: number
-  skippedDuplicateCount?: number
-  skippedExpiredCount?: number
-  droppedEntryCount?: number
-  failedEntryCount?: number
+interface ImportBatchPersistResult {
+  success: boolean
+  insertedEntryCount: number
+  skippedDuplicateCount: number
+  skippedExpiredCount: number
 }
 
 export interface LogImportPickerPort {
@@ -35,6 +46,17 @@ export interface LogImportPickerPort {
 export interface LogImportWorkspacePort {
   buildRoot(context: common.UIAbilityContext): string
   cleanupRoot(path: string): Promise<void>
+}
+
+export interface LogImportTaskPort {
+  prepare(archivePath: string, targetDirectory: string): Promise<LogImportPrepareTaskResult>
+  parse(file: ImportedLogFile): Promise<LogImportRuleResult>
+}
+
+export interface LogImportStoragePort {
+  findExistingEntryIds(entryIds: string[]): Promise<Set<string>>
+  appendImportBatch(entries: LogEntry[]): Promise<boolean>
+  reconcileImportStorage(notifyChanged: boolean): Promise<boolean>
 }
 
 class DefaultLogImportPicker implements LogImportPickerPort {
@@ -66,9 +88,54 @@ class DefaultLogImportWorkspace implements LogImportWorkspacePort {
   }
 }
 
+class DefaultLogImportTasks implements LogImportTaskPort {
+  async prepare(archivePath: string, targetDirectory: string): Promise<LogImportPrepareTaskResult> {
+    let task = new taskpool.LongTask(runLogImportPrepareTask, archivePath, targetDirectory)
+    try {
+      return await taskpool.execute(task) as LogImportPrepareTaskResult
+    } catch (err) {
+      LogUtils.warn(TAG, `execute prepare task failed: err=${JSON.stringify(err)}`)
+      throw err as Error
+    } finally {
+      try {
+        taskpool.terminateTask(task)
+      } catch (err) {
+        LogUtils.warn(TAG, `terminate prepare task failed: err=${JSON.stringify(err)}`)
+      }
+    }
+  }
+
+  async parse(file: ImportedLogFile): Promise<LogImportRuleResult> {
+    try {
+      return await taskpool.execute(runLogImportFileParseTask, file) as LogImportRuleResult
+    } catch (err) {
+      LogUtils.warn(TAG, `execute file task failed: file=${file.relativePath}, err=${JSON.stringify(err)}`)
+      throw err as Error
+    }
+  }
+}
+
+class DefaultLogImportStorage implements LogImportStoragePort {
+  findExistingEntryIds(entryIds: string[]): Promise<Set<string>> {
+    return LogEntryRepository.findExistingEntryIds(entryIds)
+  }
+
+  async appendImportBatch(entries: LogEntry[]): Promise<boolean> {
+    let result = await LogStorageMaintenanceService.appendImportBatch(entries)
+    return result.success
+  }
+
+  async reconcileImportStorage(notifyChanged: boolean): Promise<boolean> {
+    let result = await LogStorageMaintenanceService.reconcileImportStorage(notifyChanged)
+    return result.success
+  }
+}
+
 export class LogImportService {
   private static pickerPort: LogImportPickerPort = new DefaultLogImportPicker()
   private static workspacePort: LogImportWorkspacePort = new DefaultLogImportWorkspace()
+  private static taskPort: LogImportTaskPort = new DefaultLogImportTasks()
+  private static storagePort: LogImportStoragePort = new DefaultLogImportStorage()
 
   static setPickerForTest(pickerPort: LogImportPickerPort): void {
     LogImportService.pickerPort = pickerPort
@@ -78,9 +145,19 @@ export class LogImportService {
     LogImportService.workspacePort = workspacePort
   }
 
+  static setTaskPortForTest(taskPort: LogImportTaskPort): void {
+    LogImportService.taskPort = taskPort
+  }
+
+  static setStoragePortForTest(storagePort: LogImportStoragePort): void {
+    LogImportService.storagePort = storagePort
+  }
+
   static resetTestPorts(): void {
     LogImportService.pickerPort = new DefaultLogImportPicker()
     LogImportService.workspacePort = new DefaultLogImportWorkspace()
+    LogImportService.taskPort = new DefaultLogImportTasks()
+    LogImportService.storagePort = new DefaultLogImportStorage()
   }
 
   static async import(context: common.UIAbilityContext): Promise<ImportLogsResult> {
@@ -118,8 +195,15 @@ export class LogImportService {
     let startedAt = Date.now()
     try {
       LogUtils.info(TAG, `import start: importId=${importId}, archive=${archivePath}, target=${targetDirectory}`)
-      let parseResult = await taskpool.execute(runLogImportParseTask, archivePath, targetDirectory) as LogImportParseTaskResult
-      let result = await LogImportService.importParsedEntries(parseResult, importId, startedAt)
+      let prepareResult = await LogImportService.taskPort.prepare(archivePath, targetDirectory)
+      if (!prepareResult.success) {
+        let failedStats = LogImportService.buildEmptyStats(
+          prepareResult.extractedFileCount,
+          prepareResult.scannedFileCount
+        )
+        return LogImportService.buildResult(prepareResult.code, failedStats)
+      }
+      let result = await LogImportService.importPreparedFiles(prepareResult, importId, startedAt)
       LogUtils.info(TAG, `import done: importId=${importId}, code=${result.code}, extracted=${result.extractedFileCount}, scanned=${result.scannedFileCount}, parsed=${result.parsedEntryCount}, inserted=${result.insertedEntryCount}, skipped=${result.skippedDuplicateCount}, expired=${result.skippedExpiredCount}, dropped=${result.droppedEntryCount}, failed=${result.failedEntryCount}, elapsedMs=${Date.now() - startedAt}`)
       return result
     } catch (err) {
@@ -130,66 +214,120 @@ export class LogImportService {
     }
   }
 
-  static async importParsedEntries(
-    parseResult: LogImportParseTaskResult,
-    importId: string = LogImportService.buildImportId(),
-    startedAt: number = Date.now()
+  private static async importPreparedFiles(
+    prepareResult: LogImportPrepareTaskResult,
+    importId: string,
+    startedAt: number
   ): Promise<ImportLogsResult> {
-    if (!parseResult.success) {
-      return LogImportService.buildResult(parseResult.code, {
-        extractedFileCount: parseResult.extractedFileCount,
-        scannedFileCount: parseResult.scannedFileCount,
-        parsedEntryCount: parseResult.parsedEntryCount,
-        skippedDuplicateCount: parseResult.skippedBatchDuplicateCount,
-        droppedEntryCount: parseResult.droppedEntryCount,
-        failedEntryCount: parseResult.failedEntryCount
-      })
-    }
-
-    let skippedDuplicateCount = parseResult.skippedBatchDuplicateCount
-    let skippedExpiredCount = 0
-    let newEntries: LogEntry[] = []
-    LogUtils.info(TAG, `persist parsed entries start: importId=${importId}, unique=${parseResult.entries.length}, batchDuplicates=${skippedDuplicateCount}, elapsedMs=${Date.now() - startedAt}`)
+    let stats = LogImportService.buildEmptyStats(
+      prepareResult.extractedFileCount,
+      prepareResult.scannedFileCount
+    )
     let storageConfig = await LogSettingsRepository.loadStorageConfig()
     let retentionDays = LogEntryNormalizer.normalizeRetentionDays(storageConfig.retentionDays)
     let cutoff = buildLogStorageNaturalDayCutoff(Date.now(), retentionDays)
-    for (let entry of parseResult.entries) {
-      if (entry.timestamp < cutoff) {
-        skippedExpiredCount++
+    let insertedSinceReconcile = 0
+    for (let file of prepareResult.files) {
+      let fileResult: LogImportRuleResult
+      try {
+        fileResult = await LogImportService.taskPort.parse(file)
+      } catch (err) {
+        stats.failedEntryCount++
+        LogUtils.warn(TAG, `file task failed: importId=${importId}, file=${file.relativePath}, err=${JSON.stringify(err)}`)
         continue
       }
-      if (await LogEntryRepository.hasEntry(entry.id)) {
-        skippedDuplicateCount++
+
+      stats.parsedEntryCount += fileResult.entries.length
+      stats.droppedEntryCount += fileResult.droppedCount
+      stats.failedEntryCount += fileResult.failedCount
+      let persistResult = await LogImportService.persistFileEntries(fileResult.entries, cutoff, importId, file.relativePath)
+      stats.insertedEntryCount += persistResult.insertedEntryCount
+      stats.skippedDuplicateCount += persistResult.skippedDuplicateCount
+      stats.skippedExpiredCount += persistResult.skippedExpiredCount
+      if (!persistResult.success) {
+        return LogImportService.buildResult('save_failed', stats)
+      }
+      insertedSinceReconcile += persistResult.insertedEntryCount
+      if (insertedSinceReconcile >= IMPORT_RECONCILE_INTERVAL) {
+        let reconciled = await LogImportService.storagePort.reconcileImportStorage(false)
+        if (!reconciled) {
+          LogUtils.warn(TAG, `periodic reconcile failed: importId=${importId}, inserted=${stats.insertedEntryCount}, elapsedMs=${Date.now() - startedAt}`)
+          return LogImportService.buildResult('save_failed', stats)
+        }
+        insertedSinceReconcile = 0
+      }
+      LogUtils.info(TAG, `file persist done: importId=${importId}, file=${file.relativePath}, parsed=${fileResult.entries.length}, inserted=${persistResult.insertedEntryCount}, duplicate=${persistResult.skippedDuplicateCount}, expired=${persistResult.skippedExpiredCount}, elapsedMs=${Date.now() - startedAt}`)
+    }
+
+    let finalReconciled = await LogImportService.storagePort.reconcileImportStorage(true)
+    if (!finalReconciled) {
+      LogUtils.warn(TAG, `final reconcile failed: importId=${importId}, inserted=${stats.insertedEntryCount}, elapsedMs=${Date.now() - startedAt}`)
+      return LogImportService.buildResult('save_failed', stats)
+    }
+    return LogImportService.buildResult('ok', stats)
+  }
+
+  private static async persistFileEntries(
+    entries: LogEntry[],
+    cutoff: number,
+    importId: string,
+    relativePath: string
+  ): Promise<ImportBatchPersistResult> {
+    let result: ImportBatchPersistResult = {
+      success: true,
+      insertedEntryCount: 0,
+      skippedDuplicateCount: 0,
+      skippedExpiredCount: 0
+    }
+    for (let start = 0; start < entries.length; start += IMPORT_PERSIST_BATCH_SIZE) {
+      let sourceBatch = entries.slice(start, start + IMPORT_PERSIST_BATCH_SIZE)
+      let batchIds = new Set<string>()
+      let candidates: LogEntry[] = []
+      for (let entry of sourceBatch) {
+        if (entry.timestamp < cutoff) {
+          result.skippedExpiredCount++
+          continue
+        }
+        if (batchIds.has(entry.id)) {
+          result.skippedDuplicateCount++
+          continue
+        }
+        batchIds.add(entry.id)
+        candidates.push(entry)
+      }
+      if (candidates.length === 0) {
         continue
       }
-      newEntries.push(entry)
-    }
-    if (newEntries.length > 0) {
-      let saveResult = await LogStorageMaintenanceService.appendEntries(newEntries)
-      if (!saveResult.success) {
-        LogUtils.warn(TAG, `save failed: importId=${importId}, newEntries=${newEntries.length}, elapsedMs=${Date.now() - startedAt}`)
-        return LogImportService.buildResult('save_failed', {
-          extractedFileCount: parseResult.extractedFileCount,
-          scannedFileCount: parseResult.scannedFileCount,
-          parsedEntryCount: parseResult.parsedEntryCount,
-          skippedDuplicateCount,
-          skippedExpiredCount,
-          droppedEntryCount: parseResult.droppedEntryCount,
-          failedEntryCount: parseResult.failedEntryCount
-        })
+
+      try {
+        let existingIds = await LogImportService.storagePort.findExistingEntryIds(
+          candidates.map((entry: LogEntry) => entry.id)
+        )
+        let newEntries: LogEntry[] = []
+        for (let entry of candidates) {
+          if (existingIds.has(entry.id)) {
+            result.skippedDuplicateCount++
+          } else {
+            newEntries.push(entry)
+          }
+        }
+        if (newEntries.length === 0) {
+          continue
+        }
+        let saved = await LogImportService.storagePort.appendImportBatch(newEntries)
+        if (!saved) {
+          LogUtils.warn(TAG, `import batch save failed: importId=${importId}, file=${relativePath}, start=${start}, count=${newEntries.length}`)
+          result.success = false
+          return result
+        }
+        result.insertedEntryCount += newEntries.length
+      } catch (err) {
+        LogUtils.warn(TAG, `import batch failed: importId=${importId}, file=${relativePath}, start=${start}, err=${JSON.stringify(err)}`)
+        result.success = false
+        return result
       }
     }
-    LogUtils.info(TAG, `save done: importId=${importId}, newEntries=${newEntries.length}, skipped=${skippedDuplicateCount}, expired=${skippedExpiredCount}, elapsedMs=${Date.now() - startedAt}`)
-    return LogImportService.buildResult('ok', {
-      extractedFileCount: parseResult.extractedFileCount,
-      scannedFileCount: parseResult.scannedFileCount,
-      parsedEntryCount: parseResult.parsedEntryCount,
-      insertedEntryCount: newEntries.length,
-      skippedDuplicateCount,
-      skippedExpiredCount,
-      droppedEntryCount: parseResult.droppedEntryCount,
-      failedEntryCount: parseResult.failedEntryCount
-    })
+    return result
   }
 
   private static buildImportId(): string {
@@ -263,6 +401,22 @@ export class LogImportService {
       skippedExpiredCount: stats?.skippedExpiredCount ?? 0,
       droppedEntryCount: stats?.droppedEntryCount ?? 0,
       failedEntryCount: stats?.failedEntryCount ?? 0
+    }
+  }
+
+  private static buildEmptyStats(
+    extractedFileCount: number = 0,
+    scannedFileCount: number = 0
+  ): ImportResultStats {
+    return {
+      extractedFileCount,
+      scannedFileCount,
+      parsedEntryCount: 0,
+      insertedEntryCount: 0,
+      skippedDuplicateCount: 0,
+      skippedExpiredCount: 0,
+      droppedEntryCount: 0,
+      failedEntryCount: 0
     }
   }
 }

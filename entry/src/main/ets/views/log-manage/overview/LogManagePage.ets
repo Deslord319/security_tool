@@ -31,6 +31,7 @@ import { DialogService } from '../../../utils/DialogService'
 import { LogManageViewModel } from '../../../viewmodels/log-manage/overview/LogManageViewModel'
 import { ImportLogsResult, LogImportSelectionResult } from '../../../models/LogImportModels'
 import { LogUtils } from '../../../utils/LogUtils'
+import { CommonLoadingContent } from '../../../components/CommonLoadingDialog'
 import { LogEntriesPanel } from '../../../components/log-manage/entries/LogEntriesPanel'
 import { LogPaginationBar } from '../../../components/log-manage/entries/LogPaginationBar'
 import { SubPageHeader } from '../../../components/SubPageHeader'
@@ -172,8 +173,26 @@ export struct LogManagePage {
       failedEntryCount: 0
     }
     try {
-      await this.waitImportOverlayReady()
-      result = await viewModel.importSelectedLogs(selection.archivePath, selection.targetDirectory)
+      let promptAction = this.getUIContext().getPromptAction()
+      let loadingDialogId = await promptAction.openCustomDialog({
+        builder: () => {
+          this.importLoadingDialogBuilder()
+        },
+        alignment: DialogAlignment.Center,
+        autoCancel: false,
+        isModal: true,
+        maskColor: AppColors.OVERLAY_BACKGROUND,
+        backgroundColor: Color.Transparent,
+        cornerRadius: AppStyles.RADIUS_LG
+      })
+      try {
+        result = await viewModel.importSelectedLogs(selection.archivePath, selection.targetDirectory)
+      } finally {
+        promptAction.closeCustomDialog(loadingDialogId)
+      }
+    } catch (err) {
+      LogUtils.error(TAG, `handleImportLogs failed before result: ${JSON.stringify(err)}`)
+      return
     } finally {
       this.isImportProcessing = false
     }
@@ -182,6 +201,14 @@ export struct LogManagePage {
       return
     }
     DialogService.openFailure(this.getUIContext(), this.mapImportFailureText(result.code))
+  }
+
+  @Builder
+  private importLoadingDialogBuilder() {
+    CommonLoadingContent({
+      message: LogManageImportStrings.IMPORTING,
+      currentTheme: this.currentTheme
+    })
   }
 
   private mapImportFailureText(code: string): string {
@@ -198,12 +225,6 @@ export struct LogManagePage {
       return LogManageImportStrings.SAVE_FAILED
     }
     return MessageText.RETRY_LATER
-  }
-
-  private async waitImportOverlayReady(): Promise<void> {
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(() => resolve(), 180)
-    })
   }
 
   private handleClearLogs(): void {
@@ -366,46 +387,6 @@ export struct LogManagePage {
     })
   }
 
-  @Builder
-  private importLoadingOverlay() {
-    Column() {
-      Column({ space: 14 }) {
-        LoadingProgress()
-          .width(AppStyles.MODAL_LOADING_INDICATOR_SIZE)
-          .height(AppStyles.MODAL_LOADING_INDICATOR_SIZE)
-
-        Text(LogManageImportStrings.IMPORTING)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          .textAlign(TextAlign.Center)
-      }
-      .width(AppStyles.LOADING_DIALOG_WIDTH)
-      .padding({
-        left: AppStyles.LOADING_DIALOG_PADDING_HORIZONTAL,
-        right: AppStyles.LOADING_DIALOG_PADDING_HORIZONTAL,
-        top: AppStyles.LOADING_DIALOG_PADDING_VERTICAL,
-        bottom: AppStyles.LOADING_DIALOG_PADDING_VERTICAL
-      })
-      .alignItems(HorizontalAlign.Center)
-      .justifyContent(FlexAlign.Center)
-      .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-      .borderRadius(AppStyles.RADIUS_LG)
-      .shadow({
-        radius: AppStyles.LOADING_DIALOG_SHADOW_RADIUS,
-        color: this.currentTheme === ThemeMode.DARK ? AppColors.MODAL_SHADOW_DARK : AppColors.MODAL_SHADOW_LIGHT,
-        offsetX: 0,
-        offsetY: AppStyles.LOADING_DIALOG_SHADOW_OFFSET_Y
-      })
-    }
-    .width('100%')
-    .height('100%')
-    .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-    .backgroundColor(AppColors.OVERLAY_BACKGROUND)
-    .zIndex(10)
-  }
-
   private closeDetailDialog(): void {
     this.detailDialogController = DialogService.closeController(this.detailDialogController)
     this.getActiveViewModel().closeDetail()
@@ -524,10 +505,6 @@ export struct LogManagePage {
       .width('100%')
       .height('100%')
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-
-      if (this.isImportProcessing) {
-        this.importLoadingOverlay()
-      }
     }
     .width('100%')
     .height('100%')
