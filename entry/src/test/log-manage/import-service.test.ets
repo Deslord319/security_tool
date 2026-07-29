@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { MockKit, when } from '@ohos/hamock'
 import { common } from '@kit.AbilityKit'
 import { LogEntry, LogEventType, LogStorageConfig } from '../../main/ets/models/LogModels'
 import {
   LogImportPickerPort,
   LogImportService,
+  LogImportStoragePort,
+  LogImportTaskPort,
   LogImportWorkspacePort
 } from '../../main/ets/services/log-manage/import/LogImportService'
-import { MutationResult } from '../../main/ets/services/log-manage/common/LogManagePorts'
-import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
 import { LogSettingsRepository } from '../../main/ets/services/log-manage/repository/LogSettingsRepository'
-import { LogStorageMaintenanceService } from '../../main/ets/services/log-manage/maintenance/LogStorageMaintenanceService'
-import { LogImportParseTaskResult } from '../../main/ets/services/log-manage/import/LogImportBackgroundTask'
+import { LogImportPrepareTaskResult } from '../../main/ets/services/log-manage/import/LogImportBackgroundTask'
+import { ImportedLogFile, LogImportRuleResult } from '../../main/ets/services/log-manage/import/LogImportRule'
 
 function createEntry(id: string): LogEntry {
   return {
@@ -23,31 +23,45 @@ function createEntry(id: string): LogEntry {
   }
 }
 
-function createParseResult(entries: LogEntry[], batchDuplicates: number = 0): LogImportParseTaskResult {
+function createEntries(count: number, prefix: string = 'entry'): LogEntry[] {
+  let entries: LogEntry[] = []
+  for (let index = 0; index < count; index++) {
+    entries.push(createEntry(`${prefix}-${index}`))
+  }
+  return entries
+}
+
+function createFile(name: string): ImportedLogFile {
   return {
-    success: true,
-    code: 'ok',
-    extractedFileCount: 2,
-    scannedFileCount: 2,
-    parsedEntryCount: entries.length + batchDuplicates,
-    skippedBatchDuplicateCount: batchDuplicates,
-    droppedEntryCount: 3,
-    failedEntryCount: 1,
-    entries
+    path: `/tmp/${name}`,
+    fileName: name,
+    relativePath: `remoteLog/hilog/${name}`,
+    normalizedPath: `remoteLog/hilog/${name}`
   }
 }
 
-function createFailedParseResult(code: 'invalid_archive' | 'extract_failed'): LogImportParseTaskResult {
+function createPrepareResult(
+  files: ImportedLogFile[],
+  code: 'ok' | 'invalid_archive' | 'extract_failed' = 'ok'
+): LogImportPrepareTaskResult {
   return {
-    success: false,
+    success: code === 'ok',
     code,
-    extractedFileCount: 1,
-    scannedFileCount: 1,
-    parsedEntryCount: 0,
-    skippedBatchDuplicateCount: 0,
-    droppedEntryCount: 2,
-    failedEntryCount: 1,
-    entries: []
+    extractedFileCount: files.length + 2,
+    scannedFileCount: files.length + 2,
+    files: code === 'ok' ? files : []
+  }
+}
+
+function createRuleResult(
+  entries: LogEntry[],
+  droppedCount: number = 0,
+  failedCount: number = 0
+): LogImportRuleResult {
+  return {
+    entries,
+    droppedCount,
+    failedCount
   }
 }
 
@@ -75,37 +89,86 @@ class FakeWorkspace implements LogImportWorkspacePort {
   }
 }
 
+class FakeImportTasks implements LogImportTaskPort {
+  prepareResult: LogImportPrepareTaskResult = createPrepareResult([])
+  readonly parseResults: Map<string, LogImportRuleResult> = new Map()
+  readonly parseFailures: Set<string> = new Set()
+  readonly parseCalls: string[] = []
+
+  async prepare(_archivePath: string, _targetDirectory: string): Promise<LogImportPrepareTaskResult> {
+    return this.prepareResult
+  }
+
+  async parse(file: ImportedLogFile): Promise<LogImportRuleResult> {
+    this.parseCalls.push(file.relativePath)
+    if (this.parseFailures.has(file.relativePath)) {
+      throw new Error('file_task_failed')
+    }
+    return this.parseResults.get(file.relativePath) ?? createRuleResult([])
+  }
+}
+
+class FakeImportStorage implements LogImportStoragePort {
+  readonly existingIds: Set<string> = new Set()
+  readonly savedBatches: LogEntry[][] = []
+  readonly lookupBatchSizes: number[] = []
+  readonly reconcileCalls: boolean[] = []
+  failOnSaveCall: number = -1
+  saveCallCount: number = 0
+  reconcileSuccess: boolean = true
+
+  async findExistingEntryIds(entryIds: string[]): Promise<Set<string>> {
+    this.lookupBatchSizes.push(entryIds.length)
+    let result = new Set<string>()
+    entryIds.forEach((entryId: string) => {
+      if (this.existingIds.has(entryId)) {
+        result.add(entryId)
+      }
+    })
+    return result
+  }
+
+  async appendImportBatch(entries: LogEntry[]): Promise<boolean> {
+    this.saveCallCount++
+    this.savedBatches.push(entries.slice())
+    if (this.saveCallCount === this.failOnSaveCall) {
+      return false
+    }
+    entries.forEach((entry: LogEntry) => this.existingIds.add(entry.id))
+    return true
+  }
+
+  async reconcileImportStorage(notifyChanged: boolean): Promise<boolean> {
+    this.reconcileCalls.push(notifyChanged)
+    return this.reconcileSuccess
+  }
+}
+
 export default function logImportServiceTest() {
   describe('LogImportService', () => {
     let mockKit: MockKit
-    let savedEntries: LogEntry[]
-    let existingIds: Set<string>
-    let saveResult: MutationResult
     let workspace: FakeWorkspace
+    let taskPort: FakeImportTasks
+    let storagePort: FakeImportStorage
 
     beforeEach(() => {
       mockKit = new MockKit()
-      savedEntries = []
-      existingIds = new Set<string>()
-      saveResult = { success: true, code: 'ok' }
       workspace = new FakeWorkspace()
+      taskPort = new FakeImportTasks()
+      storagePort = new FakeImportStorage()
       LogImportService.setWorkspaceForTest(workspace)
+      LogImportService.setTaskPortForTest(taskPort)
+      LogImportService.setStoragePortForTest(storagePort)
 
-      let hasEntryMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.hasEntry)
-      let loadConfigMock = mockKit.mockFunc(LogSettingsRepository, LogSettingsRepository.loadStorageConfig)
-      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
+      let loadConfigMock = mockKit.mockFunc(
+        LogSettingsRepository,
+        LogSettingsRepository.loadStorageConfig
+      )
       let storageConfig: LogStorageConfig = {
         maxLocalEntries: 20000,
         retentionDays: 30
       }
-      when(hasEntryMock)(ArgumentMatchers.any).afterAction((entryId: string) => {
-        return Promise.resolve(existingIds.has(entryId))
-      })
       when(loadConfigMock)().afterReturn(Promise.resolve(storageConfig))
-      when(appendEntriesMock)(ArgumentMatchers.any).afterAction((entries: LogEntry[]) => {
-        savedEntries = entries.slice()
-        return Promise.resolve(saveResult)
-      })
     })
 
     afterEach(() => {
@@ -120,19 +183,8 @@ export default function logImportServiceTest() {
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('user_canceled')
-      expect(result.scannedFileCount).assertEqual(0)
-      expect(savedEntries.length).assertEqual(0)
-    })
-
-    it('should return user_canceled when zip picker is canceled', 0, async () => {
-      LogImportService.setPickerForTest(new FakePicker(null))
-
-      let result = await LogImportService.pickImportTargets({} as common.UIAbilityContext)
-
-      expect(result.success).assertFalse()
-      expect(result.code).assertEqual('user_canceled')
-      expect(result.archivePath).assertEqual('')
-      expect(result.targetDirectory).assertEqual('')
+      expect(taskPort.parseCalls.length).assertEqual(0)
+      expect(storagePort.savedBatches.length).assertEqual(0)
     })
 
     it('should pick zip and use default import workspace root', 0, async () => {
@@ -150,58 +202,125 @@ export default function logImportServiceTest() {
       expect(workspace.cleanupCalls[0]).assertEqual('/data/storage/el2/base/files/log_import_tmp')
     })
 
-    it('should persist parsed entries and keep background batch duplicate count', 0, async () => {
-      existingIds.add('existing')
+    it('should filter expired and duplicate entries before import writes', 0, async () => {
+      let file = createFile('hilog_kmsg.1.gz')
       let expiredEntry = createEntry('expired')
       expiredEntry.timestamp = Date.now() - 40 * 24 * 60 * 60 * 1000
-      let validEntry = createEntry('valid')
-      let existingEntry = createEntry('existing')
+      storagePort.existingIds.add('existing')
+      taskPort.prepareResult = createPrepareResult([file])
+      taskPort.parseResults.set(file.relativePath, createRuleResult([
+        expiredEntry,
+        createEntry('valid'),
+        createEntry('valid'),
+        createEntry('existing')
+      ], 3, 1))
 
-      let result = await LogImportService.importParsedEntries(
-        createParseResult([expiredEntry, validEntry, existingEntry], 2)
-      )
+      let result = await LogImportService.importSelected('/tmp/logs.zip', '/tmp/log_import_tmp')
 
       expect(result.success).assertTrue()
-      expect(result.parsedEntryCount).assertEqual(5)
+      expect(result.parsedEntryCount).assertEqual(4)
       expect(result.insertedEntryCount).assertEqual(1)
-      expect(result.skippedDuplicateCount).assertEqual(3)
+      expect(result.skippedDuplicateCount).assertEqual(2)
       expect(result.skippedExpiredCount).assertEqual(1)
       expect(result.droppedEntryCount).assertEqual(3)
       expect(result.failedEntryCount).assertEqual(1)
-      expect(savedEntries.length).assertEqual(1)
-      expect(savedEntries[0].id).assertEqual('valid')
+      expect(storagePort.savedBatches.length).assertEqual(1)
+      expect(storagePort.savedBatches[0][0].id).assertEqual('valid')
+      expect(storagePort.reconcileCalls.length).assertEqual(1)
+      expect(storagePort.reconcileCalls[0]).assertTrue()
     })
 
-    it('should return save_failed when parsed entries cannot be persisted', 0, async () => {
-      saveResult = { success: false, code: 'save_failed' }
+    it('should persist 2300 entries as 1000, 1000 and 300', 0, async () => {
+      let file = createFile('hilog_kmsg.2.gz')
+      taskPort.prepareResult = createPrepareResult([file])
+      taskPort.parseResults.set(file.relativePath, createRuleResult(createEntries(2300)))
 
-      let result = await LogImportService.importParsedEntries(createParseResult([createEntry('valid')], 1))
+      let result = await LogImportService.importSelected('/tmp/logs.zip', '/tmp/log_import_tmp')
+
+      expect(result.success).assertTrue()
+      expect(result.insertedEntryCount).assertEqual(2300)
+      expect(storagePort.savedBatches.length).assertEqual(3)
+      expect(storagePort.savedBatches[0].length).assertEqual(1000)
+      expect(storagePort.savedBatches[1].length).assertEqual(1000)
+      expect(storagePort.savedBatches[2].length).assertEqual(300)
+      expect(storagePort.lookupBatchSizes[0]).assertEqual(1000)
+      expect(storagePort.lookupBatchSizes[1]).assertEqual(1000)
+      expect(storagePort.lookupBatchSizes[2]).assertEqual(300)
+    })
+
+    it('should detect a duplicate from a previous batch', 0, async () => {
+      let file = createFile('hilog_kmsg.3.gz')
+      let entries = createEntries(1000)
+      entries.push(createEntry('entry-0'))
+      taskPort.prepareResult = createPrepareResult([file])
+      taskPort.parseResults.set(file.relativePath, createRuleResult(entries))
+
+      let result = await LogImportService.importSelected('/tmp/logs.zip', '/tmp/log_import_tmp')
+
+      expect(result.success).assertTrue()
+      expect(result.insertedEntryCount).assertEqual(1000)
+      expect(result.skippedDuplicateCount).assertEqual(1)
+      expect(storagePort.savedBatches.length).assertEqual(1)
+      expect(storagePort.lookupBatchSizes.length).assertEqual(2)
+    })
+
+    it('should stop after an import batch save failure', 0, async () => {
+      let firstFile = createFile('hilog_kmsg.4.gz')
+      let secondFile = createFile('hilog_kmsg.5.gz')
+      taskPort.prepareResult = createPrepareResult([firstFile, secondFile])
+      taskPort.parseResults.set(firstFile.relativePath, createRuleResult(createEntries(1500, 'first')))
+      taskPort.parseResults.set(secondFile.relativePath, createRuleResult(createEntries(1, 'second')))
+      storagePort.failOnSaveCall = 2
+
+      let result = await LogImportService.importSelected('/tmp/logs.zip', '/tmp/log_import_tmp')
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('save_failed')
-      expect(result.parsedEntryCount).assertEqual(2)
-      expect(result.insertedEntryCount).assertEqual(0)
-      expect(result.skippedDuplicateCount).assertEqual(1)
-      expect(result.skippedExpiredCount).assertEqual(0)
-      expect(result.droppedEntryCount).assertEqual(3)
-      expect(result.failedEntryCount).assertEqual(1)
-      expect(savedEntries.length).assertEqual(1)
+      expect(result.insertedEntryCount).assertEqual(1000)
+      expect(storagePort.savedBatches.length).assertEqual(2)
+      expect(taskPort.parseCalls.length).assertEqual(1)
+      expect(storagePort.reconcileCalls.length).assertEqual(0)
     })
 
-    it('should return parse failure result when background parse fails', 0, async () => {
-      let result = await LogImportService.importParsedEntries(createFailedParseResult('invalid_archive'))
+    it('should continue after a single file task failure', 0, async () => {
+      let failedFile = createFile('hilog_kmsg.6.gz')
+      let validFile = createFile('hilog_kmsg.7.gz')
+      taskPort.prepareResult = createPrepareResult([failedFile, validFile])
+      taskPort.parseFailures.add(failedFile.relativePath)
+      taskPort.parseResults.set(validFile.relativePath, createRuleResult([createEntry('valid')]))
+
+      let result = await LogImportService.importSelected('/tmp/logs.zip', '/tmp/log_import_tmp')
+
+      expect(result.success).assertTrue()
+      expect(result.failedEntryCount).assertEqual(1)
+      expect(result.insertedEntryCount).assertEqual(1)
+      expect(taskPort.parseCalls.length).assertEqual(2)
+    })
+
+    it('should reconcile without notification after 10000 inserted entries', 0, async () => {
+      let file = createFile('hilog_kmsg.8.gz')
+      taskPort.prepareResult = createPrepareResult([file])
+      taskPort.parseResults.set(file.relativePath, createRuleResult(createEntries(10000)))
+
+      let result = await LogImportService.importSelected('/tmp/logs.zip', '/tmp/log_import_tmp')
+
+      expect(result.success).assertTrue()
+      expect(result.insertedEntryCount).assertEqual(10000)
+      expect(storagePort.reconcileCalls.length).assertEqual(2)
+      expect(storagePort.reconcileCalls[0]).assertFalse()
+      expect(storagePort.reconcileCalls[1]).assertTrue()
+    })
+
+    it('should return prepare failure without parsing files', 0, async () => {
+      taskPort.prepareResult = createPrepareResult([], 'invalid_archive')
+
+      let result = await LogImportService.importSelected('/tmp/logs.txt', '/tmp/log_import_tmp')
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('invalid_archive')
-      expect(result.extractedFileCount).assertEqual(1)
-      expect(result.scannedFileCount).assertEqual(1)
-      expect(result.parsedEntryCount).assertEqual(0)
-      expect(result.insertedEntryCount).assertEqual(0)
-      expect(result.skippedDuplicateCount).assertEqual(0)
-      expect(result.skippedExpiredCount).assertEqual(0)
-      expect(result.droppedEntryCount).assertEqual(2)
-      expect(result.failedEntryCount).assertEqual(1)
-      expect(savedEntries.length).assertEqual(0)
+      expect(taskPort.parseCalls.length).assertEqual(0)
+      expect(storagePort.savedBatches.length).assertEqual(0)
+      expect(workspace.cleanupCalls.length).assertEqual(1)
     })
   })
 }
