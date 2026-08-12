@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { LogManageDetailStrings } from '../../../constants/modules/LogManageStrings'
 import { LogEntry, LogEventType } from '../../../models/LogModels'
 import { buildLogDetailViewData } from '../../../presentation/log-manage/LogEntryPresentationMapper'
 import { LogDetailViewData } from '../../../presentation/log-manage/LogEntryPresentationModels'
@@ -27,11 +28,13 @@ export struct LogDetailDialog {
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+
       Text(value)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Start)
@@ -39,25 +42,37 @@ export struct LogDetailDialog {
 
   @Builder
   private dialogContent(viewData: LogDetailViewData) {
-    Column({ space: 14 }) {
-      Column({ space: 10 }) {
-        Text(viewData.title)
-          .fontSize(AppStyles.FONT_SIZE_TITLE)
-          .fontWeight(FontWeight.Bold)
+    Column({ space: 12 }) {
+      Column({ space: 8 }) {
+        Text(LogManageDetailStrings.SUMMARY)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        Row({ space: 12 }) {
-          this.summaryMetric('发生时间', viewData.timestamp)
-          this.summaryMetric('日志类型', viewData.typeLabel)
+
+        Row({ space: 10 }) {
+          this.summaryMetric(LogManageDetailStrings.TIME_LABEL, viewData.timestamp)
+          this.summaryMetric(LogManageDetailStrings.EVENT_TYPE_LABEL, viewData.typeLabel)
+          this.summaryMetric('事件名称', viewData.title)
         }
         .width('100%')
       }
       .width('100%')
-      .alignItems(HorizontalAlign.Start)
       .padding(AppStyles.PADDING_12)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
       .borderRadius(AppStyles.RADIUS_MD)
 
-      LogDetailTable({ sections: viewData.sections, currentTheme: this.currentTheme })
+      Column({ space: 8 }) {
+        Text(LogManageDetailStrings.STRUCTURED_DETAILS)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+
+        LogDetailTable({ sections: viewData.sections, currentTheme: this.currentTheme })
+      }
+      .width('100%')
+      .padding(AppStyles.PADDING_12)
+      .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+      .borderRadius(AppStyles.RADIUS_MD)
     }
     .width('100%')
   }
