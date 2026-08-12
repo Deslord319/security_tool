@@ -1,14 +1,7 @@
 import zlib from '@ohos.zlib'
 import fileIo from '@ohos.file.fs'
-import {
-  LogDetailTableRow,
-  LogEntry,
-  LogEventType
-} from '../../../models/LogModels'
-import {
-  LogManageImportDetailStrings,
-  LogManageKernelImportStrings
-} from '../../../constants/modules/LogManageStrings'
+import { LogEntry, LogEventType, LogField } from '../../../models/LogModels'
+import { LogManageKernelImportStrings } from '../../../constants/modules/LogManageStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogImportHash } from './LogImportHash'
 import {
@@ -287,43 +280,27 @@ export class KernelLogImportRule implements LogImportRule {
       id: '',
       timestamp: parsed.timestamp,
       eventType: LogEventType.KERNEL,
+      eventKey: `kernel.${rule.id}`,
       detail: LogImportHash.normalizeText(line),
       processName: parsed.comm,
       pid: parsed.pid,
       uid: parsed.uid,
       filePath: parsed.path,
       rawEventName: rule.id,
-      rawAction: rule.category,
-      detailRows: KernelLogImportRule.buildDetailRows(rule, file, lineNumber)
+      fields: KernelLogImportRule.buildFields(rule, file, lineNumber)
     }
   }
 
-  private static buildDetailRows(
+  private static buildFields(
     rule: KernelRuleDefinition,
     file: ImportedLogFile,
     lineNumber: number
-  ): LogDetailTableRow[] {
+  ): LogField[] {
     return [
-      {
-        key: 'kernel.ruleId',
-        label: LogManageImportDetailStrings.RULE_ID,
-        value: rule.id
-      },
-      {
-        key: 'kernel.category',
-        label: LogManageImportDetailStrings.CATEGORY,
-        value: rule.category
-      },
-      {
-        key: 'import.sourceFile',
-        label: LogManageImportDetailStrings.SOURCE_FILE,
-        value: file.relativePath
-      },
-      {
-        key: 'import.lineNumber',
-        label: LogManageImportDetailStrings.LINE_NUMBER,
-        value: `${lineNumber}`
-      }
+      { key: 'technical.rule_id', value: rule.id },
+      { key: 'event.category', value: rule.category },
+      { key: 'technical.source_file', value: file.relativePath },
+      { key: 'technical.line_number', value: lineNumber }
     ]
   }
 

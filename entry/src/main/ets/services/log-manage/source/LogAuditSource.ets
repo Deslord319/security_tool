@@ -12,13 +12,7 @@ import {
 import { AuditSubscribeResult, LogEntryCallback } from '../common/LogManagePorts'
 import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
 import { ErrorLike } from '../../../types/LooseValueTypes'
-import {
-  AUDIT_LOG_EVENT_IDS,
-  AUTH_AUDIT_EVENT_IDS,
-  CRASH_AUDIT_EVENT_IDS,
-  FILE_AUDIT_EVENT_IDS,
-  POWER_AUDIT_EVENT_IDS
-} from './LogAuditEventIds'
+import { getAuditEventIdsByType, requiresUserFilePrefix } from './LogAuditEventRegistry'
 
 const TAG = 'LogAuditSource'
 const DEFAULT_FOREGROUND_USER_ID = 100
@@ -49,12 +43,12 @@ export class LogAuditSource {
   private static lastSubscribeFailedEventIds: number[] = []
   private static nowProvider: () => number = () => Date.now()
   private static readonly EVENT_IDS_BY_TYPE: Map<LogEventType, number[]> = new Map<LogEventType, number[]>([
-    [LogEventType.CRASH, CRASH_AUDIT_EVENT_IDS],
-    [LogEventType.FILE, FILE_AUDIT_EVENT_IDS],
-    [LogEventType.ACCOUNT, AUTH_AUDIT_EVENT_IDS],
-    [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]],
-    [LogEventType.POWER, POWER_AUDIT_EVENT_IDS],
-    [LogEventType.AUDIT, AUDIT_LOG_EVENT_IDS]
+    [LogEventType.CRASH, getAuditEventIdsByType(LogEventType.CRASH)],
+    [LogEventType.FILE, getAuditEventIdsByType(LogEventType.FILE)],
+    [LogEventType.ACCOUNT, getAuditEventIdsByType(LogEventType.ACCOUNT)],
+    [LogEventType.PERMISSION, getAuditEventIdsByType(LogEventType.PERMISSION)],
+    [LogEventType.POWER, getAuditEventIdsByType(LogEventType.POWER)],
+    [LogEventType.AUDIT, getAuditEventIdsByType(LogEventType.AUDIT)]
   ])
 
   static async subscribe(onEntry: (entry: LogEntry) => void, eventTypes?: LogEventType[]): Promise<AuditSubscribeResult> {
@@ -200,15 +194,11 @@ export class LogAuditSource {
 
   private static createAuditEventCallback(): (event: securityAudit.AuditEvent) => void {
     return (event: securityAudit.AuditEvent): void => {
-      LogUtils.info(
-        TAG,
-        `AUDIT_RAW_INPUT eventId=${event.eventId}, timestamp=${event.timestamp || '-'}, userId=${event.userId}, content=${event.content || '-'}, metadata=${event.metadata || '-'}`
-      )
       const entry = LogAuditSource.parseAuditEvent(event)
       if (entry && LogAuditSource.callback) {
         LogUtils.info(
           TAG,
-          `AUDIT_RAW_INPUT_ACCEPTED eventId=${event.eventId}, recordId=${entry.id}, rawOutcome=${entry.rawOutcome || '-'}`
+          `audit accepted: eventId=${event.eventId}, eventKey=${entry.eventKey}, recordId=${entry.id}`
         )
         LogAuditSource.callback(entry)
       }
@@ -237,7 +227,7 @@ export class LogAuditSource {
     }
     if (entry.eventType === LogEventType.FILE) {
       LogUtils.info(TAG,
-        `FILE event accepted: eventId=${event.eventId}, eventName=${entry.rawEventName || '-'}, action=${entry.rawAction || '-'}, normalizedPath=${entry.filePath || '-'}`
+        `FILE event accepted: eventId=${event.eventId}, eventKey=${entry.eventKey}, normalizedPath=${entry.filePath || '-'}`
       )
     }
     return entry
@@ -248,7 +238,7 @@ export class LogAuditSource {
     eventId: number,
     fileFilterContext?: FileFilterContext
   ): boolean {
-    if (!FILE_AUDIT_EVENT_IDS.includes(eventId)) {
+    if (!requiresUserFilePrefix(eventId)) {
       return true
     }
     if (!fileFilterContext) {
@@ -287,7 +277,7 @@ export class LogAuditSource {
   }
 
   private static async prepareFileFilterContext(eventIds: number[]): Promise<FileFilterContext | undefined> {
-    if (!eventIds.some((eventId: number) => FILE_AUDIT_EVENT_IDS.includes(eventId))) {
+    if (!eventIds.some((eventId: number) => requiresUserFilePrefix(eventId))) {
       return undefined
     }
     const foregroundUserId = await LogAuditSource.resolveForegroundUserId()

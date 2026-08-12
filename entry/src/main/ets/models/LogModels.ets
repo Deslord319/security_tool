@@ -11,16 +11,24 @@ export enum LogEventType {
   AUDIT = 7
 }
 
-export interface LogDetailTableRow {
+export type LogFieldValue = string | number | boolean
+
+export interface LogField {
   key: string
-  label: string
-  value: string
+  value: LogFieldValue
+}
+
+export interface LogRawPayload {
+  content?: string
+  metadata?: string
+  truncated: boolean
 }
 
 export interface LogEntry {
   id: string
   timestamp: number
   eventType: LogEventType
+  eventKey: string
   detail: string
   processName?: string
   pid?: number
@@ -29,9 +37,8 @@ export interface LogEntry {
   remoteAddr?: string
   sourceEventId?: number
   rawEventName?: string
-  rawOutcome?: string
-  rawAction?: string
-  detailRows?: LogDetailTableRow[]
+  fields?: LogField[]
+  rawPayload?: LogRawPayload
 }
 
 export interface LogStorageConfig {

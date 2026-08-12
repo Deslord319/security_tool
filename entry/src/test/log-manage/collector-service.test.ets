@@ -21,6 +21,7 @@ function createEntry(id: string, detail: string, eventType: LogEventType = LogEv
     id,
     timestamp: Date.now(),
     eventType,
+    eventKey: 'test.event',
     detail,
     filePath
   }

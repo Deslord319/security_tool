@@ -18,6 +18,7 @@ function createEntry(id: string): LogEntry {
     id,
     timestamp: Date.now(),
     eventType: LogEventType.KERNEL,
+    eventKey: 'kernel.hmseh_denied',
     detail: id,
     rawEventName: 'kernel_hmseh_denied'
   }

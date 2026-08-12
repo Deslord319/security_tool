@@ -2,7 +2,8 @@ import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
 import {
   generateLogEntryId,
   LogEntry,
-  LogEventType
+  LogEventType,
+  LogField
 } from '../../../models/LogModels'
 import { LooseRecord } from '../../../types/LooseValueTypes'
 import {
@@ -34,18 +35,23 @@ export function mapCrashInfoToLogEntry(
   if (detailParts.length === 0) {
     detailParts.push(info.name)
   }
+  const fields: LogField[] = []
+  if (reason) fields.push({ key: 'event.reason', value: reason })
+  if (stack) fields.push({ key: 'event.top_stack', value: stack })
+  if (rawAction) fields.push({ key: 'event.action', value: rawAction })
 
   return {
     id: generateLogEntryId(),
     timestamp: resolveCrashTimestamp(params, nowProvider),
     eventType: LogEventType.CRASH,
+    eventKey: 'crash.runtime',
     detail: detailParts.join(' | '),
     processName: processName,
     pid: pickNumber(params, ['pid', 'processId', 'process_id']),
     uid: pickNumber(params, ['uid', 'userId', 'user_id']),
     sourceEventId: undefined,
     rawEventName: info.name,
-    rawAction: rawAction
+    fields
   }
 }
 

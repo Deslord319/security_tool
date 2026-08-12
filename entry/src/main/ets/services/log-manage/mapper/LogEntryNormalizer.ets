@@ -1,23 +1,23 @@
 import {
   ALL_LOG_EVENT_TYPES,
   DEFAULT_LOG_STORAGE_CONFIG,
-  LogDetailTableRow,
+  LogField,
   LogEntry,
-  LogEventType
+  LogEventType,
+  LogRawPayload
 } from '../../../models/LogModels'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
 const MAX_IN_MEMORY_ENTRIES = 100000
 const MAX_DETAIL_LENGTH = 1024
+const MAX_EVENT_KEY_LENGTH = 96
 const MAX_PROCESS_NAME_LENGTH = 128
 const MAX_FILE_PATH_LENGTH = 512
 const MAX_REMOTE_ADDR_LENGTH = 256
 const MAX_RAW_EVENT_NAME_LENGTH = 128
-const MAX_RAW_OUTCOME_LENGTH = 64
-const MAX_RAW_ACTION_LENGTH = 64
-const MAX_DETAIL_ROW_KEY_LENGTH = 64
-const MAX_DETAIL_ROW_LABEL_LENGTH = 128
-const MAX_DETAIL_ROW_VALUE_LENGTH = 64 * 1024
+const MAX_FIELD_KEY_LENGTH = 96
+const MAX_FIELD_STRING_VALUE_LENGTH = 64 * 1024
+const MAX_RAW_PAYLOAD_LENGTH = 64 * 1024
 const TRUNCATION_SUFFIX = '...'
 
 export class LogEntryNormalizer {
@@ -49,6 +49,7 @@ export class LogEntryNormalizer {
       id: LogEntryNormalizer.normalizeEntryId(entry.id),
       timestamp: LogEntryNormalizer.normalizeTimestamp(entry.timestamp),
       eventType: LogEntryNormalizer.normalizeEventType(entry.eventType),
+      eventKey: LogEntryNormalizer.normalizeEventKey(entry.eventKey, entry.eventType),
       detail: LogEntryNormalizer.truncateString(entry.detail, MAX_DETAIL_LENGTH) || '',
       processName: LogEntryNormalizer.truncateString(entry.processName, MAX_PROCESS_NAME_LENGTH),
       pid: entry.pid,
@@ -57,9 +58,8 @@ export class LogEntryNormalizer {
       remoteAddr: LogEntryNormalizer.truncateString(entry.remoteAddr, MAX_REMOTE_ADDR_LENGTH),
       sourceEventId: entry.sourceEventId,
       rawEventName: LogEntryNormalizer.truncateString(entry.rawEventName, MAX_RAW_EVENT_NAME_LENGTH),
-      rawOutcome: LogEntryNormalizer.truncateString(entry.rawOutcome, MAX_RAW_OUTCOME_LENGTH),
-      rawAction: LogEntryNormalizer.truncateString(entry.rawAction, MAX_RAW_ACTION_LENGTH),
-      detailRows: LogEntryNormalizer.normalizeDetailRows(entry.detailRows)
+      fields: LogEntryNormalizer.normalizeFields(entry.fields),
+      rawPayload: LogEntryNormalizer.normalizeRawPayload(entry.rawPayload)
     }
   }
 
@@ -88,31 +88,70 @@ export class LogEntryNormalizer {
     return LogEventType.FILE
   }
 
-  static normalizeDetailRows(rows?: LogDetailTableRow[] | null): LogDetailTableRow[] | undefined {
-    if (!rows || rows.length === 0) {
+  static normalizeFields(fields?: LogField[] | null): LogField[] | undefined {
+    if (!fields || fields.length === 0) {
       return undefined
     }
-    let normalizedRows: LogDetailTableRow[] = []
-    for (let row of rows) {
-      if (!row || typeof row !== 'object') {
+    let normalizedFields: LogField[] = []
+    let seenKeys = new Set<string>()
+    for (let field of fields) {
+      if (!field || typeof field !== 'object' || typeof field.key !== 'string') {
         continue
       }
-      if (typeof row.key !== 'string' || typeof row.label !== 'string' || typeof row.value !== 'string') {
+      let key = LogEntryNormalizer.truncateString(field.key.trim(), MAX_FIELD_KEY_LENGTH)
+      if (!key || seenKeys.has(key)) {
         continue
       }
-      let key = LogEntryNormalizer.truncateString(row.key.trim(), MAX_DETAIL_ROW_KEY_LENGTH)
-      let label = LogEntryNormalizer.truncateString(row.label.trim(), MAX_DETAIL_ROW_LABEL_LENGTH)
-      let value = LogEntryNormalizer.truncateString(row.value.trim(), MAX_DETAIL_ROW_VALUE_LENGTH)
-      if (!key || !label || !value) {
+      let value = field.value
+      if (typeof value === 'string') {
+        value = LogEntryNormalizer.truncateString(value.trim(), MAX_FIELD_STRING_VALUE_LENGTH) || ''
+      }
+      if ((typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') ||
+        (typeof value === 'string' && value.length === 0) ||
+        (typeof value === 'number' && !Number.isFinite(value))) {
         continue
       }
-      normalizedRows.push({
-        key,
-        label,
-        value
-      })
+      seenKeys.add(key)
+      normalizedFields.push({ key, value })
     }
-    return normalizedRows.length > 0 ? normalizedRows : undefined
+    return normalizedFields.length > 0 ? normalizedFields : undefined
+  }
+
+  static normalizeRawPayload(payload?: LogRawPayload | null): LogRawPayload | undefined {
+    if (!payload) {
+      return undefined
+    }
+    const content = payload.content || ''
+    const metadata = payload.metadata || ''
+    if (content.length === 0 && metadata.length === 0) {
+      return undefined
+    }
+    const normalizedContent = content.substring(0, MAX_RAW_PAYLOAD_LENGTH)
+    const remaining = Math.max(0, MAX_RAW_PAYLOAD_LENGTH - normalizedContent.length)
+    const normalizedMetadata = metadata.substring(0, remaining)
+    return {
+      content: normalizedContent.length > 0 ? normalizedContent : undefined,
+      metadata: normalizedMetadata.length > 0 ? normalizedMetadata : undefined,
+      truncated: payload.truncated || content.length > normalizedContent.length || metadata.length > normalizedMetadata.length
+    }
+  }
+
+  private static normalizeEventKey(eventKey: string | undefined, eventType: LogEventType): string {
+    const normalized = LogEntryNormalizer.truncateString((eventKey || '').trim(), MAX_EVENT_KEY_LENGTH)
+    return normalized || `${LogEntryNormalizer.eventTypePrefix(eventType)}.unknown`
+  }
+
+  private static eventTypePrefix(eventType: LogEventType): string {
+    switch (eventType) {
+      case LogEventType.CRASH: return 'crash'
+      case LogEventType.FILE: return 'file'
+      case LogEventType.ACCOUNT: return 'account'
+      case LogEventType.PERMISSION: return 'permission'
+      case LogEventType.POWER: return 'device'
+      case LogEventType.SYSTEM: return 'system'
+      case LogEventType.KERNEL: return 'kernel'
+      default: return 'audit'
+    }
   }
 
   private static normalizeEntryId(id: string | undefined): string {

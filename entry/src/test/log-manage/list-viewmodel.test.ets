@@ -32,6 +32,7 @@ function createEntry(
     id,
     timestamp,
     eventType,
+    eventKey: 'test.event',
     detail
   }
 }

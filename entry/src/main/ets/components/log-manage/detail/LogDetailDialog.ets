@@ -1,18 +1,10 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { LogManageDetailStrings } from '../../../constants/modules/LogManageStrings'
-import {
-  LogDetailTableRow,
-  LogEntry,
-  LogEventType
-} from '../../../models/LogModels'
-import {
-  formatLogTimestamp,
-  getLogEventTypeLabel
-} from '../../../presentation/log-manage/LogPresentationMapper'
+import { LogEntry, LogEventType } from '../../../models/LogModels'
+import { buildLogDetailViewData } from '../../../presentation/log-manage/LogEntryPresentationMapper'
+import { LogDetailViewData } from '../../../presentation/log-manage/LogEntryPresentationModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { LogDetailTable } from './LogDetailTable'
-import { buildLogDetailRows } from '../../../presentation/log-manage/LogDetailRowBuilder'
 
 @CustomDialog
 export struct LogDetailDialog {
@@ -23,13 +15,10 @@ export struct LogDetailDialog {
     id: '',
     timestamp: 0,
     eventType: LogEventType.FILE,
+    eventKey: 'file.unknown',
     detail: ''
-  } as LogEntry
-  onClose: () => void = () => {}
-
-  private getDetailRows(): LogDetailTableRow[] {
-    return buildLogDetailRows(this.entry)
   }
+  onClose: () => void = () => {}
 
   @Builder
   private summaryMetric(label: string, value: string) {
@@ -38,59 +27,37 @@ export struct LogDetailDialog {
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-
       Text(value)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .maxLines(2)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
-  private dialogContent() {
-    Column({ space: 12 }) {
-      Column({ space: 8 }) {
-        Text(LogManageDetailStrings.SUMMARY)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontWeight(FontWeight.Medium)
+  private dialogContent(viewData: LogDetailViewData) {
+    Column({ space: 14 }) {
+      Column({ space: 10 }) {
+        Text(viewData.title)
+          .fontSize(AppStyles.FONT_SIZE_TITLE)
+          .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-
-        Row({ space: 10 }) {
-          this.summaryMetric(
-            LogManageDetailStrings.TIME_LABEL,
-            formatLogTimestamp(this.entry.timestamp)
-          )
-          this.summaryMetric(
-            LogManageDetailStrings.EVENT_TYPE_LABEL,
-            getLogEventTypeLabel(this.entry.eventType)
-          )
+        Row({ space: 12 }) {
+          this.summaryMetric('发生时间', viewData.timestamp)
+          this.summaryMetric('日志类型', viewData.typeLabel)
         }
         .width('100%')
       }
       .width('100%')
+      .alignItems(HorizontalAlign.Start)
       .padding(AppStyles.PADDING_12)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
       .borderRadius(AppStyles.RADIUS_MD)
 
-      Column({ space: 8 }) {
-        Text(LogManageDetailStrings.STRUCTURED_DETAILS)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-
-        LogDetailTable({
-          rows: this.getDetailRows(),
-          currentTheme: this.currentTheme
-        })
-      }
-      .width('100%')
-      .padding(AppStyles.PADDING_12)
-      .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-      .borderRadius(AppStyles.RADIUS_MD)
+      LogDetailTable({ sections: viewData.sections, currentTheme: this.currentTheme })
     }
     .width('100%')
   }
@@ -105,7 +72,7 @@ export struct LogDetailDialog {
       showCloseAction: true,
       onClose: this.onClose,
       content: () => {
-        this.dialogContent()
+        this.dialogContent(buildLogDetailViewData(this.entry))
       }
     })
   }

@@ -24,8 +24,10 @@ function createLogEntry(
     id,
     timestamp: timestamp ?? Date.now(),
     eventType,
+    eventKey: 'system.test',
     detail,
-    processName: 'TestProcess'
+    processName: 'TestProcess',
+    fields: [{ key: 'event.summary', value: detail }]
   }
 }
 
@@ -174,7 +176,7 @@ export default function logExportServiceTest() {
       let result = await LogExportService.export({} as common.UIAbilityContext)
 
       expect(result.success).assertTrue()
-      expect(captured[1].indexOf('\"alpha, \"\"quoted\"\"\\nline\"') > -1).assertTrue()
+      expect(captured[1].indexOf('alpha, \"\"quoted\"\"\\nline') > -1).assertTrue()
       expect(captured[1].indexOf('\"Test,Process\"') > -1).assertTrue()
       done()
     })
