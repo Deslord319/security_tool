@@ -11,6 +11,7 @@ import { formatStandardDateTime } from '../../../utils/DateTimeFormatUtils'
 import { ExportLogsResult, LogQuery } from '../common/LogManagePorts'
 import { LogEntryRepository } from '../repository/LogEntryRepository'
 import { CsvFileExportService, CsvFileWritePort } from '../../common/export/CsvFileExportService'
+import { buildLogListItemViewData } from '../../../presentation/log-manage/LogEntryPresentationMapper'
 
 const TAG = 'LogExportService'
 const EXPORT_PAGE_SIZE = 500
@@ -58,7 +59,9 @@ export class LogExportService {
     for (let entry of entries) {
       let time = formatStandardDateTime(entry.timestamp)
       let type = resolveLogEventTypeLabel(entry.eventType)
-      let detail = entry.detail
+      let viewData = buildLogListItemViewData(entry)
+      let detail = viewData.context ? `${viewData.eventLabel}：${viewData.title}（${viewData.context}）` :
+        `${viewData.eventLabel}：${viewData.title}`
       let process = entry.processName || ''
       let pid = entry.pid !== undefined ? entry.pid.toString() : ''
       lines.push(CsvFileExportService.buildCsvLine([time, type, detail, process, pid]))

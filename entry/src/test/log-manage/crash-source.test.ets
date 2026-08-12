@@ -21,8 +21,8 @@ export default function logCrashSourceTest() {
       let entry = mapCrashInfoToLogEntry(info)
 
       expect(entry.eventType).assertEqual(LogEventType.CRASH)
+      expect(entry.eventKey).assertEqual('crash.runtime')
       expect((entry.processName ?? '').length >= 0).assertTrue()
-      expect(entry.rawOutcome).assertEqual(undefined)
       expect(entry.detail.indexOf('native crash') >= 0).assertTrue()
     })
 
@@ -34,7 +34,7 @@ export default function logCrashSourceTest() {
 
       let entry = mapCrashInfoToLogEntry(info)
 
-      expect(entry.rawOutcome).assertEqual(undefined)
+      expect(entry.eventKey).assertEqual('crash.runtime')
       expect(entry.detail).assertEqual(hiAppEvent.event.APP_FREEZE)
     })
 

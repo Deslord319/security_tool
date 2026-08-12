@@ -2,9 +2,10 @@ import relationalStore from '@ohos.data.relationalStore'
 import { AppInfo } from '../../../constants/AppConstants'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
-  LogDetailTableRow,
   LogEntry,
   LogEventType,
+  LogField,
+  LogRawPayload,
   LogStatistics,
   ALL_LOG_EVENT_TYPES
 } from '../../../models/LogModels'
@@ -17,10 +18,15 @@ import {
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 import { LooseRecord } from '../../../types/LooseValueTypes'
+import {
+  DEVICE_POWER_OFF_AUDIT_EVENT_ID,
+  DEVICE_POWER_ON_AUDIT_EVENT_ID
+} from '../../../constants/modules/LogAuditEventConstants'
 
 const TAG = 'LogEntryRepository'
 const TABLE_NAME = 'log_entries'
 const MAX_IMPORT_LOOKUP_IDS = 1000
+const POWER_AUDIT_EVENT_IDS_SQL = `${DEVICE_POWER_ON_AUDIT_EVENT_ID}, ${DEVICE_POWER_OFF_AUDIT_EVENT_ID}`
 
 const CREATE_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS log_entries (
@@ -45,19 +51,51 @@ CREATE INDEX IF NOT EXISTS idx_log_entries_event_type
 ON log_entries(event_type)
 `
 
-interface LogEntryExtraData {
+const CLEAN_DUPLICATE_POWER_AUDIT_SQL = `
+DELETE FROM log_entries
+WHERE event_type = '${LogEventType.POWER}'
+  AND json_extract(extra_json, '$.sourceEventId') IN (${POWER_AUDIT_EVENT_IDS_SQL})
+  AND id NOT IN (
+    SELECT MAX(id)
+    FROM log_entries
+    WHERE event_type = '${LogEventType.POWER}'
+      AND json_extract(extra_json, '$.sourceEventId') IN (${POWER_AUDIT_EVENT_IDS_SQL})
+    GROUP BY timestamp,
+      json_extract(extra_json, '$.sourceEventId'),
+      COALESCE(json_extract(extra_json, '$.uid'), -1)
+  )
+`
+
+const CREATE_UNIQUE_POWER_AUDIT_INDEX_SQL = `
+CREATE UNIQUE INDEX IF NOT EXISTS idx_log_entries_power_audit_identity
+ON log_entries(
+  timestamp,
+  json_extract(extra_json, '$.sourceEventId'),
+  COALESCE(json_extract(extra_json, '$.uid'), -1)
+)
+WHERE event_type = '${LogEventType.POWER}'
+  AND json_extract(extra_json, '$.sourceEventId') IN (${POWER_AUDIT_EVENT_IDS_SQL})
+`
+
+const LOG_ENTRY_EXTRA_SCHEMA_VERSION = 2
+
+export interface LogEntryExtraData {
+  schemaVersion?: number
+  eventKey?: string
   pid?: number
   uid?: number
   remoteAddr?: string
   sourceEventId?: number
   rawEventName?: string
-  rawOutcome?: string
-  rawAction?: string
-  detailRows?: LogDetailTableRow[]
+  fields?: LogField[]
+  rawPayload?: LogRawPayload
 }
 
 export function serializeLogEntryExtraData(entry: LogEntry): string | null {
-  let extra: LogEntryExtraData = {}
+  let extra: LogEntryExtraData = {
+    schemaVersion: LOG_ENTRY_EXTRA_SCHEMA_VERSION,
+    eventKey: entry.eventKey
+  }
   if (entry.pid !== undefined) {
     extra.pid = entry.pid
   }
@@ -73,15 +111,13 @@ export function serializeLogEntryExtraData(entry: LogEntry): string | null {
   if (entry.rawEventName !== undefined) {
     extra.rawEventName = entry.rawEventName
   }
-  if (entry.rawOutcome !== undefined) {
-    extra.rawOutcome = entry.rawOutcome
+  let fields = LogEntryNormalizer.normalizeFields(entry.fields)
+  if (fields !== undefined) {
+    extra.fields = fields
   }
-  if (entry.rawAction !== undefined) {
-    extra.rawAction = entry.rawAction
-  }
-  let detailRows = LogEntryNormalizer.normalizeDetailRows(entry.detailRows)
-  if (detailRows !== undefined) {
-    extra.detailRows = detailRows
+  let rawPayload = LogEntryNormalizer.normalizeRawPayload(entry.rawPayload)
+  if (rawPayload !== undefined) {
+    extra.rawPayload = rawPayload
   }
   let keys = Object.keys(extra)
   return keys.length > 0 ? JSON.stringify(extra) : null
@@ -97,15 +133,22 @@ export function deserializeLogEntryExtraData(rawValue: string | undefined): LogE
       return {}
     }
     let extra = parsed as LooseRecord
+    const schemaVersion = pickNumber([extra], ['schemaVersion'])
+    const eventKey = pickString([extra], ['eventKey'])
+    if (schemaVersion !== LOG_ENTRY_EXTRA_SCHEMA_VERSION || !eventKey) {
+      LogUtils.warn(TAG, `unsupported extra_json schemaVersion=${schemaVersion ?? '-'}, eventKey=${eventKey || '-'}`)
+      return {}
+    }
     return {
+      schemaVersion,
+      eventKey,
       pid: pickNumber([extra], ['pid']),
       uid: pickNumber([extra], ['uid']),
       remoteAddr: pickString([extra], ['remoteAddr']),
       sourceEventId: pickNumber([extra], ['sourceEventId']),
       rawEventName: pickString([extra], ['rawEventName']),
-      rawOutcome: pickString([extra], ['rawOutcome']),
-      rawAction: pickString([extra], ['rawAction']),
-      detailRows: LogEntryNormalizer.normalizeDetailRows(extra.detailRows as LogDetailTableRow[] | undefined)
+      fields: LogEntryNormalizer.normalizeFields(extra.fields as LogField[] | undefined),
+      rawPayload: LogEntryNormalizer.normalizeRawPayload(extra.rawPayload as LogRawPayload | undefined)
     }
   } catch (err) {
     LogUtils.warn(TAG, `parseExtraJson failed: ${JSON.stringify(err)}`)
@@ -164,7 +207,9 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
       createStatements: [
         CREATE_TABLE_SQL,
         CREATE_INDEX_TIMESTAMP_SQL,
-        CREATE_INDEX_EVENT_TYPE_SQL
+        CREATE_INDEX_EVENT_TYPE_SQL,
+        CLEAN_DUPLICATE_POWER_AUDIT_SQL,
+        CREATE_UNIQUE_POWER_AUDIT_INDEX_SQL
       ]
     })
   }
@@ -303,10 +348,12 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
     let extraJsonIndex = reader.getColumnIndex('extra_json')
     do {
       let extra = this.parseExtraJson(reader.getOptionalString(extraJsonIndex))
+      const eventType = this.parseEventType(reader.getRequiredString(eventTypeIndex))
       entries.push({
         id: reader.getRequiredString(recordIdIndex),
         timestamp: reader.getRequiredNumber(timestampIndex),
-        eventType: this.parseEventType(reader.getRequiredString(eventTypeIndex)),
+        eventType,
+        eventKey: extra.eventKey || this.buildUnknownEventKey(eventType),
         detail: reader.getRequiredString(detailIndex),
         processName: reader.getOptionalString(processNameIndex),
         pid: extra.pid,
@@ -315,9 +362,8 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
         remoteAddr: extra.remoteAddr,
         sourceEventId: extra.sourceEventId,
         rawEventName: extra.rawEventName,
-        rawOutcome: extra.rawOutcome,
-        rawAction: extra.rawAction,
-        detailRows: LogEntryNormalizer.normalizeDetailRows(extra.detailRows)
+        fields: extra.fields,
+        rawPayload: extra.rawPayload
       })
     } while (reader.moveToNext())
     return entries
@@ -377,6 +423,19 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
       return numeric as LogEventType
     }
     return LogEventType.FILE
+  }
+
+  private buildUnknownEventKey(eventType: LogEventType): string {
+    switch (eventType) {
+      case LogEventType.CRASH: return 'crash.unknown'
+      case LogEventType.FILE: return 'file.unknown'
+      case LogEventType.ACCOUNT: return 'account.unknown'
+      case LogEventType.PERMISSION: return 'permission.unknown'
+      case LogEventType.POWER: return 'device.unknown'
+      case LogEventType.SYSTEM: return 'system.unknown'
+      case LogEventType.KERNEL: return 'kernel.unknown'
+      default: return 'audit.unknown'
+    }
   }
 
   private parseExtraJson(rawValue: string | undefined): LogEntryExtraData {

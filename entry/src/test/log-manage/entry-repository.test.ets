@@ -1,10 +1,6 @@
 import { describe, expect, it } from '@ohos/hypium'
 
-import {
-  LogDetailTableRow,
-  LogEntry,
-  LogEventType
-} from '../../main/ets/models/LogModels'
+import { LogEntry, LogEventType } from '../../main/ets/models/LogModels'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
 import {
   buildExistingEntryIdsQuery,
@@ -20,31 +16,30 @@ export default function logEntryRepositoryTest() {
       expect(LogEntryRepository !== null).assertTrue()
     })
 
-    it('should serialize and restore detail rows in extra json payload', 0, () => {
-      let detailRows: LogDetailTableRow[] = [
-        {
-          key: 'sourceEventId',
-          label: '事件 ID',
-          value: '268435712'
-        }
-      ]
+    it('should serialize and restore schema v2 structured fields', 0, () => {
       let entry: LogEntry = {
         id: 'entry-1',
         timestamp: Date.now(),
         eventType: LogEventType.FILE,
+        eventKey: 'file.open',
         detail: 'detail',
-        detailRows: detailRows
+        fields: [{ key: 'object.file_path', value: '/data/a.txt' }]
       }
 
       let payload = serializeLogEntryExtraData(entry)
       expect(payload !== null).assertTrue()
 
       let restored = deserializeLogEntryExtraData(payload ?? undefined)
-      expect(restored.detailRows !== undefined).assertTrue()
-      expect(restored.detailRows!.length).assertEqual(1)
-      expect(restored.detailRows![0].key).assertEqual('sourceEventId')
-      expect(restored.detailRows![0].label).assertEqual('事件 ID')
-      expect(restored.detailRows![0].value).assertEqual('268435712')
+      expect(restored.schemaVersion).assertEqual(2)
+      expect(restored.eventKey).assertEqual('file.open')
+      expect(restored.fields?.[0].key).assertEqual('object.file_path')
+      expect(restored.fields?.[0].value).assertEqual('/data/a.txt')
+    })
+
+    it('should reject legacy extra payloads without compatibility parsing', 0, () => {
+      const restored = deserializeLogEntryExtraData('{"detailRows":[]}')
+      expect(restored.schemaVersion === undefined).assertTrue()
+      expect(restored.fields === undefined).assertTrue()
     })
 
     it('should build timestamp lower bound query with existing filters', 0, () => {
@@ -100,12 +95,14 @@ export default function logEntryRepositoryTest() {
           id: '1',
           timestamp: Date.now(),
           eventType: LogEventType.FILE,
+          eventKey: 'file.open',
           detail: 'alpha'
         },
         {
           id: '2',
           timestamp: Date.now(),
           eventType: LogEventType.PERMISSION,
+          eventKey: 'permission.change',
           detail: 'beta'
         }
       ])
@@ -122,6 +119,7 @@ export default function logEntryRepositoryTest() {
           id: ' ',
           timestamp: Date.now(),
           eventType: 999 as LogEventType,
+          eventKey: ' ',
           detail: longText
         }
       ])

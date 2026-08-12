@@ -1,14 +1,8 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { LogManageDetailStrings } from '../../../constants/modules/LogManageStrings'
-import {
-  LogDetailTableRow,
-  LogEntry,
-  LogEventType
-} from '../../../models/LogModels'
-import {
-  formatLogTimestamp,
-  getLogEventTypeLabel
-} from '../../../presentation/log-manage/LogPresentationMapper'
+import { LogEntry, LogEventType } from '../../../models/LogModels'
+import { buildLogDetailViewData } from '../../../presentation/log-manage/LogEntryPresentationMapper'
+import { LogDetailViewData } from '../../../presentation/log-manage/LogEntryPresentationModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { LogDetailTable } from './LogDetailTable'
@@ -22,13 +16,10 @@ export struct LogDetailDialog {
     id: '',
     timestamp: 0,
     eventType: LogEventType.FILE,
+    eventKey: 'file.unknown',
     detail: ''
-  } as LogEntry
-  onClose: () => void = () => {}
-
-  private getDetailRows(): LogDetailTableRow[] {
-    return this.entry.detailRows ?? []
   }
+  onClose: () => void = () => {}
 
   @Builder
   private summaryMetric(label: string, value: string) {
@@ -50,7 +41,7 @@ export struct LogDetailDialog {
   }
 
   @Builder
-  private dialogContent() {
+  private dialogContent(viewData: LogDetailViewData) {
     Column({ space: 12 }) {
       Column({ space: 8 }) {
         Text(LogManageDetailStrings.SUMMARY)
@@ -59,14 +50,9 @@ export struct LogDetailDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
         Row({ space: 10 }) {
-          this.summaryMetric(
-            LogManageDetailStrings.TIME_LABEL,
-            formatLogTimestamp(this.entry.timestamp)
-          )
-          this.summaryMetric(
-            LogManageDetailStrings.EVENT_TYPE_LABEL,
-            getLogEventTypeLabel(this.entry.eventType)
-          )
+          this.summaryMetric(LogManageDetailStrings.TIME_LABEL, viewData.timestamp)
+          this.summaryMetric(LogManageDetailStrings.EVENT_TYPE_LABEL, viewData.typeLabel)
+          this.summaryMetric('事件名称', viewData.title)
         }
         .width('100%')
       }
@@ -81,10 +67,7 @@ export struct LogDetailDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-        LogDetailTable({
-          rows: this.getDetailRows(),
-          currentTheme: this.currentTheme
-        })
+        LogDetailTable({ sections: viewData.sections, currentTheme: this.currentTheme })
       }
       .width('100%')
       .padding(AppStyles.PADDING_12)
@@ -104,7 +87,7 @@ export struct LogDetailDialog {
       showCloseAction: true,
       onClose: this.onClose,
       content: () => {
-        this.dialogContent()
+        this.dialogContent(buildLogDetailViewData(this.entry))
       }
     })
   }

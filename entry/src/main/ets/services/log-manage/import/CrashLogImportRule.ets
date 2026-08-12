@@ -1,9 +1,4 @@
-import {
-  LogDetailTableRow,
-  LogEntry,
-  LogEventType
-} from '../../../models/LogModels'
-import { LogManageImportDetailStrings } from '../../../constants/modules/LogManageStrings'
+import { LogEntry, LogEventType, LogField } from '../../../models/LogModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogImportHash } from './LogImportHash'
 import {
@@ -109,13 +104,13 @@ export class CrashLogImportRule implements LogImportRule {
       id: '',
       timestamp: parsed.timestamp,
       eventType: LogEventType.CRASH,
+      eventKey: CrashLogImportRule.resolveEventKey(parsed.crashType),
       detail,
       processName: parsed.processName,
       pid: parsed.pid,
       uid: parsed.uid,
       rawEventName: parsed.crashType,
-      rawAction: parsed.reason,
-      detailRows: CrashLogImportRule.buildDetailRows(parsed, file)
+      fields: CrashLogImportRule.buildFields(parsed, file)
     }
   }
 
@@ -130,25 +125,31 @@ export class CrashLogImportRule implements LogImportRule {
     return LogImportHash.normalizeText(parts.join(' | '))
   }
 
-  private static buildDetailRows(parsed: ParsedCrashLog, file: ImportedLogFile): LogDetailTableRow[] {
-    let rows: LogDetailTableRow[] = [
-      { key: 'crash.type', label: '崩溃类型', value: parsed.crashType },
-      { key: 'import.sourceFile', label: LogManageImportDetailStrings.SOURCE_FILE, value: file.relativePath },
-      { key: 'crash.reason', label: '原因', value: parsed.reason },
-      { key: 'crash.timestamp', label: '发生时间', value: `${parsed.timestamp}` }
+  private static buildFields(parsed: ParsedCrashLog, file: ImportedLogFile): LogField[] {
+    let fields: LogField[] = [
+      { key: 'event.crash_type', value: parsed.crashType },
+      { key: 'technical.source_file', value: file.relativePath },
+      { key: 'event.reason', value: parsed.reason }
     ]
-    CrashLogImportRule.appendOptionalRow(rows, 'crash.errorName', '错误名称', parsed.errorName)
-    CrashLogImportRule.appendOptionalRow(rows, 'crash.errorMessage', '错误消息', parsed.errorMessage)
-    CrashLogImportRule.appendOptionalRow(rows, 'crash.stringId', 'STRINGID', parsed.stringId)
-    CrashLogImportRule.appendOptionalRow(rows, 'crash.topStack', 'Top stack', parsed.topStack)
-    return rows
+    CrashLogImportRule.appendOptionalField(fields, 'event.error_name', parsed.errorName)
+    CrashLogImportRule.appendOptionalField(fields, 'event.error_message', parsed.errorMessage)
+    CrashLogImportRule.appendOptionalField(fields, 'technical.string_id', parsed.stringId)
+    CrashLogImportRule.appendOptionalField(fields, 'event.top_stack', parsed.topStack)
+    return fields
   }
 
-  private static appendOptionalRow(rows: LogDetailTableRow[], key: string, label: string, value?: string): void {
+  private static appendOptionalField(fields: LogField[], key: string, value?: string): void {
     if (!value || value.length === 0) {
       return
     }
-    rows.push({ key, label, value } as LogDetailTableRow)
+    fields.push({ key, value })
+  }
+
+  private static resolveEventKey(crashType: string): string {
+    if (crashType === 'appfreeze') return 'crash.app_freeze'
+    if (crashType === 'jscrash') return 'crash.javascript'
+    if (crashType === 'cppcrash') return 'crash.native'
+    return 'crash.runtime'
   }
 
   private static parseCrashType(fileName: string): string | undefined {

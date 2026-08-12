@@ -1,14 +1,6 @@
 import fileIo from '@ohos.file.fs'
-import {
-  LogDetailTableRow,
-  LogEntry,
-  LogEventType
-} from '../../../models/LogModels'
+import { LogEntry, LogEventType, LogField } from '../../../models/LogModels'
 import { TimeConstants } from '../../../constants/TimeConstants'
-import {
-  LogManageDetailStrings,
-  LogManageImportDetailStrings
-} from '../../../constants/modules/LogManageStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogImportHash } from './LogImportHash'
 import {
@@ -46,7 +38,7 @@ interface SystemParsedEvent {
   timestamp?: number
   processName?: string
   detail: string
-  detailRows?: LogDetailTableRow[]
+  fields?: LogField[]
 }
 
 type SystemLogLineReader = (
@@ -57,7 +49,7 @@ type SystemLogLineReader = (
 const TAG = 'SystemLogImportRule'
 const YIELD_EVERY_LINES = 200
 const MAX_DETAIL_LENGTH = 280
-const MAX_ROW_VALUE_LENGTH = 360
+const MAX_FIELD_VALUE_LENGTH = 360
 const EPOCH_MILLIS_THRESHOLD = 100000000000
 const FUTURE_SKEW_TOLERANCE_MS = TimeConstants.DAY_IN_MS
 
@@ -169,7 +161,7 @@ export class SystemLogImportRule implements LogImportRule {
       timestamp: state.timestamp ?? fallbackTimestamp,
       processName: state.processName ?? SystemLogImportRule.processNameFromPath(file.relativePath),
       detail: SystemLogImportRule.buildSummary(rule.category, state.summary()),
-      detailRows: SystemLogImportRule.buildCommonRows(rule, file, state.summary())
+      fields: SystemLogImportRule.buildCommonFields(rule, file, state.summary())
     }]
   }
 
@@ -228,7 +220,7 @@ export class SystemLogImportRule implements LogImportRule {
       timestamp: state.timestamp ?? fallbackTimestamp,
       processName: SystemLogImportRule.processNameFromPath(file.relativePath),
       detail: SystemLogImportRule.buildSummary(rule.category, state.summary()),
-      detailRows: SystemLogImportRule.buildCommonRows(rule, file, state.summary())
+      fields: SystemLogImportRule.buildCommonFields(rule, file, state.summary())
     }]
   }
 
@@ -249,7 +241,7 @@ export class SystemLogImportRule implements LogImportRule {
       timestamp: state.timestamp ?? fallbackTimestamp,
       processName: state.processName ?? SystemLogImportRule.processNameFromPath(file.relativePath),
       detail: SystemLogImportRule.buildSummary(rule.category, state.summary()),
-      detailRows: SystemLogImportRule.buildCommonRows(rule, file, state.summary())
+      fields: SystemLogImportRule.buildCommonFields(rule, file, state.summary())
     }]
   }
 
@@ -269,7 +261,7 @@ export class SystemLogImportRule implements LogImportRule {
         timestamp: SystemLogImportRule.parseTimestampFromText(line, fallbackTimestamp),
         processName: SystemLogImportRule.processNameFromPath(file.relativePath),
         detail: SystemLogImportRule.buildSummary(rule.category, normalized),
-        detailRows: SystemLogImportRule.buildCommonRows(rule, file, normalized, lineNumber)
+        fields: SystemLogImportRule.buildCommonFields(rule, file, normalized, lineNumber)
       })
     })
     return events
@@ -292,7 +284,7 @@ export class SystemLogImportRule implements LogImportRule {
       timestamp: state.timestamp ?? timestamp,
       processName: state.processName ?? SystemLogImportRule.processNameFromPath(file.relativePath),
       detail: SystemLogImportRule.buildSummary(rule.category, title.length > 0 ? `${title} ${summary}` : summary),
-      detailRows: SystemLogImportRule.buildCommonRows(rule, file, summary)
+      fields: SystemLogImportRule.buildCommonFields(rule, file, summary)
     })
   }
 
@@ -303,35 +295,31 @@ export class SystemLogImportRule implements LogImportRule {
       id: '',
       timestamp,
       eventType: LogEventType.SYSTEM,
+      eventKey: `system.${event.rule.id}`,
       detail,
       processName: event.processName,
       filePath: file.relativePath,
       rawEventName: event.rule.id,
-      rawAction: event.rule.category,
-      detailRows: event.detailRows
+      fields: event.fields
     }
   }
 
-  private static buildCommonRows(
+  private static buildCommonFields(
     rule: SystemRuleDefinition,
     file: ImportedLogFile,
     summary: string,
     lineNumber?: number
-  ): LogDetailTableRow[] {
-    let rows: LogDetailTableRow[] = [
-      { key: 'system.ruleId', label: LogManageImportDetailStrings.RULE_ID, value: rule.id },
-      { key: 'system.category', label: LogManageImportDetailStrings.CATEGORY, value: rule.category },
-      { key: 'import.sourceFile', label: LogManageImportDetailStrings.SOURCE_FILE, value: file.relativePath },
-      {
-        key: 'system.summary',
-        label: LogManageDetailStrings.SUMMARY,
-        value: SystemLogImportRule.truncate(summary, MAX_ROW_VALUE_LENGTH)
-      }
+  ): LogField[] {
+    let fields: LogField[] = [
+      { key: 'technical.rule_id', value: rule.id },
+      { key: 'event.category', value: rule.category },
+      { key: 'technical.source_file', value: file.relativePath },
+      { key: 'event.summary', value: SystemLogImportRule.truncate(summary, MAX_FIELD_VALUE_LENGTH) }
     ]
     if (lineNumber !== undefined) {
-      rows.push({ key: 'import.lineNumber', label: LogManageImportDetailStrings.LINE_NUMBER, value: `${lineNumber}` })
+      fields.push({ key: 'technical.line_number', value: lineNumber })
     }
-    return rows
+    return fields
   }
 
   private static findRule(file: ImportedLogFile): SystemRuleDefinition | undefined {
@@ -515,7 +503,7 @@ class SummaryState {
   private parts: string[] = []
 
   consume(line: string): void {
-    let normalized = SystemLogImportRule.truncate(line, MAX_ROW_VALUE_LENGTH)
+    let normalized = SystemLogImportRule.truncate(line, MAX_FIELD_VALUE_LENGTH)
     if (normalized.length === 0 || this.isSeparator(normalized)) {
       return
     }

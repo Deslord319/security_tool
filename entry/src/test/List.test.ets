@@ -32,6 +32,7 @@ import logCollectorServiceTest from './log-manage/collector-service.test'
 import logSettingsRepositoryTest from './log-manage/settings-repository.test'
 import logCrashSourceTest from './log-manage/crash-source.test'
 import logEntryNormalizerTest from './log-manage/entry-normalizer.test'
+import logEntryPresentationTest from './log-manage/entry-presentation.test'
 import logExportServiceTest from './log-manage/export-service.test'
 import logArchiveExtractorTest from './log-manage/archive-extractor.test'
 import logImportHashTest from './log-manage/import-hash.test'
@@ -48,7 +49,6 @@ import logPathUtilsTest from './log-manage/path-utils.test'
 import logEntryRepositoryTest from './log-manage/entry-repository.test'
 import logSettingsViewModelTest from './log-manage/settings-viewmodel.test'
 import logTimestampResolverTest from './log-manage/timestamp-resolver.test'
-import logPowerLifecycleSourceTest from './log-manage/power-lifecycle-source.test'
 import dataModelsTest from './models/data-models.test'
 import peripheralBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
 import bluetoothConnectionRecordCoordinatorTest from './peripheral/bluetooth-connection-record-coordinator.test'
@@ -125,6 +125,7 @@ export default function testsuite() {
   logSettingsRepositoryTest()
   logCrashSourceTest()
   logEntryNormalizerTest()
+  logEntryPresentationTest()
   logExportServiceTest()
   logArchiveExtractorTest()
   logImportHashTest()
@@ -141,7 +142,6 @@ export default function testsuite() {
   logEntryRepositoryTest()
   logSettingsViewModelTest()
   logTimestampResolverTest()
-  logPowerLifecycleSourceTest()
   dataModelsTest()
   peripheralBluetoothAclConsumerTest()
   bluetoothConnectionRecordCoordinatorTest()

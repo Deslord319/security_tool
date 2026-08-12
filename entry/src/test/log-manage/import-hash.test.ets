@@ -7,12 +7,11 @@ function createEntry(detail: string, sourceFile: string): LogEntry {
     id: '',
     timestamp: 1,
     eventType: LogEventType.KERNEL,
+    eventKey: 'kernel.hmseh_denied',
     detail,
     processName: 'demo',
     rawEventName: 'kernel_hmseh_denied',
-    detailRows: [
-      { key: 'import.sourceFile', label: '来源文件', value: sourceFile }
-    ]
+    fields: [{ key: 'technical.source_file', value: sourceFile }]
   }
 }
 

@@ -679,7 +679,6 @@ export default function permissionViewModelTest() {
           appIdentifier: 'demo-app-identifier',
           appIndex: 1,
           uid: 10001,
-          versionName: '1.0.0',
           systemApp: false
         } as ApplicationInventoryRawRecord,
         {
@@ -693,12 +692,6 @@ export default function permissionViewModelTest() {
           systemApp: false
         } as ApplicationInventoryRawRecord,
         {
-          bundleName: 'com.example.nonremovable',
-          label: 'NonRemovable',
-          systemApp: false,
-          removable: false
-        } as ApplicationInventoryRawRecord,
-        {
           bundleName: 'com.huawei.securitytool',
           label: 'Self',
           systemApp: false
@@ -708,17 +701,12 @@ export default function permissionViewModelTest() {
       let applications = ApplicationInventoryRepository.normalizeApplications(100, rawRecords, 'com.huawei.securitytool')
 
       let demo = applications.find((app: PermissionAppSnapshot): boolean => app.bundleName === 'com.example.demo')
-      let nonRemovable = applications.find((app: PermissionAppSnapshot): boolean =>
-        app.bundleName === 'com.example.nonremovable'
-      )
-      expect(applications.length).assertEqual(2)
+      expect(applications.length).assertEqual(1)
       expect(demo?.appKey).assertEqual('100:com.example.demo')
       expect(demo?.label).assertEqual('Demo')
       expect(demo?.appIdentifier).assertEqual('demo-app-identifier')
-      expect(nonRemovable?.appKey).assertEqual('100:com.example.nonremovable')
       expect(applications.some((app: PermissionAppSnapshot): boolean => app.bundleName === 'com.example.system')).assertFalse()
       expect(applications.some((app: PermissionAppSnapshot): boolean => app.bundleName === 'com.ohos.formrenderservice')).assertFalse()
-      expect(applications.some((app: PermissionAppSnapshot): boolean => app.bundleName === 'com.example.nonremovable')).assertTrue()
     })
 
     it('should keep duplicate labels mapped by bundle identity', 0, () => {

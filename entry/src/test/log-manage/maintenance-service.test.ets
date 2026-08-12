@@ -66,6 +66,7 @@ export default function logStorageMaintenanceServiceTest() {
         id: 'import-entry',
         timestamp: Date.now(),
         eventType: LogEventType.KERNEL,
+        eventKey: 'kernel.import',
         detail: 'import detail'
       }]
 

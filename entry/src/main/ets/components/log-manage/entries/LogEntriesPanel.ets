@@ -1,12 +1,11 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
 import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
-import { LogManageDetailStrings, LogManageEmptyStateStrings } from '../../../constants/modules/LogManageStrings'
+import { LogManageEmptyStateStrings } from '../../../constants/modules/LogManageStrings'
 import { LogEntry } from '../../../models/LogModels'
 import { LogFilterState, LogListState } from '../../../models/LogManageModels'
-import {
-  formatLogTimestamp,
-  getLogEventTypeLabel
-} from '../../../presentation/log-manage/LogPresentationMapper'
+import { formatLogTimestamp } from '../../../presentation/log-manage/LogPresentationMapper'
+import { buildLogListItemViewData } from '../../../presentation/log-manage/LogEntryPresentationMapper'
+import { LogListItemViewData } from '../../../presentation/log-manage/LogEntryPresentationModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
@@ -30,30 +29,30 @@ export struct LogEntriesPanel {
   }
 
   @Builder
-  private logEntryRow(entry: LogEntry) {
+  private logEntryRow(entry: LogEntry, viewData: LogListItemViewData) {
     Row() {
       Text(formatLogTimestamp(entry.timestamp))
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .width(140)
 
-      Text(getLogEventTypeLabel(entry.eventType))
+      Text(viewData.eventLabel)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
         .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
         .borderRadius(AppStyles.RADIUS_SM)
         .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-        .width(96)
+        .width(112)
         .textAlign(TextAlign.Center)
 
       Column({ space: 2 }) {
-        Text(entry.detail)
+        Text(viewData.title)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        if (entry.processName) {
-          Text(`${LogManageDetailStrings.PROCESS_LABEL}: ${entry.processName}${entry.pid !== undefined ? ` (PID: ${entry.pid})` : ''}`)
+        if (viewData.context) {
+          Text(viewData.context)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -113,7 +112,7 @@ export struct LogEntriesPanel {
           List({ space: 1 }) {
             ForEach(this.listState.pagedEntries, (entry: LogEntry) => {
               ListItem() {
-                this.logEntryRow(entry)
+                this.logEntryRow(entry, buildLogListItemViewData(entry))
               }
             }, (entry: LogEntry) => entry.id)
           }
