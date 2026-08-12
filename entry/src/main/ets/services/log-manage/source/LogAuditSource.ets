@@ -12,7 +12,13 @@ import {
 import { AuditSubscribeResult, LogEntryCallback } from '../common/LogManagePorts'
 import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
 import { ErrorLike } from '../../../types/LooseValueTypes'
-import { AUDIT_LOG_EVENT_IDS, AUTH_AUDIT_EVENT_IDS, CRASH_AUDIT_EVENT_IDS, FILE_AUDIT_EVENT_IDS } from './LogAuditEventIds'
+import {
+  AUDIT_LOG_EVENT_IDS,
+  AUTH_AUDIT_EVENT_IDS,
+  CRASH_AUDIT_EVENT_IDS,
+  FILE_AUDIT_EVENT_IDS,
+  POWER_AUDIT_EVENT_IDS
+} from './LogAuditEventIds'
 
 const TAG = 'LogAuditSource'
 const DEFAULT_FOREGROUND_USER_ID = 100
@@ -47,6 +53,7 @@ export class LogAuditSource {
     [LogEventType.FILE, FILE_AUDIT_EVENT_IDS],
     [LogEventType.ACCOUNT, AUTH_AUDIT_EVENT_IDS],
     [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]],
+    [LogEventType.POWER, POWER_AUDIT_EVENT_IDS],
     [LogEventType.AUDIT, AUDIT_LOG_EVENT_IDS]
   ])
 

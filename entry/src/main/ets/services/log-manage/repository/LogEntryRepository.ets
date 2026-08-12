@@ -17,10 +17,15 @@ import {
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 import { LooseRecord } from '../../../types/LooseValueTypes'
+import {
+  DEVICE_POWER_OFF_AUDIT_EVENT_ID,
+  DEVICE_POWER_ON_AUDIT_EVENT_ID
+} from '../../../constants/modules/LogAuditEventConstants'
 
 const TAG = 'LogEntryRepository'
 const TABLE_NAME = 'log_entries'
 const MAX_IMPORT_LOOKUP_IDS = 1000
+const POWER_AUDIT_EVENT_IDS_SQL = `${DEVICE_POWER_ON_AUDIT_EVENT_ID}, ${DEVICE_POWER_OFF_AUDIT_EVENT_ID}`
 
 const CREATE_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS log_entries (
@@ -43,6 +48,32 @@ ON log_entries(timestamp DESC, id DESC)
 const CREATE_INDEX_EVENT_TYPE_SQL = `
 CREATE INDEX IF NOT EXISTS idx_log_entries_event_type
 ON log_entries(event_type)
+`
+
+const CLEAN_DUPLICATE_POWER_AUDIT_SQL = `
+DELETE FROM log_entries
+WHERE event_type = '${LogEventType.POWER}'
+  AND json_extract(extra_json, '$.sourceEventId') IN (${POWER_AUDIT_EVENT_IDS_SQL})
+  AND id NOT IN (
+    SELECT MAX(id)
+    FROM log_entries
+    WHERE event_type = '${LogEventType.POWER}'
+      AND json_extract(extra_json, '$.sourceEventId') IN (${POWER_AUDIT_EVENT_IDS_SQL})
+    GROUP BY timestamp,
+      json_extract(extra_json, '$.sourceEventId'),
+      COALESCE(json_extract(extra_json, '$.uid'), -1)
+  )
+`
+
+const CREATE_UNIQUE_POWER_AUDIT_INDEX_SQL = `
+CREATE UNIQUE INDEX IF NOT EXISTS idx_log_entries_power_audit_identity
+ON log_entries(
+  timestamp,
+  json_extract(extra_json, '$.sourceEventId'),
+  COALESCE(json_extract(extra_json, '$.uid'), -1)
+)
+WHERE event_type = '${LogEventType.POWER}'
+  AND json_extract(extra_json, '$.sourceEventId') IN (${POWER_AUDIT_EVENT_IDS_SQL})
 `
 
 interface LogEntryExtraData {
@@ -164,7 +195,9 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
       createStatements: [
         CREATE_TABLE_SQL,
         CREATE_INDEX_TIMESTAMP_SQL,
-        CREATE_INDEX_EVENT_TYPE_SQL
+        CREATE_INDEX_EVENT_TYPE_SQL,
+        CLEAN_DUPLICATE_POWER_AUDIT_SQL,
+        CREATE_UNIQUE_POWER_AUDIT_INDEX_SQL
       ]
     })
   }

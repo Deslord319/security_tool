@@ -10,7 +10,6 @@ import { PreferencesToolSettingsRepository } from '../services/tool-settings/sys
 import { BusinessError, commonEventManager, emitter } from '@kit.BasicServicesKit';
 import { statusBarManager } from '@kit.DeskTopExtensionKit';
 import { loadStatusBar, holdStatusBar } from '../utils/StatusBarUtil';
-import { LogPowerLifecycleSource } from '../services/log-manage/source/LogPowerLifecycleSource';
 import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager';
 import { LooseRecord } from '../types/LooseValueTypes';
 
@@ -39,15 +38,11 @@ export default class EntryAbility extends UIAbility {
       LogUtils.error(ENTRYABILITY_TAG, 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
     this.createTerminateSubscriber()
-    LogPowerLifecycleSource.init(this.context).catch((err: Error) => {
-      LogUtils.warn(ENTRYABILITY_TAG, 'LogPowerLifecycleSource init failed: %{public}s', JSON.stringify(err))
-    })
     this.initStatusBar()
   }
 
   onDestroy(): void {
     ApplicationRuntimeManager.getInstance().release()
-    LogPowerLifecycleSource.destroy()
     statusBarManager.off('statusBarIconClick', this.statusBarIconClickHandler)
     if (this.terminateSubscriber) {
       commonEventManager.unsubscribe(this.terminateSubscriber, (err?: BusinessError) => {

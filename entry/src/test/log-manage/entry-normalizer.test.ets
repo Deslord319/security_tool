@@ -71,7 +71,7 @@ export default function entryNormalizerTest() {
     })
 
     it('should normalize detail rows and drop empty values', 0, () => {
-      let longText = 'x'.repeat(1100)
+      let longText = 'x'.repeat(70 * 1024)
       let normalized = LogEntryNormalizer.normalizeEntry(createEntry(
         'entry-3',
         'detail',
@@ -101,7 +101,7 @@ export default function entryNormalizerTest() {
       expect(normalized.detailRows![0].key).assertEqual('sourceEventId')
       expect(normalized.detailRows![0].label).assertEqual('事件 ID')
       expect(normalized.detailRows![0].value).assertEqual('12345')
-      expect(normalized.detailRows![1].value.length <= 1024).assertTrue()
+      expect(normalized.detailRows![1].value.length).assertEqual(64 * 1024)
       expect(normalized.detailRows![1].value.endsWith('...')).assertTrue()
     })
 

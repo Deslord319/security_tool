@@ -21,7 +21,10 @@ import { resolveAuditSourceTimestamp } from './LogTimestampResolver'
 import {
   AUDIT_EVENT_DESCRIPTIONS_BY_ID,
   AUDIT_EVENT_TYPES_BY_ID,
-  FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID
+  DEVICE_POWER_OFF_AUDIT_EVENT_ID,
+  DEVICE_POWER_ON_AUDIT_EVENT_ID,
+  FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID,
+  POWER_AUDIT_EVENT_DESCRIPTIONS_BY_ID
 } from './LogAuditEventIds'
 
 const TAG = 'LogAuditEventMapper'
@@ -74,8 +77,11 @@ export function parseAuditEventToLogEntry(
     return undefined
   }
 
-  const timestamp = resolveAuditSourceTimestamp(event.timestamp || '', nowProvider)
-  const parsed = parseAuditPayload(event.content || '', event.metadata, mappedType, event, timestamp)
+  const content = event.content || ''
+  const contentJson = safeParseJson(content)
+  const metadataJson = safeParseJson(event.metadata)
+  const timestamp = resolveAuditEntryTimestamp(event, mappedType, contentJson, nowProvider)
+  const parsed = parseAuditPayload(content, event.metadata, contentJson, metadataJson, mappedType, event, timestamp)
   LogUtils.info(
     TAG,
     `AUDIT_MAPPED eventId=${event.eventId}, eventType=${mappedType}, rawEventName=${parsed.rawEventName || '-'}, rawAction=${parsed.rawAction || '-'}, rawOutcome=${parsed.rawOutcome || '-'}, processName=${parsed.processName || '-'}, filePath=${parsed.filePath || '-'}, detail=${parsed.detail}`
@@ -101,12 +107,12 @@ export function parseAuditEventToLogEntry(
 function parseAuditPayload(
   content: string,
   metadata: string | undefined,
+  contentJson: LooseRecord | undefined,
+  metadataJson: LooseRecord | undefined,
   eventType: LogEventType,
   event: securityAudit.AuditEvent,
   timestamp: number
 ): ParsedAuditPayload {
-  const contentJson = safeParseJson(content)
-  const metadataJson = safeParseJson(metadata)
   const sources = collectJsonSources(contentJson, metadataJson)
   const rawOutcome = resolveRawOutcome(sources)
   const fileAuditPathInfo = resolveFileAuditPathInfo(content, metadata, sources)
@@ -123,7 +129,7 @@ function parseAuditPayload(
     pid: pickNumber(sources, ['pid', 'processId', 'process_id']),
     filePath: fileAuditPathInfo.primaryPath,
     remoteAddr: pickString(sources, ['remoteAddress', 'remoteAddr', 'remote_addr', 'remoteIp', 'remote_ip', 'dstAddr', 'dst_addr', 'dstIp', 'dst_ip', 'peerAddr', 'peer_addr']),
-    rawEventName: pickString(sources, ['event_name', 'eventName', 'name', 'name_', 'EVENT_NAME']),
+    rawEventName: resolveRawEventName(event, sources),
     rawOutcome: rawOutcome,
     rawAction: pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state', 'OPERATION_TYPE', 'AUTH_TYPE']) ||
       pickNumberOrFirstArrayNumber(sources, ['OPERATION_TYPE', 'AUTH_TYPE'])
@@ -141,8 +147,20 @@ function buildAuditEntryDetail(
   rows: LogDetailTableRow[],
   fallbackDetail: string
 ): string {
-  if (eventType !== LogEventType.AUDIT || event.eventId !== securityAudit.NotifyEvent.EDM) {
+  if (eventType === LogEventType.POWER) {
+    return POWER_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(event.eventId) || fallbackDetail
+  }
+  if (eventType !== LogEventType.AUDIT) {
     return fallbackDetail
+  }
+  if (event.eventId === securityAudit.NotifyEvent.APP) {
+    return buildAppAuditDetail(rows)
+  }
+  if (event.eventId === securityAudit.NotifyEvent.PROCESS) {
+    return buildProcessAuditDetail(rows)
+  }
+  if (event.eventId !== securityAudit.NotifyEvent.EDM) {
+    return buildGenericAuditDetail(rows)
   }
   let parts: string[] = []
   appendNonEmpty(parts, getDetailRowValue(rows, 'audit.edm.objectRemark') ||
@@ -150,6 +168,78 @@ function buildAuditEntryDetail(
   appendNonEmpty(parts, getDetailRowValue(rows, 'audit.edm.operationTypeRemark') ||
     getDetailRowValue(rows, 'audit.edm.operationType'))
   return parts.length > 0 ? parts.join(' | ') : fallbackDetail
+}
+
+function resolveAuditEntryTimestamp(
+  event: securityAudit.AuditEvent,
+  eventType: LogEventType,
+  contentJson: LooseRecord | undefined,
+  nowProvider: () => number
+): number {
+  if (eventType === LogEventType.POWER) {
+    const happenTime = contentJson ? pickNumber(contentJson, ['happenTime', 'happen_time']) : undefined
+    if (happenTime !== undefined && happenTime > 0) {
+      return happenTime
+    }
+  }
+  return resolveAuditSourceTimestamp(event.timestamp || '', nowProvider)
+}
+
+function buildAppAuditDetail(rows: LogDetailTableRow[]): string {
+  const subType = getDetailRowValue(rows, 'audit.content.subType')
+  let action = subType === '0' ? '应用启动' : (subType === '1' ? '应用退出' : '应用程序事件')
+  let target = getFirstDetailRowValue(rows, [
+    'audit.content.objectInfo',
+    'audit.content.bundleName',
+    'audit.content.bundle_name'
+  ])
+  return joinAuditSummary(action, target)
+}
+
+function buildProcessAuditDetail(rows: LogDetailTableRow[]): string {
+  const subType = getDetailRowValue(rows, 'audit.content.subType')
+  let action = subType === '2' ? '进程创建' : (subType === '-1' ? '进程退出' : '进程创建或退出事件')
+  let target = getFirstDetailRowValue(rows, [
+    'audit.content.extra.procName',
+    'audit.content.extra.processName',
+    'audit.content.extra.cmdline',
+    'audit.content.procName',
+    'audit.content.processName',
+    'audit.content.objectInfo'
+  ])
+  return joinAuditSummary(action, target)
+}
+
+function buildGenericAuditDetail(rows: LogDetailTableRow[]): string {
+  let description = getDetailRowValue(rows, 'audit.description') || LogManageAuditStrings.FALLBACK_DETAIL
+  let target = getFirstDetailRowValue(rows, [
+    'audit.content.objectInfo',
+    'audit.content.objectInfo.host',
+    'audit.content.bundleName',
+    'audit.content.bundle_name',
+    'audit.content.eventName',
+    'audit.content.event_name'
+  ])
+  return joinAuditSummary(description, target)
+}
+
+function joinAuditSummary(description: string, target: string): string {
+  let parts: string[] = []
+  appendNonEmpty(parts, description)
+  if (target !== description) {
+    appendNonEmpty(parts, target)
+  }
+  return parts.join(' | ')
+}
+
+function getFirstDetailRowValue(rows: LogDetailTableRow[], keys: string[]): string {
+  for (const key of keys) {
+    const value = getDetailRowValue(rows, key)
+    if (value.length > 0) {
+      return value
+    }
+  }
+  return ''
 }
 
 function getDetailRowValue(rows: LogDetailTableRow[], key: string): string {
@@ -260,6 +350,19 @@ function buildDetailRows(
       appendNumberRow(rows, 'crash.eventId', '事件 ID', event.eventId)
       break
     }
+    case LogEventType.POWER: {
+      appendTextRow(
+        rows,
+        'power.description',
+        LogManageAuditStrings.DESCRIPTION_LABEL,
+        POWER_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(event.eventId)
+      )
+      appendTextRow(rows, 'power.eventName', '事件名称', resolveRawEventName(event, sources))
+      appendTextRow(rows, 'power.timestamp', '事件时间', formatStandardDateTime(timestamp))
+      appendNumberRow(rows, 'power.eventId', '事件 ID', event.eventId)
+      appendTextRow(rows, 'power.rawJson', LogManageAuditStrings.RAW_JSON_LABEL, buildRawAuditJson(event))
+      break
+    }
     case LogEventType.AUDIT: {
       appendTextRow(rows, 'audit.description', LogManageAuditStrings.DESCRIPTION_LABEL, resolveAuditEventDescription(event.eventId))
       appendEdmDetailRows(rows, event, sources)
@@ -269,11 +372,92 @@ function buildDetailRows(
     default:
       break
   }
+  appendStructuredPayloadRows(rows, 'audit.content', '事件内容', contentJson, event.content || '')
+  appendStructuredPayloadRows(rows, 'audit.metadata', '事件元数据', metadataJson, event.metadata || '')
   return rows
+}
+
+function appendStructuredPayloadRows(
+  rows: LogDetailTableRow[],
+  keyPrefix: string,
+  labelPrefix: string,
+  parsed: LooseRecord | undefined,
+  rawValue: string
+): void {
+  if (parsed) {
+    appendJsonObjectRows(rows, keyPrefix, labelPrefix, parsed, 0)
+    return
+  }
+  appendTextRow(rows, `${keyPrefix}.raw`, `${labelPrefix}（原文）`, rawValue)
+}
+
+function appendJsonObjectRows(
+  rows: LogDetailTableRow[],
+  keyPrefix: string,
+  labelPrefix: string,
+  source: LooseRecord,
+  depth: number
+): void {
+  const keys = Object.keys(source)
+  for (let fieldName of keys) {
+    const value = source[fieldName]
+    const fieldKey = `${keyPrefix}.${fieldName}`
+    const fieldLabel = `${labelPrefix} · ${fieldName}`
+    if (value === undefined) {
+      continue
+    }
+    if (typeof value === 'string' && depth < 5) {
+      const nestedJson = safeParseJson(value)
+      if (nestedJson) {
+        appendJsonObjectRows(rows, fieldKey, fieldLabel, nestedJson, depth + 1)
+        continue
+      }
+    }
+    if (isExpandableObject(value) && depth < 5) {
+      appendJsonObjectRows(rows, fieldKey, fieldLabel, value as LooseRecord, depth + 1)
+      continue
+    }
+    appendTextRow(rows, fieldKey, fieldLabel, formatStructuredValue(value))
+  }
+}
+
+function isExpandableObject(value: LooseValue): boolean {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function formatStructuredValue(value: LooseValue): string | undefined {
+  if (typeof value === 'string') {
+    return value
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return `${value}`
+  }
+  if (value && typeof value === 'object') {
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return `${value}`
+    }
+  }
+  return undefined
 }
 
 function resolveAuditEventDescription(eventId: number): string {
   return AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(eventId) || `事件 ID: ${eventId}`
+}
+
+function resolveRawEventName(event: securityAudit.AuditEvent, sources: LooseRecord[]): string | undefined {
+  const rawName = pickString(sources, ['event_name', 'eventName', 'name', 'name_', 'EVENT_NAME'])
+  if (rawName) {
+    return rawName
+  }
+  if (event.eventId === DEVICE_POWER_ON_AUDIT_EVENT_ID) {
+    return 'DEVICE_POWER_ON'
+  }
+  if (event.eventId === DEVICE_POWER_OFF_AUDIT_EVENT_ID) {
+    return 'DEVICE_POWER_OFF'
+  }
+  return undefined
 }
 
 function resolveFileAuditEventDescription(eventId: number): string | undefined {

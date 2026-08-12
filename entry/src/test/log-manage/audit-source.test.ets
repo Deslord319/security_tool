@@ -9,15 +9,19 @@ import {
   formatLogTimestamp
 } from '../../main/ets/presentation/log-manage/LogPresentationMapper'
 import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
+import { buildLogDetailRows } from '../../main/ets/presentation/log-manage/LogDetailRowBuilder'
 import {
-  API26_VERIFIED_FILE_AUDIT_EVENT_IDS,
+  API26_FILE_AUDIT_EVENT_IDS,
   AUDIT_EVENT_DESCRIPTIONS_BY_ID,
   AUDIT_EVENT_TYPES_BY_ID,
   AUDIT_LOG_EVENT_IDS,
   AUTH_AUDIT_EVENT_IDS,
   CRASH_AUDIT_EVENT_IDS,
+  DEVICE_POWER_OFF_AUDIT_EVENT_ID,
+  DEVICE_POWER_ON_AUDIT_EVENT_ID,
   FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID,
-  FILE_AUDIT_EVENT_IDS
+  FILE_AUDIT_EVENT_IDS,
+  POWER_AUDIT_EVENT_IDS
 } from '../../main/ets/services/log-manage/source/LogAuditEventIds'
 
 interface AuditLogEntryWithDetailRows extends LogEntry {
@@ -173,56 +177,18 @@ export default function logAuditSourceTest() {
       let rows = getDetailRows(entry)
 
       expect(!!entry).assertTrue()
-      expect(rows.length).assertEqual(4)
+      expect(rows.length >= 4).assertTrue()
       expect(getRowValue(rows, 'account.userName')).assertEqual('111')
       expect(getRowValue(rows, 'account.userId')).assertEqual('100')
       expect(getRowValue(rows, 'account.timestamp')).assertEqual(formatLogTimestamp(entry!.timestamp))
       expect(getRowValue(rows, 'account.eventId')).assertEqual(`${securityAudit.NotifyEvent.ACCOUNT}`)
     })
 
-    it('should map authentication audit event ids into account log entries', 0, () => {
-      const timestamp = '20260415162544'
-      let successEvent = {
-        eventId: AUTH_AUDIT_EVENT_IDS[1],
-        timestamp,
-        userId: 100,
-        content: JSON.stringify({
-          OPERATION_TIME: '2026-04-15 16:25:44',
-          CALLER_NAME: 'com.huawei.securitytool',
-          AUTH_TYPE: 1,
-          AUTH_RESULT: 0,
-          AUTH_TIME_SPAN: 197,
-          AUTH_FINISH_REASON: 'SimpleAuthContext InvokeResultCallback'
-        }),
-        metadata: ''
-      } as securityAudit.AuditEvent
-      let failedEvent = {
-        eventId: AUTH_AUDIT_EVENT_IDS[2],
-        timestamp,
-        userId: 100,
-        content: JSON.stringify({
-          HAPPEN_TIME: '2026-04-15 16:25:45.001',
-          PNAMEID: 'com.ohos.sceneboard',
-          AUTH_TYPE: 1,
-          RESULT_CODE_LIST: [1]
-        }),
-        metadata: ''
-      } as securityAudit.AuditEvent
-
-      let successEntry = parseAuditEventToLogEntry(successEvent)
-      let failedEntry = parseAuditEventToLogEntry(failedEvent)
-      let successRows = getDetailRows(successEntry)
-
-      expect(!!successEntry).assertTrue()
-      expect(successEntry!.eventType).assertEqual(LogEventType.ACCOUNT)
-      expect(successEntry!.processName).assertEqual('com.huawei.securitytool')
-      expect(getRowValue(successRows, 'account.callerName')).assertEqual('com.huawei.securitytool')
-      expect(getRowValue(successRows, 'account.authType')).assertEqual('1')
-      expect(getRowValue(successRows, 'account.authResultRaw')).assertEqual('0')
-      expect(getRowValue(successRows, 'account.operationTime')).assertEqual('2026-04-15 16:25:44')
-      expect(!!failedEntry).assertTrue()
-      expect(failedEntry!.eventType).assertEqual(LogEventType.ACCOUNT)
-      expect(failedEntry!.processName).assertEqual('com.ohos.sceneboard')
+    it('should only map the official account notify event', 0, () => {
+      expect(AUTH_AUDIT_EVENT_IDS.length).assertEqual(1)
+      expect(AUTH_AUDIT_EVENT_IDS[0]).assertEqual(securityAudit.NotifyEvent.ACCOUNT)
+      expect(AUDIT_EVENT_TYPES_BY_ID.has(0x27000004)).assertFalse()
+      expect(AUDIT_EVENT_TYPES_BY_ID.has(0x27000005)).assertFalse()
     })
 
     it('should map crash audit event ids into crash log entries', 0, () => {
@@ -240,32 +206,63 @@ export default function logAuditSourceTest() {
         }),
         metadata: ''
       } as securityAudit.AuditEvent
-      let systemCrashEvent = {
-        eventId: CRASH_AUDIT_EVENT_IDS[1],
-        timestamp,
-        userId: 100,
-        content: JSON.stringify({
-          EVENT_NAME: 'system_crash',
-          process_name: 'foundation',
-          pid: 3456,
-          uid: 1000
-        }),
-        metadata: ''
-      } as securityAudit.AuditEvent
-
       let appCrashEntry = parseAuditEventToLogEntry(appCrashEvent)
-      let systemCrashEntry = parseAuditEventToLogEntry(systemCrashEvent)
       let appRows = getDetailRows(appCrashEntry)
 
+      expect(CRASH_AUDIT_EVENT_IDS.length).assertEqual(1)
+      expect(CRASH_AUDIT_EVENT_IDS[0]).assertEqual(securityAudit.NotifyEvent.PROCESS_CRASH_ABNORMAL)
       expect(!!appCrashEntry).assertTrue()
       expect(appCrashEntry!.eventType).assertEqual(LogEventType.CRASH)
       expect(appCrashEntry!.processName).assertEqual('com.example.demo')
       expect(getRowValue(appRows, 'crash.eventName')).assertEqual('app_crash')
       expect(getRowValue(appRows, 'crash.pid')).assertEqual('2345')
       expect(getRowValue(appRows, 'crash.eventId')).assertEqual(`${CRASH_AUDIT_EVENT_IDS[0]}`)
-      expect(!!systemCrashEntry).assertTrue()
-      expect(systemCrashEntry!.eventType).assertEqual(LogEventType.CRASH)
-      expect(systemCrashEntry!.processName).assertEqual('foundation')
+      expect(AUDIT_EVENT_TYPES_BY_ID.get(securityAudit.NotifyEvent.PROCESS_DEBUG_ABNORMAL))
+        .assertEqual(LogEventType.AUDIT)
+      expect(AUDIT_EVENT_TYPES_BY_ID.has(0x2700000D)).assertFalse()
+    })
+
+    it('should map API26 device power audit events into structured power entries', 0, () => {
+      let powerOnEntry = parseAuditEventToLogEntry({
+        eventId: DEVICE_POWER_ON_AUDIT_EVENT_ID,
+        timestamp: '20260812152527',
+        userId: 100,
+        content: JSON.stringify({ eventName: 'DEVICE_POWER_ON', reason: 'reboot', happenTime: 1786519527000 }),
+        metadata: JSON.stringify({ deviceId: 'api26-device', seqNum: 1 })
+      } as securityAudit.AuditEvent)
+      let powerOffEntry = parseAuditEventToLogEntry({
+        eventId: DEVICE_POWER_OFF_AUDIT_EVENT_ID,
+        timestamp: '20260812153000',
+        userId: 100,
+        content: JSON.stringify({ eventName: 'DEVICE_POWER_OFF', reason: 'reboot', happenTime: 1786519800000 }),
+        metadata: JSON.stringify({ deviceId: 'api26-device', seqNum: 2 })
+      } as securityAudit.AuditEvent)
+      let powerOffRows = getDetailRows(powerOffEntry)
+      let displayedPowerOffRows = buildLogDetailRows(powerOffEntry!)
+
+      expect(POWER_AUDIT_EVENT_IDS.length).assertEqual(2)
+      expect(AUDIT_EVENT_TYPES_BY_ID.get(DEVICE_POWER_ON_AUDIT_EVENT_ID)).assertEqual(LogEventType.POWER)
+      expect(AUDIT_EVENT_TYPES_BY_ID.get(DEVICE_POWER_OFF_AUDIT_EVENT_ID)).assertEqual(LogEventType.POWER)
+      expect(powerOnEntry!.detail).assertEqual('设备启动')
+      expect(powerOnEntry!.rawEventName).assertEqual('DEVICE_POWER_ON')
+      expect(powerOnEntry!.timestamp).assertEqual(1786519527000)
+      expect(powerOffEntry!.detail).assertEqual('设备关闭')
+      expect(powerOffEntry!.rawEventName).assertEqual('DEVICE_POWER_OFF')
+      expect(powerOffEntry!.timestamp).assertEqual(1786519800000)
+      expect(getRowValue(powerOffRows, 'power.description')).assertEqual('设备关闭')
+      expect(getRowValue(powerOffRows, 'power.eventId')).assertEqual(`${DEVICE_POWER_OFF_AUDIT_EVENT_ID}`)
+      expect(getRowValue(powerOffRows, 'audit.content.reason')).assertEqual('reboot')
+      expect(getRowValue(powerOffRows, 'audit.metadata.deviceId')).assertEqual('api26-device')
+      expect(getRowValue(powerOffRows, 'power.rawJson').indexOf('DEVICE_POWER_OFF') >= 0).assertTrue()
+      expect(displayedPowerOffRows.filter((row: LogDetailTableRow): boolean =>
+        row.value === '设备关闭'
+      ).length).assertEqual(1)
+      expect(displayedPowerOffRows.filter((row: LogDetailTableRow): boolean =>
+        row.value === `${DEVICE_POWER_OFF_AUDIT_EVENT_ID}`
+      ).length).assertEqual(1)
+      expect(displayedPowerOffRows.filter((row: LogDetailTableRow): boolean =>
+        row.value === 'DEVICE_POWER_OFF'
+      ).length).assertEqual(1)
     })
 
     it('should map permission audit payload into detail rows', 0, () => {
@@ -325,7 +322,7 @@ export default function logAuditSourceTest() {
       let rows = getDetailRows(entry)
 
       expect(!!entry).assertTrue()
-      expect(rows.length).assertEqual(7)
+      expect(rows.length >= 7).assertTrue()
       expect(getRowValue(rows, 'permission.bundleName')).assertEqual('cn.wps.office.hap')
       expect(getRowValue(rows, 'permission.pid')).assertEqual('8938')
       expect(getRowValue(rows, 'permission.uid')).assertEqual('20020149')
@@ -333,6 +330,9 @@ export default function logAuditSourceTest() {
       expect(getRowValue(rows, 'permission.newPermissionState')).assertEqual('STATE_CHANGE_GRANTED')
       expect(getRowValue(rows, 'permission.timestamp')).assertEqual(formatLogTimestamp(entry!.timestamp))
       expect(getRowValue(rows, 'permission.eventId')).assertEqual(`${securityAudit.NotifyEvent.PERMISSION}`)
+      expect(getRowValue(rows, 'audit.content.extra.bundleName')).assertEqual('cn.wps.office.hap')
+      expect(getRowValue(rows, 'audit.content.extra.newPermission.PermissionName'))
+        .assertEqual('ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY')
     })
 
     it('should map file audit payload into detail rows', 0, () => {
@@ -357,7 +357,7 @@ export default function logAuditSourceTest() {
       let rows = getDetailRows(entry)
 
       expect(!!entry).assertTrue()
-      expect(rows.length).assertEqual(7)
+      expect(rows.length >= 7).assertTrue()
       expect(getRowValue(rows, 'file.operation')).assertEqual('file_write')
       expect(getRowValue(rows, 'file.filePath')).assertEqual('/data/storage/el2/base/files/demo.txt')
       expect(getRowValue(rows, 'file.processName')).assertEqual('demo-app')
@@ -396,23 +396,28 @@ export default function logAuditSourceTest() {
       expect(getRowValue(rows, 'file.newPath')).assertEqual('/storage/Users/currentUser/Download/333.txt')
     })
 
-    it('should include verified API26 file audit events in file subscription scope', 0, () => {
-      const verifiedIds: number[] = [
-        0x1C001104,
-        0x1C001106,
-        0x1C001109,
-        0x1C00110A,
-        0x1C00110B,
-        0x1C00110C,
-        0x1C00110D
+    it('should include API26 file audit events in file subscription scope', 0, () => {
+      const api26Ids: number[] = [
+        securityAudit.NotifyEvent.FILE_CREATE,
+        securityAudit.NotifyEvent.FILE_OPEN,
+        securityAudit.NotifyEvent.FILE_CLOSE,
+        securityAudit.NotifyEvent.FILE_DELETE,
+        securityAudit.NotifyEvent.FILE_RENAME,
+        securityAudit.NotifyEvent.FILE_COPY,
+        securityAudit.NotifyEvent.FILE_SETOWNER,
+        securityAudit.NotifyEvent.FILE_SETMODE,
+        securityAudit.NotifyEvent.FILE_SETEXTATTR,
+        securityAudit.NotifyEvent.FILE_DELETEEXTATTR,
+        securityAudit.NotifyEvent.FILE_WRITE
       ]
 
-      expect(API26_VERIFIED_FILE_AUDIT_EVENT_IDS.length).assertEqual(verifiedIds.length)
-      for (const eventId of verifiedIds) {
-        expect(API26_VERIFIED_FILE_AUDIT_EVENT_IDS.includes(eventId)).assertTrue()
+      expect(API26_FILE_AUDIT_EVENT_IDS.length).assertEqual(api26Ids.length)
+      for (const eventId of api26Ids) {
+        expect(API26_FILE_AUDIT_EVENT_IDS.includes(eventId)).assertTrue()
         expect(FILE_AUDIT_EVENT_IDS.includes(eventId)).assertTrue()
         expect(AUDIT_EVENT_TYPES_BY_ID.get(eventId)).assertEqual(LogEventType.FILE)
       }
+      expect(FILE_AUDIT_EVENT_IDS.includes(securityAudit.NotifyEvent.KIA_PRE_OPEN)).assertTrue()
     })
 
     it('should expose verified API26 file audit event descriptions', 0, () => {
@@ -550,13 +555,64 @@ export default function logAuditSourceTest() {
 
       expect(!!entry).assertTrue()
       expect(entry!.eventType).assertEqual(LogEventType.AUDIT)
+      expect(entry!.detail).assertEqual('应用程序事件 | com.example.demo')
       expect(AUDIT_LOG_EVENT_IDS.includes(securityAudit.NotifyEvent.APP)).assertTrue()
-      expect(rows.length).assertEqual(2)
+      expect(rows.length > 2).assertTrue()
       expect(getRowValue(rows, 'audit.description')).assertEqual('应用程序事件')
+      expect(getRowValue(rows, 'audit.content.eventName')).assertEqual('application_event')
+      expect(getRowValue(rows, 'audit.content.bundleName')).assertEqual('com.example.demo')
+      expect(getRowValue(rows, 'audit.metadata.seqNum')).assertEqual('12')
+      expect(getRowValue(rows, 'audit.metadata.source')).assertEqual('security_audit')
       expect(rawJson.indexOf('"eventId"') >= 0).assertTrue()
       expect(rawJson.indexOf(`${securityAudit.NotifyEvent.APP}`) >= 0).assertTrue()
       expect(rawJson.indexOf('application_event') >= 0).assertTrue()
       expect(rawJson.indexOf('security_audit') >= 0).assertTrue()
+    })
+
+    it('should build device-verified APP start and exit summaries', 0, () => {
+      let startEntry = parseAuditEventToLogEntry({
+        eventId: securityAudit.NotifyEvent.APP,
+        timestamp: '20260812152000',
+        userId: 100,
+        content: JSON.stringify({ objectInfo: 'com.example.demo', subType: 0, type: 1 }),
+        metadata: ''
+      } as securityAudit.AuditEvent)
+      let exitEntry = parseAuditEventToLogEntry({
+        eventId: securityAudit.NotifyEvent.APP,
+        timestamp: '20260812152100',
+        userId: 100,
+        content: JSON.stringify({ objectInfo: 'com.example.demo', subType: 1, type: 1 }),
+        metadata: ''
+      } as securityAudit.AuditEvent)
+
+      expect(startEntry!.detail).assertEqual('应用启动 | com.example.demo')
+      expect(exitEntry!.detail).assertEqual('应用退出 | com.example.demo')
+    })
+
+    it('should build device-verified PROCESS create and exit summaries', 0, () => {
+      let createEntry = parseAuditEventToLogEntry({
+        eventId: securityAudit.NotifyEvent.PROCESS,
+        timestamp: '20260812152200',
+        userId: 100,
+        content: JSON.stringify({
+          subType: 2,
+          extra: JSON.stringify({ procName: 'com.example.demo', pid: 1234 })
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent)
+      let exitEntry = parseAuditEventToLogEntry({
+        eventId: securityAudit.NotifyEvent.PROCESS,
+        timestamp: '20260812152300',
+        userId: 100,
+        content: JSON.stringify({
+          subType: -1,
+          extra: JSON.stringify({ procName: 'com.example.demo', pid: 1234 })
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent)
+
+      expect(createEntry!.detail).assertEqual('进程创建 | com.example.demo')
+      expect(exitEntry!.detail).assertEqual('进程退出 | com.example.demo')
     })
 
     it('should append confirmed EDM object info remark rows for known device management events', 0, () => {
@@ -726,6 +782,19 @@ export default function logAuditSourceTest() {
       expect(AUDIT_EVENT_TYPES_BY_ID.has(securityAudit.NotifyEvent.NETWORK_CONN)).assertFalse()
       expect(AUDIT_EVENT_DESCRIPTIONS_BY_ID.has(securityAudit.NotifyEvent.NETWORK_TRAFFIC)).assertFalse()
       expect(AUDIT_EVENT_DESCRIPTIONS_BY_ID.has(securityAudit.NotifyEvent.NETWORK_CONN)).assertFalse()
+    })
+
+    it('should subscribe API26 data exchange events as audit logs', 0, () => {
+      const eventIds: number[] = [
+        securityAudit.NotifyEvent.FILE_SHARE,
+        securityAudit.NotifyEvent.DATA_DRAG,
+        securityAudit.NotifyEvent.DLP_FILE_ACCESS
+      ]
+      for (const eventId of eventIds) {
+        expect(AUDIT_LOG_EVENT_IDS.includes(eventId)).assertTrue()
+        expect(AUDIT_EVENT_TYPES_BY_ID.get(eventId)).assertEqual(LogEventType.AUDIT)
+        expect(AUDIT_EVENT_DESCRIPTIONS_BY_ID.has(eventId)).assertTrue()
+      }
     })
 
     it('should ignore unknown audit event ids', 0, () => {

@@ -1,5 +1,5 @@
-import { bundleManager as enterpriseBundleManager } from '@kit.MDMKit'
-import { ADMIN_WANT, AppInfo } from '../../constants/AppConstants'
+import { bundleManager } from '@kit.AbilityKit'
+import { AppInfo } from '../../constants/AppConstants'
 import { ApplicationInventoryResult, PermissionAppSnapshot } from '../../models/PermissionModels'
 import { PermissionEmptyStrings } from '../../constants/modules/PermissionStrings'
 import { LogUtils } from '../../utils/LogUtils'
@@ -25,23 +25,15 @@ export interface ApplicationInventoryRawRecord {
   appIdentifier?: string
   appIndex?: number
   uid?: number
-  versionName?: string
-  iconData?: string
   systemApp?: boolean
-  removable?: boolean
-  installSource?: string
-  appDistributionType?: string
-  mainAbilityName?: string
 }
 
 export class ApplicationInventoryRepository {
   static async loadApplications(accountId: number): Promise<ApplicationInventoryResult> {
     try {
-      let bundleInfos = await enterpriseBundleManager.getInstalledBundleList(
-        ADMIN_WANT,
-        accountId,
-        enterpriseBundleManager.BundleInfoGetFlag.WITH_APPLICATION_INFO |
-          enterpriseBundleManager.BundleInfoGetFlag.WITH_SIGNATURE_INFO
+      let bundleInfos = await bundleManager.getInstalledBundleList(
+        bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION |
+          bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_SIGNATURE_INFO
       )
       let applications = ApplicationInventoryRepository.normalizeBundleInfos(accountId, bundleInfos)
       return {
@@ -61,16 +53,16 @@ export class ApplicationInventoryRepository {
 
   static normalizeBundleInfos(
     accountId: number,
-    bundleInfos: enterpriseBundleManager.BundleInfo[],
+    bundleInfos: bundleManager.BundleInfo[],
     selfBundleName: string = AppInfo.BUNDLE_NAME
   ): PermissionAppSnapshot[] {
-    let records = bundleInfos.map((bundleInfo: enterpriseBundleManager.BundleInfo): ApplicationInventoryRawRecord =>
+    let records = bundleInfos.map((bundleInfo: bundleManager.BundleInfo): ApplicationInventoryRawRecord =>
       ApplicationInventoryRepository.toRawRecord(bundleInfo)
     )
     return ApplicationInventoryRepository.normalizeApplications(accountId, records, selfBundleName)
   }
 
-  private static toRawRecord(bundleInfo: enterpriseBundleManager.BundleInfo): ApplicationInventoryRawRecord {
+  private static toRawRecord(bundleInfo: bundleManager.BundleInfo): ApplicationInventoryRawRecord {
     return {
       bundleName: bundleInfo.name,
       label: bundleInfo.appInfo?.label,
@@ -78,12 +70,7 @@ export class ApplicationInventoryRepository {
       appIdentifier: bundleInfo.signatureInfo?.appIdentifier,
       appIndex: bundleInfo.appIndex ?? bundleInfo.appInfo?.appIndex,
       uid: bundleInfo.appInfo?.uid,
-      versionName: bundleInfo.versionName,
-      iconData: bundleInfo.appInfo?.iconData,
-      systemApp: bundleInfo.appInfo?.systemApp,
-      removable: bundleInfo.appInfo?.removable,
-      installSource: bundleInfo.appInfo?.installSource,
-      appDistributionType: bundleInfo.appInfo?.appDistributionType
+      systemApp: bundleInfo.appInfo?.systemApp
     } as ApplicationInventoryRawRecord
   }
 

@@ -1,0 +1,8 @@
+// API26 真机安全审计配置定义，当前 SDK NotifyEvent 枚举尚未导出。
+export const DEVICE_POWER_ON_AUDIT_EVENT_ID: number = 0x16000001
+export const DEVICE_POWER_OFF_AUDIT_EVENT_ID: number = 0x16000002
+
+export const DEVICE_POWER_AUDIT_EVENT_IDS: number[] = [
+  DEVICE_POWER_ON_AUDIT_EVENT_ID,
+  DEVICE_POWER_OFF_AUDIT_EVENT_ID
+]

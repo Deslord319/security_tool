@@ -77,7 +77,7 @@
         "name": "ohos.permission.ENTERPRISE_MANAGE_APPLICATION"
       },
       {
-        "name": "ohos.permission.ENTERPRISE_GET_ALL_BUNDLE_INFO"
+        "name": "ohos.permission.ENTERPRISE_GET_INSTALLED_BUNDLE_LIST"
       },
       {
         "name": "ohos.permission.ENTERPRISE_SET_BUNDLE_INSTALL_POLICY"

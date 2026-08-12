@@ -12,6 +12,7 @@ import {
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { LogDetailTable } from './LogDetailTable'
+import { buildLogDetailRows } from '../../../presentation/log-manage/LogDetailRowBuilder'
 
 @CustomDialog
 export struct LogDetailDialog {
@@ -27,7 +28,7 @@ export struct LogDetailDialog {
   onClose: () => void = () => {}
 
   private getDetailRows(): LogDetailTableRow[] {
-    return this.entry.detailRows ?? []
+    return buildLogDetailRows(this.entry)
   }
 
   @Builder

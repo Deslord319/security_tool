@@ -45,8 +45,7 @@ export struct LogDetailTable {
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .layoutWeight(1)
-        .maxLines(4)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .copyOption(CopyOptions.LocalDevice)
     }
     .width('100%')
     .padding(AppStyles.PADDING_12)
