@@ -11,6 +11,9 @@ import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/co
 import { BluetoothConnectionRecordCoordinator } from '../services/peripheral/connection-record/BluetoothConnectionRecordCoordinator'
 import { AccountChangeEventPayload } from '../services/account/AccountChangeEventBus'
 import { AccountRuntimeService } from '../services/account/AccountRuntimeService'
+import { ApplicationInventoryChangePayload } from '../services/permission-manage/ApplicationInventoryEventBus'
+import { ApplicationInventoryRuntimeService } from '../services/permission-manage/ApplicationInventoryRuntimeService'
+import { ManagedEventSubscriptionService } from '../services/admin/events/ManagedEventSubscriptionService'
 import { UserFirewallOption } from '../models/firewall/FirewallModels'
 import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider'
 import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
@@ -39,6 +42,7 @@ export class ApplicationRuntimeManager {
   private peripheralRuntimeInitPromise: Promise<void> | null = null
   private permissionRuntimeInitPromise: Promise<void> | null = null
   private lastPermissionAccountEventTimestamp: number = 0
+  private lastPermissionApplicationEventTimestamp: number = 0
   private readonly firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
   private readonly firewallRulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
   private readonly identitySettingsViewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
@@ -51,6 +55,12 @@ export class ApplicationRuntimeManager {
       await this.handleAccountChange(payload)
     }
   )
+  private readonly applicationInventoryRuntimeService: ApplicationInventoryRuntimeService =
+    new ApplicationInventoryRuntimeService(
+      async (payload: ApplicationInventoryChangePayload): Promise<void> => {
+        await this.refreshPermissionForApplicationChange(payload)
+      }
+    )
   private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
     new PeripheralConnectionRecordRuntimeProducerAdapter()
   private readonly bluetoothConnectionRecordCoordinator: BluetoothConnectionRecordCoordinator =
@@ -70,11 +80,14 @@ export class ApplicationRuntimeManager {
 
   bindContext(context: common.UIAbilityContext): void {
     this.context = context
+    ManagedEventSubscriptionService.ensureSubscribed('ui-runtime-bind')
     this.accountRuntimeService.start()
+    this.applicationInventoryRuntimeService.start()
   }
 
   release(): void {
     this.accountRuntimeService.stop()
+    this.applicationInventoryRuntimeService.stop()
   }
 
   getFirewallOverviewViewModel(): FirewallOverviewViewModel {
@@ -133,6 +146,7 @@ export class ApplicationRuntimeManager {
   async ensurePermissionRuntimeServices(): Promise<void> {
     await this.ensurePermissionRuntimeInitialized()
     await this.refreshPermissionForLatestAccountState()
+    await this.refreshPermissionForLatestApplicationState()
   }
 
   async refreshLogManageData(): Promise<void> {
@@ -340,6 +354,31 @@ export class ApplicationRuntimeManager {
       }
     } catch (err) {
       LogUtils.warn(TAG, `refresh permission for account change failed: ${JSON.stringify(err)}`)
+    }
+  }
+
+  private async refreshPermissionForLatestApplicationState(): Promise<void> {
+    let payload = this.applicationInventoryRuntimeService.getLatestPayload()
+    if (!payload || payload.timestamp <= this.lastPermissionApplicationEventTimestamp) {
+      return
+    }
+    await this.refreshPermissionForApplicationChange(payload)
+  }
+
+  private async refreshPermissionForApplicationChange(payload: ApplicationInventoryChangePayload): Promise<void> {
+    if (!this.permissionRuntimeInitialized && !this.permissionViewModel.state.initialized) {
+      return
+    }
+    try {
+      let success = await this.permissionViewModel.refreshForApplicationChange()
+      if (success) {
+        this.lastPermissionApplicationEventTimestamp = payload.timestamp
+        LogUtils.info(TAG,
+          'refresh permission for application change success: source=%{public}s, bundle=%{public}s, accountId=%{public}d',
+          payload.source, payload.bundleName, payload.accountId ?? -1)
+      }
+    } catch (err) {
+      LogUtils.warn(TAG, `refresh permission for application change failed: ${JSON.stringify(err)}`)
     }
   }
 

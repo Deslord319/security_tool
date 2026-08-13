@@ -13,6 +13,7 @@ export default function enterpriseAdminAbilityTest() {
       ability.onAccountRemoved(101)
       ability.onBundleAdded('com.example.demo')
       ability.onBundleRemoved('com.example.demo')
+      ability.onBundleUpdated('com.example.demo', 100)
 
       expect(true).assertTrue()
     })
