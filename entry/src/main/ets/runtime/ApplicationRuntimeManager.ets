@@ -83,6 +83,9 @@ export class ApplicationRuntimeManager {
     ManagedEventSubscriptionService.ensureSubscribed('ui-runtime-bind')
     this.accountRuntimeService.start()
     this.applicationInventoryRuntimeService.start()
+    this.ensureLogRuntimeServices().catch((err: Error) => {
+      LogUtils.error(TAG, `early log runtime startup failed: ${JSON.stringify(err)}`)
+    })
   }
 
   release(): void {
@@ -120,7 +123,7 @@ export class ApplicationRuntimeManager {
 
   async ensureRuntimeServices(): Promise<void> {
     await Promise.all([
-      this.ensureLogRuntimeInitialized(),
+      this.ensureLogRuntimeServices(),
       this.ensureIdentityRuntimeInitialized(),
       this.ensurePeripheralRuntimeInitialized(),
       this.ensurePermissionRuntimeInitialized()
