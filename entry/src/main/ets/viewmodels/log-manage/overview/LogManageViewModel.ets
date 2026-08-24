@@ -115,6 +115,9 @@ export class LogManageViewModel {
   readonly settingsViewModel: LogStorageSettingsViewModel
   private listenerId: number = -1
   private initialized: boolean = false
+  private initializePromise: Promise<ListViewInitializeResult> | null = null
+  private refreshPromise: Promise<RefreshResult> | null = null
+  private refreshPending: boolean = false
   private storage: LogStoragePort
   private exporter: LogExportServicePort
   private importer: LogImportServicePort
@@ -132,6 +135,24 @@ export class LogManageViewModel {
   }
 
   async initialize(context: common.UIAbilityContext): Promise<ListViewInitializeResult> {
+    if (this.state.initialized && this.initialized) {
+      return { success: true, code: 'ok' }
+    }
+    if (this.initializePromise) {
+      return await this.initializePromise
+    }
+    let initializePromise = this.doInitialize(context)
+    this.initializePromise = initializePromise
+    try {
+      return await initializePromise
+    } finally {
+      if (this.initializePromise === initializePromise) {
+        this.initializePromise = null
+      }
+    }
+  }
+
+  private async doInitialize(context: common.UIAbilityContext): Promise<ListViewInitializeResult> {
     this.state.initialized = false
     this.state.loading = true
     let initializeResult: ListViewInitializeResult = { success: false, code: 'storage_init_failed' }
@@ -176,13 +197,34 @@ export class LogManageViewModel {
   }
 
   async refreshAll(): Promise<RefreshResult> {
-    try {
-      await this.rebuildStateFromSnapshot()
-      return { success: true, code: 'ok' }
-    } catch (err) {
-      LogUtils.error(TAG, `refreshAll failed: ${JSON.stringify(err)}`)
-      return { success: false, code: 'query_failed' }
+    this.refreshPending = true
+    if (this.refreshPromise) {
+      return await this.refreshPromise
     }
+    let refreshPromise = this.runRefreshLoop()
+    this.refreshPromise = refreshPromise
+    try {
+      return await refreshPromise
+    } finally {
+      if (this.refreshPromise === refreshPromise) {
+        this.refreshPromise = null
+      }
+    }
+  }
+
+  private async runRefreshLoop(): Promise<RefreshResult> {
+    let result: RefreshResult = { success: true, code: 'ok' }
+    while (this.refreshPending) {
+      this.refreshPending = false
+      try {
+        await this.rebuildStateFromSnapshot()
+        result = { success: true, code: 'ok' }
+      } catch (err) {
+        LogUtils.error(TAG, `refreshAll failed: ${JSON.stringify(err)}`)
+        result = { success: false, code: 'query_failed' }
+      }
+    }
+    return result
   }
 
   async refreshIfActive(): Promise<RefreshResult> {

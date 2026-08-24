@@ -43,6 +43,28 @@ async function flushAsyncWork(): Promise<void> {
   }
 }
 
+class InitializeDeferred {
+  promise: Promise<InitializeResult>
+  resolve: (result: InitializeResult) => void = (_result: InitializeResult) => {}
+
+  constructor() {
+    this.promise = new Promise<InitializeResult>((resolve) => {
+      this.resolve = resolve
+    })
+  }
+}
+
+class VoidDeferred {
+  promise: Promise<void>
+  resolve: () => void = () => {}
+
+  constructor() {
+    this.promise = new Promise<void>((resolve) => {
+      this.resolve = resolve
+    })
+  }
+}
+
 class FakeLogListStorage implements LogStoragePort {
   entries: LogEntry[] = []
   listener: (() => void) | null = null
@@ -52,11 +74,15 @@ class FakeLogListStorage implements LogStoragePort {
   countCallCount: number = 0
   listCallCount: number = 0
   snapshotCallCount: number = 0
+  initCallCount: number = 0
+  addChangeListenerCallCount: number = 0
   hasEntryCallCount: number = 0
   failCount: boolean = false
   failSnapshot: boolean = false
   lastLimit?: number
   lastOffset?: number
+  initPromise?: Promise<InitializeResult>
+  snapshotGate?: Promise<void>
 
   private filterEntries(query?: LogQuery): LogEntry[] {
     return this.entries.filter((entry: LogEntry) => {
@@ -74,6 +100,10 @@ class FakeLogListStorage implements LogStoragePort {
   }
 
   async init(_context: common.UIAbilityContext): Promise<InitializeResult> {
+    this.initCallCount++
+    if (this.initPromise) {
+      return await this.initPromise
+    }
     return this.initResult
   }
 
@@ -111,6 +141,11 @@ class FakeLogListStorage implements LogStoragePort {
 
   async snapshot(query?: LogQuery, limit?: number, offset?: number, filteredCount?: number): Promise<LogSnapshot> {
     this.snapshotCallCount++
+    let snapshotGate = this.snapshotGate
+    this.snapshotGate = undefined
+    if (snapshotGate) {
+      await snapshotGate
+    }
     if (this.failSnapshot) {
       throw new Error('snapshot failed')
     }
@@ -132,6 +167,7 @@ class FakeLogListStorage implements LogStoragePort {
   }
 
   addChangeListener(listener: () => void): number {
+    this.addChangeListenerCallCount++
     this.listener = listener
     return 3
   }
@@ -238,6 +274,44 @@ export default function logManageViewModelTest() {
       expect(storage.countCallCount).assertEqual(1)
       expect(storage.listCallCount).assertEqual(1)
       expect(storage.snapshotCallCount).assertEqual(1)
+    })
+
+    it('should share one initialization when initialize is called concurrently', 0, async () => {
+      let deferred = new InitializeDeferred()
+      storage.initPromise = deferred.promise
+
+      let firstInitialize = viewModel.initialize(context)
+      let secondInitialize = viewModel.initialize(context)
+
+      expect(storage.initCallCount).assertEqual(1)
+      deferred.resolve(storage.initResult)
+      let firstResult = await firstInitialize
+      let secondResult = await secondInitialize
+
+      expect(firstResult.success).assertTrue()
+      expect(secondResult.success).assertTrue()
+      expect(storage.initCallCount).assertEqual(1)
+      expect(storage.addChangeListenerCallCount).assertEqual(1)
+      expect(storage.snapshotCallCount).assertEqual(1)
+    })
+
+    it('should run one trailing refresh when data changes during an active refresh', 0, async () => {
+      await viewModel.initialize(context)
+      storage.snapshotCallCount = 0
+      let deferred = new VoidDeferred()
+      storage.snapshotGate = deferred.promise
+
+      let firstRefresh = viewModel.refreshAll()
+      await flushAsyncWork()
+      storage.entries = [createEntry('latest', LogEventType.AUDIT, 'latest entry')]
+      let secondRefresh = viewModel.refreshAll()
+      deferred.resolve()
+      await firstRefresh
+      await secondRefresh
+
+      expect(storage.snapshotCallCount).assertEqual(2)
+      expect(viewModel.state.list.pagedEntries.length).assertEqual(1)
+      expect(viewModel.state.list.pagedEntries[0].id).assertEqual('latest')
     })
 
     it('should keep initialized false after failed initialize and allow retry', 0, async () => {

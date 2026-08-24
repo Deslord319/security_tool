@@ -35,7 +35,10 @@ export class ApplicationInventoryRepository {
         bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION |
           bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_SIGNATURE_INFO
       )
-      let applications = ApplicationInventoryRepository.normalizeBundleInfos(accountId, bundleInfos)
+      let applications = await ApplicationInventoryRepository.normalizeBundleInfosWithResolvedLabels(
+        accountId,
+        bundleInfos
+      )
       return {
         appSnapshots: applications,
         installPolicies: [],
@@ -43,11 +46,7 @@ export class ApplicationInventoryRepository {
       } as ApplicationInventoryResult
     } catch (err) {
       LogUtils.warn(TAG, `loadApplications failed: ${JSON.stringify(err)}`)
-      return {
-        appSnapshots: [],
-        installPolicies: [],
-        message: PermissionEmptyStrings.INVENTORY_LOAD_FAILED
-      } as ApplicationInventoryResult
+      throw new Error(`loadApplications failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -62,16 +61,68 @@ export class ApplicationInventoryRepository {
     return ApplicationInventoryRepository.normalizeApplications(accountId, records, selfBundleName)
   }
 
+  private static async normalizeBundleInfosWithResolvedLabels(
+    accountId: number,
+    bundleInfos: bundleManager.BundleInfo[],
+    selfBundleName: string = AppInfo.BUNDLE_NAME
+  ): Promise<PermissionAppSnapshot[]> {
+    let records = bundleInfos
+      .map((bundleInfo: bundleManager.BundleInfo): ApplicationInventoryRawRecord =>
+        ApplicationInventoryRepository.toRawRecord(bundleInfo)
+      )
+      .filter((record: ApplicationInventoryRawRecord): boolean =>
+        ApplicationInventoryRepository.isManageableApplication(record, selfBundleName)
+      )
+    let resolvedRecords = await Promise.all(records.map(async (
+      record: ApplicationInventoryRawRecord
+    ): Promise<ApplicationInventoryRawRecord> =>
+      await ApplicationInventoryRepository.resolveApplicationLabel(record)
+    ))
+    return ApplicationInventoryRepository.normalizeApplications(accountId, resolvedRecords, selfBundleName)
+  }
+
   private static toRawRecord(bundleInfo: bundleManager.BundleInfo): ApplicationInventoryRawRecord {
+    let rawLabel = bundleInfo.appInfo?.label?.trim()
     return {
       bundleName: bundleInfo.name,
-      label: bundleInfo.appInfo?.label,
+      label: ApplicationInventoryRepository.isDisplayLabel(rawLabel) ? rawLabel : undefined,
       appId: bundleInfo.signatureInfo?.appId,
       appIdentifier: bundleInfo.signatureInfo?.appIdentifier,
       appIndex: bundleInfo.appIndex ?? bundleInfo.appInfo?.appIndex,
       uid: bundleInfo.appInfo?.uid,
       systemApp: bundleInfo.appInfo?.systemApp
     } as ApplicationInventoryRawRecord
+  }
+
+  private static isDisplayLabel(label: string | undefined): boolean {
+    return label !== undefined && label.length > 0 && !label.startsWith('$string:')
+  }
+
+  private static async resolveApplicationLabel(
+    record: ApplicationInventoryRawRecord
+  ): Promise<ApplicationInventoryRawRecord> {
+    if (ApplicationInventoryRepository.isDisplayLabel(record.label?.trim())) {
+      return record
+    }
+    try {
+      let appIndex = record.appIndex !== undefined && Number.isFinite(record.appIndex) ? record.appIndex : 0
+      let label = (await bundleManager.getApplicationLabel(record.bundleName, appIndex)).trim()
+      if (ApplicationInventoryRepository.isDisplayLabel(label)) {
+        return {
+          bundleName: record.bundleName,
+          label: label,
+          appId: record.appId,
+          appIdentifier: record.appIdentifier,
+          appIndex: record.appIndex,
+          uid: record.uid,
+          systemApp: record.systemApp
+        } as ApplicationInventoryRawRecord
+      }
+    } catch (err) {
+      LogUtils.warn(TAG, 'get application label failed: bundle=%{public}s, err=%{public}s',
+        record.bundleName, JSON.stringify(err))
+    }
+    return record
   }
 
   static normalizeApplications(
@@ -138,7 +189,7 @@ export class ApplicationInventoryRepository {
       appIdentifier: ApplicationInventoryRepository.normalizeString(record.appIdentifier, ''),
       appIndex: appIndex,
       uid: uid,
-      label: ApplicationInventoryRepository.normalizeString(record.label, bundleName),
+      label: ApplicationInventoryRepository.normalizeDisplayLabel(record.label, bundleName),
       uninstallProtected: false,
       runningBlocked: false,
       networkBlocked: false,
@@ -152,6 +203,11 @@ export class ApplicationInventoryRepository {
   private static normalizeString(value: string | undefined, fallback: string): string {
     let normalized = value?.trim()
     return normalized && normalized.length > 0 ? normalized : fallback
+  }
+
+  private static normalizeDisplayLabel(value: string | undefined, fallback: string): string {
+    let normalized = value?.trim()
+    return ApplicationInventoryRepository.isDisplayLabel(normalized) ? normalized as string : fallback
   }
 
   private static compareApplications(left: PermissionAppSnapshot, right: PermissionAppSnapshot): number {

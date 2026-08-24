@@ -41,6 +41,8 @@ class FakeAuditSource {
     failedEventIds: []
   }
   callback?: (entry: LogEntry) => void
+  subscribeCallCount: number = 0
+  subscribePromise?: Promise<AuditSubscribeResult>
 }
 
 class FakeCrashSource {
@@ -49,6 +51,17 @@ class FakeCrashSource {
     code: 'ok'
   }
   callback?: (entry: LogEntry) => void
+}
+
+class AuditSubscribeDeferred {
+  promise: Promise<AuditSubscribeResult>
+  resolve: (result: AuditSubscribeResult) => void = (_result: AuditSubscribeResult) => {}
+
+  constructor() {
+    this.promise = new Promise<AuditSubscribeResult>((resolve) => {
+      this.resolve = resolve
+    })
+  }
 }
 
 export default function logCollectorServiceTest() {
@@ -85,8 +98,9 @@ export default function logCollectorServiceTest() {
         onEntry: (entry: LogEntry) => void,
         _eventTypes?: LogEventType[]
       ) => {
+        auditSource.subscribeCallCount++
         auditSource.callback = onEntry
-        return Promise.resolve(auditSource.result)
+        return auditSource.subscribePromise ?? Promise.resolve(auditSource.result)
       })
       when(auditUnsubscribeMock)().afterAction(() => {
         auditSource.callback = undefined
@@ -117,6 +131,25 @@ export default function logCollectorServiceTest() {
       expect(startResult.status.auditReady).assertTrue()
       expect(startResult.status.crashReady).assertTrue()
       expect(startResult.status.degraded).assertFalse()
+      done()
+    })
+
+    it('should share one subscription when start is called concurrently', 0, async (done: Function) => {
+      let deferred = new AuditSubscribeDeferred()
+      auditSource.subscribePromise = deferred.promise
+
+      await LogCollectorService.init(context)
+      let firstStart = LogCollectorService.start()
+      let secondStart = LogCollectorService.start()
+
+      expect(auditSource.subscribeCallCount).assertEqual(1)
+      deferred.resolve(auditSource.result)
+      let firstResult = await firstStart
+      let secondResult = await secondStart
+
+      expect(firstResult.success).assertTrue()
+      expect(secondResult.success).assertTrue()
+      expect(auditSource.subscribeCallCount).assertEqual(1)
       done()
     })
 

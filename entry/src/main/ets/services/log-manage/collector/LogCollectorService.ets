@@ -30,6 +30,7 @@ export class LogCollectorService {
   private static pendingEntries: LogEntry[] = []
   private static flushTimerId: number = -1
   private static flushPromise: Promise<void> | null = null
+  private static startPromise: Promise<CollectorStartResult> | null = null
   private static readonly BATCH_FLUSH_INTERVAL_MS: number = 200
   private static readonly MAX_PENDING_ENTRIES: number = 1200
   private static readonly INTERNAL_LOG_PATH_KEYWORDS: string[] = [
@@ -56,10 +57,25 @@ export class LogCollectorService {
     if (LogCollectorService.running) {
       return LogCollectorService.buildStartResult(true, 'ok')
     }
+    if (LogCollectorService.startPromise) {
+      return await LogCollectorService.startPromise
+    }
     if (!LogCollectorService.initialized) {
       LogUtils.warn(TAG, 'start rejected: collector not initialized')
       return LogCollectorService.buildStartResult(false, 'not_initialized')
     }
+    let startPromise = LogCollectorService.doStart()
+    LogCollectorService.startPromise = startPromise
+    try {
+      return await startPromise
+    } finally {
+      if (LogCollectorService.startPromise === startPromise) {
+        LogCollectorService.startPromise = null
+      }
+    }
+  }
+
+  private static async doStart(): Promise<CollectorStartResult> {
     LogCollectorService.auditEnabled = true
     LogCollectorService.crashEnabled = true
     let auditResult: AuditSubscribeResult = await LogAuditSource.subscribe((entry: LogEntry) => {
@@ -98,6 +114,9 @@ export class LogCollectorService {
   }
 
   static async stop(): Promise<CollectorStopResult> {
+    if (LogCollectorService.startPromise) {
+      await LogCollectorService.startPromise
+    }
     if (!LogCollectorService.running && LogCollectorService.pendingEntries.length === 0) {
       return {
         success: true,

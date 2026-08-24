@@ -224,6 +224,50 @@ export default function permissionViewModelTest() {
       }
     })
 
+    it('should refresh only current account inventory for an application change', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let removedApp = buildManagedApplication(100, 'com.example.old', 'Old')
+        let addedApp = buildManagedApplication(100, 'com.example.new', 'New')
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = removedApp.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(removedApp)]
+        viewModel.state.filteredAppKeys = [removedApp.appKey]
+        let loadedAccountId = -1
+        let accountLoadCount = 0
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterAction((): Promise<PermissionAccountListResult> => {
+          accountLoadCount++
+          return Promise.resolve(buildPermissionAccountListResult(100))
+        })
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterAction((
+          accountId: number
+        ): Promise<ApplicationInventoryResult> => {
+          loadedAccountId = accountId
+          return Promise.resolve({
+            appSnapshots: [buildAppSnapshot(addedApp)],
+            installPolicies: []
+          } as ApplicationInventoryResult)
+        })
+
+        let success = await viewModel.refreshForApplicationChange()
+
+        expect(success).assertTrue()
+        expect(accountLoadCount).assertEqual(0)
+        expect(loadedAccountId).assertEqual(100)
+        expect(viewModel.state.appSnapshots.length).assertEqual(1)
+        expect(viewModel.state.appSnapshots[0].bundleName).assertEqual('com.example.new')
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
     it('should refresh account state for account change without switching when current account remains', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
@@ -730,6 +774,19 @@ export default function permissionViewModelTest() {
       expect(first?.appKey).assertEqual('100:com.example.first')
       expect(second?.appKey).assertEqual('100:com.example.second')
       expect(first?.label).assertEqual(second?.label)
+    })
+
+    it('should not expose unresolved application label resources', 0, () => {
+      let applications = ApplicationInventoryRepository.normalizeApplications(100, [
+        {
+          bundleName: 'com.example.resource-label',
+          label: '$string:app_name',
+          systemApp: false
+        } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')
+
+      expect(applications.length).assertEqual(1)
+      expect(applications[0].label).assertEqual('com.example.resource-label')
     })
 
     it('should filter applications by label or bundle name', 0, () => {

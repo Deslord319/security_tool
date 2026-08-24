@@ -100,9 +100,6 @@ export class PermissionPolicyActionUseCase {
 
     try {
       let inventory = await PermissionService.loadApplications(state.selectedAccountId)
-      if (PermissionPolicyActionUseCase.isInventoryLoadFailed(inventory)) {
-        return { success: false, message: MessageText.RETRY_LATER } as PreparedSelectedAppContext
-      }
       applyApplicationList(inventory)
       let refreshedSnapshot = PermissionStateReducer.findAppSnapshot(state, selectedAppKey)
       if (refreshedSnapshot === undefined) {
@@ -155,9 +152,6 @@ export class PermissionPolicyActionUseCase {
     }
     try {
       let inventory = await PermissionService.loadApplications(state.selectedAccountId)
-      if (PermissionPolicyActionUseCase.isInventoryLoadFailed(inventory)) {
-        return { success: false, message: MessageText.RETRY_LATER } as PreparedPolicyRecordContext
-      }
       applyApplicationList(inventory)
       let refreshedRecord = state.policyRecords.find((item: PermissionPolicyRecord): boolean => item.key === record.key)
       if (refreshedRecord === undefined) {
@@ -188,7 +182,4 @@ export class PermissionPolicyActionUseCase {
     }
   }
 
-  private static isInventoryLoadFailed(inventory: ApplicationInventoryResult): boolean {
-    return inventory.message === PermissionEmptyStrings.INVENTORY_LOAD_FAILED
-  }
 }

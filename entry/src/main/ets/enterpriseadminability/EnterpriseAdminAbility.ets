@@ -1,10 +1,12 @@
-import { adminManager, applicationManager, EnterpriseAdminExtensionAbility } from '@kit.MDMKit'
+import { applicationManager, EnterpriseAdminExtensionAbility } from '@kit.MDMKit'
 import { common } from '@kit.AbilityKit'
 import type { Want } from '@kit.AbilityKit'
 import { osAccount } from '@kit.BasicServicesKit'
 import { ADMIN_WANT, ENTRY_WANT } from '../constants/AppConstants'
 import { AccountChangeCoordinator } from '../services/account/AccountChangeCoordinator'
 import { registerDefaultAccountChangeHandlers } from '../services/account/AccountChangeHandlers'
+import { ApplicationInventoryEventBus } from '../services/permission-manage/ApplicationInventoryEventBus'
+import { ManagedEventSubscriptionService } from '../services/admin/events/ManagedEventSubscriptionService'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 import { LogUtils } from '../utils/LogUtils'
 import { ErrorLike } from '../types/LooseValueTypes'
@@ -16,6 +18,7 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
   onStart(): void {
     registerDefaultAccountChangeHandlers()
     this.ensureAutoStartAppRegistered('onStart')
+    ManagedEventSubscriptionService.ensureSubscribed('onStart')
   }
 
   onAdminEnabled(): void {
@@ -23,20 +26,27 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
     registerDefaultAccountChangeHandlers()
     this.ensureAutoStartAppRegistered('onAdminEnabled')
     this.ensureKeepAliveAppsForCurrentAccounts('onAdminEnabled')
-    this.subscribeAccountManagedEvents()
+    ManagedEventSubscriptionService.ensureSubscribed('onAdminEnabled')
   }
 
   onAdminDisabled(): void {
     LogUtils.info(TAG, 'Enterprise admin disabled')
-    this.unsubscribeAccountManagedEvents()
+    ManagedEventSubscriptionService.unsubscribe('onAdminDisabled')
   }
 
-  onBundleAdded(bundleName: string): void {
-    LogUtils.info(TAG, `Bundle added: ${bundleName}`)
+  onBundleAdded(bundleName: string, accountId?: number): void {
+    LogUtils.info(TAG, 'Bundle added: bundle=%{public}s, accountId=%{public}d', bundleName, accountId ?? -1)
+    ApplicationInventoryEventBus.publish('bundle-added', bundleName, accountId)
   }
 
-  onBundleRemoved(bundleName: string): void {
-    LogUtils.info(TAG, `Bundle removed: ${bundleName}`)
+  onBundleRemoved(bundleName: string, accountId?: number): void {
+    LogUtils.info(TAG, 'Bundle removed: bundle=%{public}s, accountId=%{public}d', bundleName, accountId ?? -1)
+    ApplicationInventoryEventBus.publish('bundle-removed', bundleName, accountId)
+  }
+
+  onBundleUpdated(bundleName: string, accountId: number): void {
+    LogUtils.info(TAG, 'Bundle updated: bundle=%{public}s, accountId=%{public}d', bundleName, accountId)
+    ApplicationInventoryEventBus.publish('bundle-updated', bundleName, accountId)
   }
 
   onAccountAdded(accountId: number): void {
@@ -57,32 +67,6 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
       AccountChangeCoordinator.schedule(this.context as common.Context, source, accountId)
     } catch (err) {
       LogUtils.warn(TAG, `scheduleAccountReconcile failed: ${JSON.stringify(err)}`)
-    }
-  }
-
-  private subscribeAccountManagedEvents(): void {
-    try {
-      let events: Array<adminManager.ManagedEvent> = [
-        adminManager.ManagedEvent.MANAGED_EVENT_ACCOUNT_ADDED,
-        adminManager.ManagedEvent.MANAGED_EVENT_ACCOUNT_REMOVED
-      ]
-      adminManager.subscribeManagedEventSync(ADMIN_WANT, events)
-      LogUtils.info(TAG, 'subscribeAccountManagedEvents success: count=%{public}d', events.length)
-    } catch (err) {
-      LogUtils.error(TAG, `subscribeAccountManagedEvents failed: ${JSON.stringify(err)}`)
-    }
-  }
-
-  private unsubscribeAccountManagedEvents(): void {
-    try {
-      let events: Array<adminManager.ManagedEvent> = [
-        adminManager.ManagedEvent.MANAGED_EVENT_ACCOUNT_ADDED,
-        adminManager.ManagedEvent.MANAGED_EVENT_ACCOUNT_REMOVED
-      ]
-      adminManager.unsubscribeManagedEventSync(ADMIN_WANT, events)
-      LogUtils.info(TAG, 'unsubscribeAccountManagedEvents success: count=%{public}d', events.length)
-    } catch (err) {
-      LogUtils.warn(TAG, `unsubscribeAccountManagedEvents failed: ${JSON.stringify(err)}`)
     }
   }
 

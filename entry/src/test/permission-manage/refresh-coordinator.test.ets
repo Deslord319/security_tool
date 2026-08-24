@@ -135,6 +135,60 @@ export default function permissionRefreshCoordinatorTest() {
       done()
     })
 
+    it('should let a queued account event cover an application event in the same event queue', 0,
+      async (done: Function) => {
+        let coordinator = new PermissionRefreshCoordinator()
+        let currentRefresh = createDeferredBoolean()
+        let accountTaskCount = 0
+        let applicationTaskCount = 0
+        let current = coordinator.runCurrentAccount((): Promise<boolean> => currentRefresh.promise)
+        let applicationEvent = coordinator.enqueueApplicationChange(async (): Promise<boolean> => {
+          applicationTaskCount++
+          return true
+        })
+        let accountEvent = coordinator.enqueueAccountChange(async (): Promise<boolean> => {
+          accountTaskCount++
+          return true
+        })
+
+        await flushMicrotasks()
+        expect(accountTaskCount).assertEqual(0)
+        expect(applicationTaskCount).assertEqual(0)
+        currentRefresh.resolve(true)
+
+        expect(await current).assertTrue()
+        expect(await applicationEvent).assertTrue()
+        expect(await accountEvent).assertTrue()
+        expect(accountTaskCount).assertEqual(1)
+        expect(applicationTaskCount).assertEqual(0)
+        done()
+      })
+
+    it('should keep an application event arriving during an account refresh for a trailing refresh', 0,
+      async (done: Function) => {
+        let coordinator = new PermissionRefreshCoordinator()
+        let accountRefresh = createDeferredBoolean()
+        let accountTaskCount = 0
+        let applicationTaskCount = 0
+        let accountEvent = coordinator.enqueueAccountChange((): Promise<boolean> => {
+          accountTaskCount++
+          return accountRefresh.promise
+        })
+
+        await flushMicrotasks()
+        expect(accountTaskCount).assertEqual(1)
+        let applicationEvent = coordinator.enqueueApplicationChange(async (): Promise<boolean> => {
+          applicationTaskCount++
+          return true
+        })
+        accountRefresh.resolve(true)
+
+        expect(await accountEvent).assertTrue()
+        expect(await applicationEvent).assertTrue()
+        expect(applicationTaskCount).assertEqual(1)
+        done()
+      })
+
     it('should schedule another trailing refresh for an event arriving during the trailing refresh', 0,
       async (done: Function) => {
         let coordinator = new PermissionRefreshCoordinator()
@@ -232,5 +286,33 @@ export default function permissionRefreshCoordinatorTest() {
       expect(taskCount).assertEqual(2)
       done()
     })
+
+    it('should wait and coalesce application events into a current-account trailing refresh', 0,
+      async (done: Function) => {
+        let coordinator = new PermissionRefreshCoordinator()
+        let currentRefresh = createDeferredBoolean()
+        let applicationRefresh = createDeferredBoolean()
+        let eventTaskCount = 0
+        let current = coordinator.runCurrentAccount((): Promise<boolean> => currentRefresh.promise)
+        let task = (): Promise<boolean> => {
+          eventTaskCount++
+          return eventTaskCount === 1 ? applicationRefresh.promise : Promise.resolve(true)
+        }
+        let firstEvent = coordinator.enqueueApplicationChange(task)
+
+        await flushMicrotasks()
+        expect(eventTaskCount).assertEqual(0)
+        currentRefresh.resolve(true)
+        expect(await current).assertTrue()
+        await flushMicrotasks()
+        expect(eventTaskCount).assertEqual(1)
+        let secondEvent = coordinator.enqueueApplicationChange(task)
+        applicationRefresh.resolve(true)
+
+        expect(await firstEvent).assertTrue()
+        expect(await secondEvent).assertTrue()
+        expect(eventTaskCount).assertEqual(2)
+        done()
+      })
   })
 }

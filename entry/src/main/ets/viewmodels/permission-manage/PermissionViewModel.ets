@@ -66,6 +66,15 @@ export class PermissionViewModel {
     )
   }
 
+  async refreshForApplicationChange(): Promise<boolean> {
+    if (!this.state.initialized) {
+      return true
+    }
+    return await this.refreshCoordinator.enqueueApplicationChange(async (): Promise<boolean> =>
+      await this.executeApplicationRefresh(false)
+    )
+  }
+
   async refreshApplications(): Promise<boolean> {
     return await this.runCurrentAccountRefresh(async (): Promise<boolean> =>
       await this.executeApplicationRefresh(true)
