@@ -77,11 +77,28 @@ class UiRuntimeHelpersMixin:
         return self._filter_ui_tree_by_bundle(ui_tree, bundle_name)
 
     async def _call_tool(self, tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
+        # harmonyos-dev-mcp 0.9.x renamed the public UI tools while preserving
+        # their structured response contract. Keep the bridge vocabulary stable
+        # so existing case flows do not depend on the locally installed package
+        # version.
+        tool_aliases = {
+            "click_element": "click",
+            "find_element": "find_elements",
+            "wait_element": "wait_for_element",
+        }
+        resolved_tool_name = tool_aliases.get(tool_name, tool_name)
         async with Client(mcp) as client:
-            tool_result = await client.call_tool_mcp(tool_name, params)
+            tool_result = await client.call_tool_mcp(resolved_tool_name, params)
         structured = getattr(tool_result, "structuredContent", None) or {}
         if "structuredContent" in structured:
             structured = structured["structuredContent"]
+        if tool_name == "find_element" and isinstance(structured, dict):
+            result = structured.get("result")
+            if isinstance(result, dict) and result.get("elements"):
+                normalized_result = dict(result)
+                normalized_result.setdefault("element", result["elements"][0])
+                normalized_result.setdefault("first_match", result["elements"][0])
+                structured = {**structured, "result": normalized_result}
         return structured if isinstance(structured, dict) else {}
 
     def _pass(self, message: str, evidence: dict[str, Any]) -> dict[str, Any]:
