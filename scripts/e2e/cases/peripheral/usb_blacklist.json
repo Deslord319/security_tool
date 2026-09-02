@@ -45,7 +45,8 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current app version exposes policy reset in the 黑白名单 tab toolbar.",
-    "This case verifies the policy tab can be opened and its restore entry is visible."
+    "当前版本在“黑白名单”页工具栏提供策略还原入口。",
+    "覆盖边界：本用例只证明黑白名单页和“还原策略”入口可达，不证明默认 deny、设备级禁止下发或策略还原事务已经完成。",
+    "完整黑名单场景还需要准备一台无历史指纹的真实 USB 设备，设置默认策略为 deny 后插入，核对 desired_policy=deny、active_policy=deny、present=true，再执行还原并回读 EDM 与本地状态。"
   ]
 }

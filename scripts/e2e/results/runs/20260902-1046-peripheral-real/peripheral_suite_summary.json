@@ -1,0 +1,27 @@
+{
+  "suite_name": "peripheral",
+  "adapter_name": "security_tool",
+  "adapter_version": "1.0.0",
+  "project_id": "security_tool",
+  "mode": "completeness",
+  "started_at": "2026-09-02T02:45:24+00:00",
+  "finished_at": "2026-09-02T02:48:30+00:00",
+  "overall_status": "FAIL",
+  "total_cases": 8,
+  "pass_count": 0,
+  "fail_count": 8,
+  "unknown_count": 0,
+  "execution_backend": "real_bridge",
+  "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+  "bridge_backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+  "result_files": [
+    "scripts\\e2e\\results\\runs\\20260902-1046-peripheral-real\\PER-IF-001.json",
+    "scripts\\e2e\\results\\runs\\20260902-1046-peripheral-real\\PER-IF-002.json",
+    "scripts\\e2e\\results\\runs\\20260902-1046-peripheral-real\\PER-REC-001.json",
+    "scripts\\e2e\\results\\runs\\20260902-1046-peripheral-real\\PER-POL-001.json",
+    "scripts\\e2e\\results\\runs\\20260902-1046-peripheral-real\\PER-POLICY-002.json",
+    "scripts\\e2e\\results\\runs\\20260902-1046-peripheral-real\\PER-USB-001.json",
+    "scripts\\e2e\\results\\runs\\20260902-1046-peripheral-real\\PER-WL-USB-001.json",
+    "scripts\\e2e\\results\\runs\\20260902-1046-peripheral-real\\PER-BL-USB-001.json"
+  ]
+}

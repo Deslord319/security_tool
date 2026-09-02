@@ -45,7 +45,8 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current app version exposes peripheral policy changes through the 黑白名单 tab instead of add-device dialogs.",
-    "This case verifies the policy tab can be opened and its export entry is visible."
+    "当前版本通过“黑白名单”页维护设备策略，不再使用手工新增设备弹窗。",
+    "覆盖边界：本用例只证明黑白名单页和“导出名单”入口可达，不证明默认 allow、设备指纹入库或单设备白名单策略已经生效。",
+    "完整白名单场景还需要准备一台无历史指纹的真实 USB 设备，设置默认策略为 allow 后插入，并核对 desired_policy=allow、active_policy=none、present=true 及页面白名单记录。"
   ]
 }

@@ -93,6 +93,33 @@ MODULE_ID_TO_PAGE_ID = {
     "tool-settings": "tool-settings",
 }
 
+FLOW_REF_LABELS = {
+    "app.launch": "启动 SecurityTool 应用并等待入口页可交互",
+    "browser.open_url": "在浏览器中打开目标地址",
+    "entity.create": "创建业务对象",
+    "entity.delete": "删除业务对象",
+    "entity.toggle": "切换业务对象状态",
+    "entity.update": "更新业务对象配置",
+    "firewall.toggle_status": "切换防火墙状态并回读",
+    "logs.change_any_policy": "修改策略以产生审计日志",
+    "logs.export": "导出日志文件",
+    "logs.open_list": "打开日志列表",
+    "logs.open_storage_settings": "打开日志存储设置",
+    "logs.save_storage_settings": "保存日志存储设置",
+    "navigation.open_page": "进入指定业务页面",
+    "theme_menu.open": "打开主题菜单",
+    "tool_settings.set_password": "设置并确认工具密码",
+    "ui.capture_screenshot": "截取当前页面作为证据",
+    "ui.click_text": "点击指定界面文本",
+    "ui.press_key": "发送设备按键",
+}
+
+ASSERTION_TYPE_LABELS = {
+    "assert_text_presence": "检查页面文本是否符合预期",
+    "enterprise_admin_enabled": "检查企业管理员激活状态",
+    "hdc_shell_contains": "检查 HDC 命令输出包含目标内容",
+}
+
 HEADER_ALIASES = {
     "case_id": {"用例编号", "case_id", "case id", "编号"},
     "case_name": {"用例名称", "case_name", "名称", "功能"},
@@ -311,6 +338,146 @@ def extract_checkpoint_summary(case_payload: dict[str, Any]) -> list[str]:
     return unique_list(summary)
 
 
+def compact_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def format_precondition_item(item: Any) -> str:
+    if isinstance(item, str):
+        return normalize_text(item)
+    if isinstance(item, dict):
+        label = item.get("description") or item.get("name") or item.get("type")
+        return f"{normalize_text(label)}；配置：{compact_json(item)}" if label else compact_json(item)
+    return normalize_text(item)
+
+
+def derive_preconditions_text(case_payload: dict[str, Any]) -> str:
+    explicit_items: list[str] = []
+    for item in case_payload.get("preconditions", []):
+        formatted = format_precondition_item(item)
+        if formatted:
+            explicit_items.append(formatted)
+    if explicit_items:
+        return "\n".join(f"{index}. {item}" for index, item in enumerate(explicit_items, start=1))
+
+    case_id = case_payload.get("case_id", "")
+    module_id = case_payload.get("module", "")
+    if case_id == "APP-INSTALL-001":
+        items = [
+            "HarmonyOS 测试设备已通过 HDC 连接，bm、aa 等设备命令可用。",
+            "待验证 HAP 已完成签名，bundleName 与 com.huawei.securitytool 一致。",
+            "测试环境可安装并启动 pages/MainPage 对应的 EntryAbility。",
+        ]
+    elif case_id == "APP-ADMIN-001":
+        items = [
+            "SecurityTool 已安装，EnterpriseAdminAbility 已在 module.json5 中声明。",
+            "签名权限清单与应用 requestPermissions 保持一致。",
+            "测试设备允许将 com.huawei.securitytool 激活为超级企业管理员。",
+        ]
+    else:
+        items = [
+            "HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。",
+            "用例中的 {{bundle_name}} 等运行参数已由环境配置解析。",
+        ]
+        if module_id in {"dashboard", "firewall", "identity", "log-manage", "peripheral", "tool-settings"}:
+            items.append("应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。")
+        if any(item.get("ref", "").startswith("entity.") or item.get("ref") in {"firewall.toggle_status", "logs.save_storage_settings", "tool_settings.set_password"} for item in case_payload.get("flow", [])):
+            items.append("已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。")
+    return "\n".join(f"{index}. {item}" for index, item in enumerate(items, start=1))
+
+
+def describe_flow_step(flow_item: dict[str, Any]) -> str:
+    flow_ref = flow_item.get("ref") or flow_item.get("action", "")
+    params = flow_item.get("params", {}) if isinstance(flow_item.get("params", {}), dict) else {}
+    label = FLOW_REF_LABELS.get(flow_ref, f"执行动作 {flow_ref}")
+    if flow_ref == "navigation.open_page" and params.get("page_id"):
+        label = f"进入 {params['page_id']} 页面"
+    elif flow_ref == "ui.click_text" and params.get("text"):
+        label = f"点击“{params['text']}”"
+    elif flow_ref == "browser.open_url" and params.get("url"):
+        label = f"在浏览器中打开 {params['url']}"
+    elif flow_ref.startswith("entity."):
+        target = "/".join(str(params.get(key, "")) for key in ("domain", "entity", "variant") if params.get(key))
+        action = {"entity.create": "创建", "entity.delete": "删除", "entity.toggle": "切换", "entity.update": "更新"}.get(flow_ref, "操作")
+        label = f"{action}{target or '业务对象'}"
+    return label
+
+
+def derive_steps_text(flow_items: list[dict[str, Any]], assertions: list[dict[str, Any]] | None = None) -> str:
+    sections: list[str] = []
+    for index, item in enumerate(flow_items, start=1):
+        flow_ref = item.get("ref") or item.get("action", "")
+        name = item.get("name") or default_flow_name(flow_ref, index - 1)
+        params = item.get("params", {}) if isinstance(item.get("params", {}), dict) else {}
+        sections.append(
+            "\n".join(
+                [
+                    f"{index}. {describe_flow_step(item)}",
+                    f"   步骤标识：{name}",
+                    f"   执行动作：{flow_ref}",
+                    f"   输入参数：{compact_json(params)}",
+                ]
+            )
+        )
+    if sections:
+        return "\n".join(sections)
+
+    for assertion in assertions or []:
+        if assertion.get("type") != "enterprise_admin_enabled":
+            continue
+        params = assertion.get("params", {}) if isinstance(assertion.get("params", {}), dict) else {}
+        bundle_name = params.get("bundle_name", "{{bundle_name}}")
+        ability_name = params.get("ability_name", "{{admin_ability}}")
+        admin_type = params.get("admin_type", "super")
+        return "\n".join(
+            [
+                "1. 通过 HDC 激活企业管理员，并保留命令回显作为执行证据",
+                "   步骤标识：enable_enterprise_admin",
+                f"   执行命令：edm enable-admin -n {bundle_name} -a {ability_name} -t {admin_type}",
+                f"   超时时间：{params.get('timeout_sec', 20)} 秒",
+            ]
+        )
+    return ""
+
+
+def is_assertion_driven_case(assertions: list[dict[str, Any]]) -> bool:
+    return any(assertion.get("type") == "enterprise_admin_enabled" for assertion in assertions)
+
+
+def describe_assertion(assertion: dict[str, Any]) -> str:
+    assertion_type = assertion.get("type", "")
+    value = assertion.get("value", "")
+    params = assertion.get("params", {}) if isinstance(assertion.get("params", {}), dict) else {}
+    if assertion_type == "assert_text_presence":
+        return f"页面{'应显示' if params.get('present', True) else '不应显示'}“{value}”"
+    if assertion_type == "enterprise_admin_enabled":
+        return f"企业管理员状态应为“{value}”"
+    if assertion_type == "hdc_shell_contains":
+        return f"执行设备命令后，输出应包含“{value}”"
+    return f"{ASSERTION_TYPE_LABELS.get(assertion_type, '检查断言结果')}：{value}"
+
+
+def derive_checkpoints_text(assertions: list[dict[str, Any]]) -> str:
+    sections: list[str] = []
+    for index, assertion in enumerate(assertions, start=1):
+        assertion_type = assertion.get("type", "")
+        name = assertion.get("name") or f"checkpoint_{index}"
+        level = assertion.get("level", "primary")
+        params = assertion.get("params", {}) if isinstance(assertion.get("params", {}), dict) else {}
+        sections.append(
+            "\n".join(
+                [
+                    f"{index}. {describe_assertion(assertion)}",
+                    f"   检查标识：{name}",
+                    f"   断言类型：{assertion_type}（{ASSERTION_TYPE_LABELS.get(assertion_type, '自定义断言')}）",
+                    f"   证据级别：{level}",
+                    f"   断言参数：{compact_json(params)}",
+                ]
+            )
+        )
+    return "\n".join(sections)
+
+
 def derive_template_key(flow_ref: str, params: dict[str, Any]) -> str:
     if not flow_ref.startswith("entity."):
         return ""
@@ -479,14 +646,28 @@ def build_case_catalog() -> dict[str, Any]:
         relative_case_path = to_posix(case_path)
         suite_membership = infer_suite_membership(str(case_path.relative_to(CASES_DIR)).replace("\\", "/"))
         flow_items = normalize_flow_items(payload.get("flow", []))
-        bridge_status = compute_bridge_status(flow_items, bridge_map)
-        gap_status, gap_items = classify_gap_status(flow_items, payload.get("assertions", []), bridge_status)
+        assertions = payload.get("assertions", [])
+        if not flow_items and is_assertion_driven_case(assertions):
+            bridge_status = "covered"
+            gap_status, gap_items = "none", []
+        else:
+            bridge_status = compute_bridge_status(flow_items, bridge_map)
+            gap_status, gap_items = classify_gap_status(flow_items, assertions, bridge_status)
 
         record = default_record(case_id)
         previous = existing_records.get(case_id, {})
         for key in EDITABLE_FIELDS:
             if key in previous:
                 record[key] = copy.deepcopy(previous[key])
+
+        if not normalize_text(record.get("preconditions_text", "")):
+            record["preconditions_text"] = derive_preconditions_text(payload)
+        if not normalize_text(record.get("steps_text", "")):
+            record["steps_text"] = derive_steps_text(flow_items, assertions)
+        if not normalize_text(record.get("checkpoints_text", "")):
+            record["checkpoints_text"] = derive_checkpoints_text(assertions)
+        if not record.get("notes"):
+            record["notes"] = copy.deepcopy(payload.get("notes", []))
 
         record.update(
             {
@@ -497,13 +678,13 @@ def build_case_catalog() -> dict[str, Any]:
                 "status": previous.get("status", "implemented") if previous.get("status") in {"implemented", "draft", "planned", "deprecated"} else "implemented",
                 "source": previous.get("source", "manual"),
                 "structured_flow": flow_items,
-                "structured_assertions": payload.get("assertions", []),
+                "structured_assertions": assertions,
                 "checkpoint_summary": previous.get("checkpoint_summary") or extract_checkpoint_summary(payload),
                 "suite_membership": suite_membership,
                 "bridge_coverage_status": bridge_status,
                 "capability_gap_status": gap_status,
-                "capability_gap_items": unique_list(previous.get("capability_gap_items", []) + gap_items),
-                "capability_gap_breakdown": build_gap_breakdown(unique_list(previous.get("capability_gap_items", []) + gap_items)),
+                "capability_gap_items": gap_items,
+                "capability_gap_breakdown": build_gap_breakdown(gap_items),
                 "case_path": relative_case_path,
                 "last_result_status": result_status_map.get(case_id, {}).get("status", "NOT_RUN"),
             }
@@ -1083,6 +1264,18 @@ def validate_test_assets() -> dict[str, Any]:
 
         if record.get("module_id") and record.get("module_id") not in MODULE_ID_TO_NAME:
             warnings.append({"case_id": case_id, "reason": "module_id 未在已知模块映射内"})
+        for field_name, field_label in (
+            ("preconditions_text", "前置条件"),
+            ("steps_text", "操作步骤"),
+            ("checkpoints_text", "检查点"),
+        ):
+            if normalize_text(record.get(field_name, "")):
+                continue
+            issue = {"case_id": case_id, "reason": f"{field_label}未填写，管理台无法展示完整用例"}
+            if record.get("status") == "implemented":
+                errors.append(issue)
+            else:
+                warnings.append(issue)
         for suite_name in record.get("suite_membership", []):
             if suite_name not in SUITES:
                 errors.append({"case_id": case_id, "reason": f"非法 suite 归属: {suite_name}"})

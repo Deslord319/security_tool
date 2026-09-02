@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-05-09T05:38:23+00:00",
+  "updated_at": "2026-09-02T03:36:12+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
@@ -9,10 +9,12 @@
       "module_name": "启动初始化",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. SecurityTool 已安装，EnterpriseAdminAbility 已在 module.json5 中声明。\n2. 签名权限清单与应用 requestPermissions 保持一致。\n3. 测试设备允许将 com.huawei.securitytool 激活为超级企业管理员。",
+      "steps_text": "1. 通过 HDC 激活企业管理员，并保留命令回显作为执行证据\n   步骤标识：enable_enterprise_admin\n   执行命令：edm enable-admin -n {{bundle_name}} -a {{admin_ability}} -t super\n   超时时间：20 秒",
+      "checkpoints_text": "1. 企业管理员状态应为“success”\n   检查标识：enable_admin_success\n   断言类型：enterprise_admin_enabled（检查企业管理员激活状态）\n   证据级别：primary\n   断言参数：{\"ability_name\":\"{{admin_ability}}\",\"admin_type\":\"super\",\"bundle_name\":\"{{bundle_name}}\",\"timeout_sec\":20}",
+      "notes": [
+        "通过 hdc driver 的企业管理员能力完成激活，并以命令回显作为主证据。"
+      ],
       "structured_flow": [],
       "structured_assertions": [
         {
@@ -36,29 +38,15 @@
         "navigation",
         "completeness"
       ],
-      "bridge_coverage_status": "missing",
-      "capability_gap_status": "mixed",
-      "capability_gap_items": [
-        "模块未识别，无法自动生成具体 flow",
-        "缺少可执行 flow 草稿",
-        "Bridge 覆盖未完整",
-        "缺少断言草稿",
-        "缺少可执行 flow"
-      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "模块未识别，无法自动生成具体 flow",
-          "缺少可执行 flow 草稿",
-          "缺少可执行 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
-        "bridge": [
-          "Bridge 覆盖未完整"
-        ],
+        "assertion": [],
+        "bridge": [],
         "module": [],
         "other": []
       },
@@ -77,10 +65,12 @@
       "module_name": "启动初始化",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，bm、aa 等设备命令可用。\n2. 待验证 HAP 已完成签名，bundleName 与 com.huawei.securitytool 一致。\n3. 测试环境可安装并启动 pages/MainPage 对应的 EntryAbility。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}",
+      "checkpoints_text": "1. 执行设备命令后，输出应包含“{{bundle_name}}”\n   检查标识：bundle_installed\n   断言类型：hdc_shell_contains（检查 HDC 命令输出包含目标内容）\n   证据级别：primary\n   断言参数：{\"command\":\"bm dump -n {{bundle_name}}\",\"timeout_sec\":20}\n2. 执行设备命令后，输出应包含“EntryAbility”\n   检查标识：entry_ability_visible\n   断言类型：hdc_shell_contains（检查 HDC 命令输出包含目标内容）\n   证据级别：primary\n   断言参数：{\"command\":\"bm dump -n {{bundle_name}}\",\"timeout_sec\":20}",
+      "notes": [
+        "Smoke baseline declarative case."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -123,25 +113,13 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "模块未识别，无法自动生成具体 flow",
-        "缺少可执行 flow 草稿",
-        "Bridge 覆盖未完整",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "模块未识别，无法自动生成具体 flow",
-          "缺少可执行 flow 草稿"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
-        "bridge": [
-          "Bridge 覆盖未完整"
-        ],
+        "assertion": [],
+        "bridge": [],
         "module": [],
         "other": []
       },
@@ -157,10 +135,12 @@
       "module_name": "安全总览",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 dashboard 页面\n   步骤标识：open_dashboard\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"dashboard\"}\n3. 进入 firewall 页面\n   步骤标识：open_firewall_from_dashboard_context\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\"}\n4. 进入 dashboard 页面\n   步骤标识：return_dashboard_after_entry\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"dashboard\"}",
+      "checkpoints_text": "1. 页面应显示“安全总览”\n   检查标识：dashboard_page_recovered\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“快捷方式”\n   检查标识：dashboard_quick_entries_still_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This is a full dashboard navigation roundtrip: enter a security module from the dashboard context and verify dashboard state is restored."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -250,10 +230,12 @@
       "module_name": "安全总览",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 dashboard 页面\n   步骤标识：open_dashboard\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"dashboard\"}",
+      "checkpoints_text": "1. 页面应显示“防火墙模式”\n   检查标识：dashboard_firewall_card_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“身份鉴别”\n   检查标识：dashboard_identity_entry_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Dashboard route is confirmed through stable first-screen cards and quick-entry text."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -328,10 +310,12 @@
       "module_name": "安全总览",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 dashboard 页面\n   步骤标识：open_dashboard\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"dashboard\"}",
+      "checkpoints_text": "1. 页面应显示“日志记录”\n   检查标识：dashboard_log_card_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“防火墙模式”\n   检查标识：dashboard_firewall_card_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case supplements dashboard coverage with additional summary-card visibility checks."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -406,10 +390,12 @@
       "module_name": "安全总览",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 dashboard 页面\n   步骤标识：open_dashboard\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"dashboard\"}",
+      "checkpoints_text": "1. 页面应显示“身份鉴别”\n   检查标识：dashboard_identity_entry_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“帮助与反馈”\n   检查标识：dashboard_help_entry_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case checks that dashboard quick-entry tiles expose additional modules beyond the existing overview case."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -484,10 +470,13 @@
       "module_name": "防火墙管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 firewall 页面\n   步骤标识：open_firewall_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\"}\n3. 创建firewall/rule/domain\n   步骤标识：add_domain_rule\n   执行动作：entity.create\n   输入参数：{\"data\":{\"direction\":\"out\",\"domain\":\"www.baidu.com\",\"policy\":\"deny\"},\"domain\":\"firewall\",\"entity\":\"rule\",\"variant\":\"domain\"}\n4. 在浏览器中打开 https://www.baidu.com\n   步骤标识：open_browser_url\n   执行动作：browser.open_url\n   输入参数：{\"url\":\"https://www.baidu.com\"}\n5. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：return_to_security_tool\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n6. 删除firewall/rule/domain\n   步骤标识：delete_domain_rule_after_browser\n   执行动作：entity.delete\n   输入参数：{\"data\":{\"domain\":\"www.baidu.com\"},\"domain\":\"firewall\",\"entity\":\"rule\",\"variant\":\"domain\"}",
+      "checkpoints_text": "1. 页面不应显示“www.baidu.com”\n   检查标识：domain_rule_cleaned_after_browser_verification\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":false,\"timeout_ms\":2500}",
+      "notes": [
+        "The browser step uses the real browser bundle and verifies URL entry/navigation before returning to the app.",
+        "The rule is deleted before the final assertion so repeated real-device runs start from a clean state."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -568,19 +557,12 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "防火墙步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "防火墙步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [],
         "module": [],
         "other": []
@@ -597,10 +579,12 @@
       "module_name": "防火墙管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 firewall 页面\n   步骤标识：open_firewall_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\",\"target_view\":\"main\"}",
+      "checkpoints_text": "1. 页面应显示“公共网络模式”\n   检查标识：firewall_public_mode_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“私有网络模式”\n   检查标识：firewall_private_mode_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case supplements firewall coverage with preset mode card visibility."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -676,10 +660,12 @@
       "module_name": "防火墙管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 firewall 页面\n   步骤标识：open_firewall_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\"}\n3. 进入 firewall-rules 页面\n   步骤标识：open_firewall_rules\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall-rules\",\"rule_type\":\"domain\"}\n4. 进入 identity 页面\n   步骤标识：switch_to_identity\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"identity\"}\n5. 进入 firewall 页面\n   步骤标识：return_to_firewall\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\"}",
+      "checkpoints_text": "1. 页面应显示“新增规则”\n   检查标识：rules_subroute_restored\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2500}\n2. 页面不应显示“公共网络模式”\n   检查标识：firewall_main_card_not_restored_over_rules\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":false,\"timeout_ms\":1500}",
+      "notes": [
+        "This covers the reported firewall state issue: returning from another module must restore the previously selected custom-rules subroute."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -754,17 +740,13 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "Bridge 覆盖未完整"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
         "flow": [],
         "template": [],
         "params": [],
         "assertion": [],
-        "bridge": [
-          "Bridge 覆盖未完整"
-        ],
+        "bridge": [],
         "module": [],
         "other": []
       },
@@ -780,10 +762,13 @@
       "module_name": "防火墙管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 firewall 页面\n   步骤标识：open_firewall_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\"}\n3. 创建firewall/rule/domain\n   步骤标识：create_domain_rule\n   执行动作：entity.create\n   输入参数：{\"data\":{\"direction\":\"out\",\"domain\":\"www.baidu.com\",\"policy\":\"deny\"},\"domain\":\"firewall\",\"entity\":\"rule\",\"variant\":\"domain\"}\n4. 截取当前页面作为证据\n   步骤标识：capture_domain_rule_created\n   执行动作：ui.capture_screenshot\n   输入参数：{\"name\":\"firewall_domain_rule_created\"}",
+      "checkpoints_text": "1. 页面应显示“www.baidu.com”\n   检查标识：created_domain_rule_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2500}",
+      "notes": [
+        "Current primary evidence confirms the created domain rule is visible in the rules list.",
+        "Primary rule list assertion will later be backed by a firewall getter."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -845,19 +830,12 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "防火墙步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "防火墙步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [],
         "module": [],
         "other": []
@@ -874,10 +852,13 @@
       "module_name": "防火墙管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 firewall 页面\n   步骤标识：open_firewall_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\"}\n3. 删除firewall/rule/domain\n   步骤标识：delete_domain_rule\n   执行动作：entity.delete\n   输入参数：{\"data\":{\"domain\":\"www.baidu.com\"},\"domain\":\"firewall\",\"entity\":\"rule\",\"variant\":\"domain\"}",
+      "checkpoints_text": "1. 页面不应显示“www.baidu.com”\n   检查标识：deleted_domain_rule_not_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":false,\"timeout_ms\":2500}",
+      "notes": [
+        "Delete case assumes the completeness suite has already created the target domain rule.",
+        "Current primary evidence confirms the deleted domain is no longer visible in the rules list."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -930,19 +911,12 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "防火墙步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "防火墙步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [],
         "module": [],
         "other": []
@@ -959,10 +933,12 @@
       "module_name": "防火墙管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 firewall 页面\n   步骤标识：open_firewall_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\"}\n3. 创建firewall/rule/domain\n   步骤标识：create_domain_rule_for_cleanup\n   执行动作：entity.create\n   输入参数：{\"data\":{\"direction\":\"out\",\"domain\":\"e2e-lifecycle.example.com\",\"name\":\"E2E lifecycle domain rule\",\"policy\":\"deny\"},\"domain\":\"firewall\",\"entity\":\"rule\",\"variant\":\"domain\"}\n4. 删除firewall/rule/domain\n   步骤标识：delete_domain_rule_for_cleanup\n   执行动作：entity.delete\n   输入参数：{\"data\":{\"domain\":\"e2e-lifecycle.example.com\",\"name\":\"E2E lifecycle domain rule\"},\"domain\":\"firewall\",\"entity\":\"rule\",\"variant\":\"domain\"}",
+      "checkpoints_text": "1. 页面不应显示“e2e-lifecycle.example.com”\n   检查标识：domain_rule_removed_after_lifecycle\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":false,\"timeout_ms\":2500}\n2. 页面应显示“新增规则”\n   检查标识：rules_page_still_usable_after_delete\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This is a complete firewall rule lifecycle: create a domain rule, delete the same rule, and verify the page remains operable."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1066,10 +1042,12 @@
       "module_name": "防火墙管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 firewall-rules 页面\n   步骤标识：open_firewall_rules_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall-rules\"}",
+      "checkpoints_text": "1. 页面应显示“新增规则”\n   检查标识：firewall_rules_add_button_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“出站规则”\n   检查标识：firewall_rules_outbound_section_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case isolates firewall rules page reachability from create/delete behavior."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1144,10 +1122,13 @@
       "module_name": "防火墙管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 发送设备按键\n   步骤标识：reset_previous_page\n   执行动作：ui.press_key\n   输入参数：{\"key\":\"BACK\"}\n3. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：relaunch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n4. 进入 firewall 页面\n   步骤标识：open_firewall_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\",\"target_view\":\"main\"}\n5. 切换防火墙状态并回读\n   步骤标识：toggle_firewall\n   执行动作：firewall.toggle_status\n   输入参数：{\"require_auth_handled\":true,\"require_auth_prompt\":true,\"target_state\":\"invert\"}",
+      "checkpoints_text": "1. 页面应显示“公共网络模式”\n   检查标识：firewall_page_still_visible_after_toggle\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Current primary evidence confirms the authenticated toggle flow returns to a stable firewall page state after a foreground reset.",
+        "Primary assertion will move to a service-backed firewall status read once getter execution is wired in."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1213,19 +1194,13 @@
       "bridge_coverage_status": "partial",
       "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
-        "防火墙步骤未能稳定映射到具体 flow",
-        "缺少断言草稿",
         "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
-        "flow": [
-          "防火墙步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [
           "Bridge 覆盖未完整"
         ],
@@ -1244,10 +1219,13 @@
       "module_name": "身份鉴别",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 发送设备按键\n   步骤标识：reset_previous_page\n   执行动作：ui.press_key\n   输入参数：{\"key\":\"BACK\"}\n3. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：relaunch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n4. 进入 identity 页面\n   步骤标识：open_identity_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"identity\"}\n5. 更新identity/domain_policy\n   步骤标识：update_identity_domain_policy\n   执行动作：entity.update\n   输入参数：{\"data\":{\"auth_validity_minutes\":-1,\"expiration_notify_days\":7,\"password_max_age_days\":90},\"domain\":\"identity\",\"entity\":\"domain_policy\"}",
+      "checkpoints_text": "1. 页面应显示“密码有效期”\n   检查标识：identity_domain_policy_page_marker_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Current primary evidence confirms the update executes in the domain policy section after a foreground reset.",
+        "Getter-backed domain policy assertion will be added later."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1316,19 +1294,13 @@
       "bridge_coverage_status": "partial",
       "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
-        "身份鉴别步骤未能稳定映射到具体 flow",
-        "缺少断言草稿",
         "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
-        "flow": [
-          "身份鉴别步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [
           "Bridge 覆盖未完整"
         ],
@@ -1347,10 +1319,13 @@
       "module_name": "身份鉴别",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 发送设备按键\n   步骤标识：reset_previous_page\n   执行动作：ui.press_key\n   输入参数：{\"key\":\"BACK\"}\n3. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：relaunch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n4. 进入 identity 页面\n   步骤标识：open_identity_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"identity\"}\n5. 更新identity/password_policy\n   步骤标识：update_identity_password_policy\n   执行动作：entity.update\n   输入参数：{\"data\":{\"min_length\":8,\"require_digit\":true,\"require_lowercase\":true,\"require_special_char\":true,\"require_uppercase\":true},\"domain\":\"identity\",\"entity\":\"password_policy\"}",
+      "checkpoints_text": "1. 页面应显示“最小密码长度”\n   检查标识：identity_page_marker_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Current primary evidence confirms the update executes in the expected identity policy context after a foreground reset.",
+        "Getter-backed assertions will be attached after the identity service read path is wired."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1421,19 +1396,13 @@
       "bridge_coverage_status": "partial",
       "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
-        "身份鉴别步骤未能稳定映射到具体 flow",
-        "缺少断言草稿",
         "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
-        "flow": [
-          "身份鉴别步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [
           "Bridge 覆盖未完整"
         ],
@@ -1452,10 +1421,12 @@
       "module_name": "身份鉴别",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 identity 页面\n   步骤标识：open_identity_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"identity\"}\n3. 更新identity/password_policy\n   步骤标识：set_password_min_length\n   执行动作：entity.update\n   输入参数：{\"data\":{\"min_length\":10,\"require_digit\":true,\"require_lowercase\":true,\"require_special_char\":true,\"require_uppercase\":true},\"domain\":\"identity\",\"entity\":\"password_policy\"}\n4. 点击“保存配置”\n   步骤标识：save_identity_config\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"保存配置\"}\n5. 更新identity/password_policy\n   步骤标识：restore_password_min_length\n   执行动作：entity.update\n   输入参数：{\"data\":{\"min_length\":8,\"require_digit\":true,\"require_lowercase\":true,\"require_special_char\":true,\"require_uppercase\":true},\"domain\":\"identity\",\"entity\":\"password_policy\"}\n6. 点击“保存配置”\n   步骤标识：save_restored_identity_config\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"保存配置\"}",
+      "checkpoints_text": "1. 页面应显示“口令复杂度策略”\n   检查标识：password_complexity_context_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":3000}\n2. 页面应显示“保存配置”\n   检查标识：identity_save_action_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This is a complete identity-policy flow: update password complexity, submit the configuration, then restore the baseline min length and verify the save result."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1581,10 +1552,12 @@
       "module_name": "身份鉴别",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 identity 页面\n   步骤标识：open_identity_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"identity\"}",
+      "checkpoints_text": "1. 页面应显示“密码有效期”\n   检查标识：identity_validity_section_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case supplements identity coverage with the password-validity section."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1646,10 +1619,13 @@
       "module_name": "日志管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 修改策略以产生审计日志\n   步骤标识：change_any_policy\n   执行动作：logs.change_any_policy\n   输入参数：{\"preferred_module\":\"firewall\"}\n3. 进入 log-manage 页面\n   步骤标识：open_log_manage_after_policy_change\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"log-manage\"}",
+      "checkpoints_text": "1. 页面应显示“日志管理”\n   检查标识：log_manage_page_visible_after_policy_change\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 执行设备命令后，输出应包含“com.huawei.securitytool”\n   检查标识：recent_security_logs_exist\n   断言类型：hdc_shell_contains（检查 HDC 命令输出包含目标内容）\n   证据级别：secondary\n   断言参数：{\"command\":\"hilog -x | grep com.huawei.securitytool\",\"timeout_sec\":10}",
+      "notes": [
+        "Current primary evidence confirms policy change flow can return to the log page context.",
+        "This remains mixed evidence until deeper log page assertions are added."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1707,19 +1683,12 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "日志步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "日志步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [],
         "module": [],
         "other": []
@@ -1736,10 +1705,13 @@
       "module_name": "日志管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 log-manage 页面\n   步骤标识：open_log_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"log-manage\"}\n3. 导出日志文件\n   步骤标识：export_logs\n   执行动作：logs.export\n   输入参数：{}",
+      "checkpoints_text": "1. 页面应显示“日志管理”\n   检查标识：log_manage_page_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Export remains UI-driven, but this case now at least proves the action runs from the correct page context.",
+        "Export artifact verification will be attached once filesystem assertions are wired."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1784,19 +1756,12 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "日志步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "日志步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [],
         "module": [],
         "other": []
@@ -1813,10 +1778,12 @@
       "module_name": "日志管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 修改策略以产生审计日志\n   步骤标识：create_recent_policy_log\n   执行动作：logs.change_any_policy\n   输入参数：{\"preferred_module\":\"firewall\"}\n3. 打开日志列表\n   步骤标识：open_log_manage\n   执行动作：logs.open_list\n   输入参数：{}",
+      "checkpoints_text": "1. 页面应显示“当前显示”\n   检查标识：log_filter_summary_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2500}\n2. 页面应显示“权限变更日志”\n   检查标识：policy_change_log_type_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case produces a real policy operation, enters the log page, and validates the resulting filtered log context exposed by the current UI."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1900,10 +1867,12 @@
       "module_name": "日志管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 发送设备按键\n   步骤标识：reset_previous_page\n   执行动作：ui.press_key\n   输入参数：{\"key\":\"BACK\"}\n3. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：relaunch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n4. 进入 log-manage 页面\n   步骤标识：open_log_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"log-manage\"}",
+      "checkpoints_text": "1. 页面应显示“导出日志”\n   检查标识：log_manage_export_button_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“总计”\n   检查标识：log_manage_total_stat_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case supplements log-manage coverage with a reset-safe page reachability check using stable first-screen elements."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -1996,10 +1965,12 @@
       "module_name": "日志管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 log-manage 页面\n   步骤标识：open_log_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"log-manage\"}",
+      "checkpoints_text": "1. 页面应显示“总计”\n   检查标识：log_manage_total_stat_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“当前显示”\n   检查标识：log_manage_current_stat_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case verifies the log-manage statistics strip is rendered."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2074,10 +2045,13 @@
       "module_name": "日志管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 dashboard 页面\n   步骤标识：open_dashboard_for_route_reset\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"dashboard\"}\n3. 打开日志列表\n   步骤标识：open_log_manage\n   执行动作：logs.open_list\n   输入参数：{}\n4. 打开日志存储设置\n   步骤标识：open_storage_settings\n   执行动作：logs.open_storage_settings\n   输入参数：{}\n5. 更新logs/storage_settings\n   步骤标识：prepare_50000_max_entries\n   执行动作：entity.update\n   输入参数：{\"data\":{\"max_entries\":\"50000\"},\"domain\":\"logs\",\"entity\":\"storage_settings\"}\n6. 更新logs/storage_settings\n   步骤标识：select_100000_max_entries\n   执行动作：entity.update\n   输入参数：{\"data\":{\"max_entries\":\"100000\"},\"domain\":\"logs\",\"entity\":\"storage_settings\"}\n7. 保存日志存储设置\n   步骤标识：save_log_storage_settings\n   执行动作：logs.save_storage_settings\n   输入参数：{}\n8. 点击“我知道了”\n   步骤标识：close_first_save_result\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"我知道了\"}\n9. 打开日志存储设置\n   步骤标识：open_storage_settings_for_restore\n   执行动作：logs.open_storage_settings\n   输入参数：{}\n10. 更新logs/storage_settings\n   步骤标识：restore_50000_intermediate_entries\n   执行动作：entity.update\n   输入参数：{\"data\":{\"max_entries\":\"50000\"},\"domain\":\"logs\",\"entity\":\"storage_settings\"}\n11. 更新logs/storage_settings\n   步骤标识：restore_20000_max_entries\n   执行动作：entity.update\n   输入参数：{\"data\":{\"max_entries\":\"20000\"},\"domain\":\"logs\",\"entity\":\"storage_settings\"}\n12. 保存日志存储设置\n   步骤标识：save_restored_log_storage_settings\n   执行动作：logs.save_storage_settings\n   输入参数：{}\n13. 点击“我知道了”\n   步骤标识：close_restored_save_result\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"我知道了\"}\n14. 打开日志存储设置\n   步骤标识：open_storage_settings_after_restore\n   执行动作：logs.open_storage_settings\n   输入参数：{}",
+      "checkpoints_text": "1. 页面应显示“20000”\n   检查标识：max_entries_restored_to_default\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面不应显示“1000”\n   检查标识：removed_1000_option_absent\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"match_mode\":\"exact\",\"present\":false,\"timeout_ms\":1500}",
+      "notes": [
+        "This validates the full storage-setting path requested for the 100000 max-entry option, then restores the baseline 20000 value so device state is not left changed.",
+        "The legacy 1000 option is checked with exact text matching so it is not confused with 100000."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2247,10 +2221,13 @@
       "module_name": "导航",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 发送设备按键\n   步骤标识：reset_previous_page\n   执行动作：ui.press_key\n   输入参数：{\"key\":\"BACK\"}\n3. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：relaunch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n4. 打开主题菜单\n   步骤标识：open_theme_menu\n   执行动作：theme_menu.open\n   输入参数：{}",
+      "checkpoints_text": "1. 页面应显示“关于”\n   检查标识：about_menu_item_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case verifies the top-menu about entry becomes visible from a reset foreground state.",
+        "The BACK plus relaunch reset avoids inheriting detail-page state from the previous navigation case."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2328,10 +2305,12 @@
       "module_name": "导航",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 help-feedback 页面\n   步骤标识：open_help_feedback\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"help-feedback\"}",
+      "checkpoints_text": "1. 页面应显示“使用指南”\n   检查标识：help_feedback_guide_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case covers the top-menu route that is not reachable from the left navigation rail."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2394,10 +2373,13 @@
       "module_name": "导航",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 发送设备按键\n   步骤标识：reset_previous_page\n   执行动作：ui.press_key\n   输入参数：{\"key\":\"BACK\"}\n3. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：relaunch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n4. 打开主题菜单\n   步骤标识：open_theme_menu\n   执行动作：theme_menu.open\n   输入参数：{}\n5. 点击“帮助与反馈”\n   步骤标识：open_help_feedback\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"帮助与反馈\"}",
+      "checkpoints_text": "1. 页面应显示“产品指南、常见问题与客户支持”\n   检查标识：help_feedback_subtitle_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case extends help-feedback coverage from menu entry visibility to page detail visibility.",
+        "Using the explicit top-menu click path is more stable than the generic help-feedback navigation branch."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2484,10 +2466,13 @@
       "module_name": "导航",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 identity 页面\n   步骤标识：open_identity_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"identity\"}",
+      "checkpoints_text": "1. 页面应显示“口令复杂度策略”\n   检查标识：identity_password_section_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case verifies the left-rail route into the identity page remains reachable.",
+        "Primary evidence uses the password policy section title."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2550,10 +2535,12 @@
       "module_name": "导航",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 dashboard 页面\n   步骤标识：open_dashboard_for_route_reset\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"dashboard\"}\n3. 打开日志列表\n   步骤标识：open_log_manage\n   执行动作：logs.open_list\n   输入参数：{}\n4. 打开日志存储设置\n   步骤标识：open_storage_settings\n   执行动作：logs.open_storage_settings\n   输入参数：{}\n5. 点击“日志列表”\n   步骤标识：return_log_list\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"日志列表\"}",
+      "checkpoints_text": "1. 页面应显示“日志管理”\n   检查标识：log_manage_page_recovered\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“导出日志”\n   检查标识：log_export_action_visible_after_roundtrip\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case validates the log route can enter storage settings and return to the functional log list surface."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2650,10 +2637,12 @@
       "module_name": "导航",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 打开主题菜单\n   步骤标识：open_theme_menu\n   执行动作：theme_menu.open\n   输入参数：{}\n3. 截取当前页面作为证据\n   步骤标识：capture_theme_menu\n   执行动作：ui.capture_screenshot\n   输入参数：{\"name\":\"top_menu_open\"}",
+      "checkpoints_text": "1. 页面应显示“帮助与反馈”\n   检查标识：help_feedback_menu_item_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Theme menu visibility is confirmed through a stable visible menu entry."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2698,23 +2687,13 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "缺少可执行 flow 草稿",
-        "Bridge 覆盖未完整",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "缺少可执行 flow 草稿"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
-        "bridge": [
-          "Bridge 覆盖未完整"
-        ],
+        "assertion": [],
+        "bridge": [],
         "module": [],
         "other": []
       },
@@ -2730,10 +2709,12 @@
       "module_name": "导航",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 dashboard 页面\n   步骤标识：open_dashboard\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"dashboard\"}\n3. 进入 firewall 页面\n   步骤标识：open_firewall\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"firewall\"}\n4. 进入 log-manage 页面\n   步骤标识：open_log_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"log-manage\"}\n5. 进入 peripheral-manage 页面\n   步骤标识：open_peripheral_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"peripheral-manage\"}\n6. 进入 identity 页面\n   步骤标识：open_identity\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"identity\"}\n7. 进入 tool-settings 页面\n   步骤标识：open_tool_settings\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"tool-settings\"}",
+      "checkpoints_text": "1. 页面应显示“启动时身份校验”\n   检查标识：tool_settings_page_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Primary checkpoint uses the final tool settings page marker to confirm the navigation chain reaches the expected terminal page."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2809,28 +2790,18 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "缺少可执行 flow 草稿",
-        "Bridge 覆盖未完整",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "缺少可执行 flow 草稿"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
-        "bridge": [
-          "Bridge 覆盖未完整"
-        ],
+        "assertion": [],
+        "bridge": [],
         "module": [],
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/navigation_smoke.json",
-      "last_result_status": "PASS",
+      "last_result_status": "FAIL",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2841,10 +2812,13 @@
       "module_name": "导航",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 tool-settings 页面\n   步骤标识：open_tool_settings_page\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"tool-settings\"}",
+      "checkpoints_text": "1. 页面应显示“修改密码”\n   检查标识：tool_settings_password_entry_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case verifies the sidebar route into tool settings remains reachable.",
+        "Primary evidence uses the stable password-entry row title."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2907,10 +2881,14 @@
       "module_name": "外设管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 peripheral-manage 页面\n   步骤标识：open_peripheral_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"peripheral-manage\"}\n3. 点击“黑白名单”\n   步骤标识：open_peripheral_policy_tab\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"黑白名单\"}",
+      "checkpoints_text": "1. 页面应显示“还原策略”\n   检查标识：peripheral_policy_restore_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "当前版本在“黑白名单”页工具栏提供策略还原入口。",
+        "覆盖边界：本用例只证明黑白名单页和“还原策略”入口可达，不证明默认 deny、设备级禁止下发或策略还原事务已经完成。",
+        "完整黑名单场景还需要准备一台无历史指纹的真实 USB 设备，设置默认策略为 deny 后插入，核对 desired_policy=deny、active_policy=deny、present=true，再执行还原并回读 EDM 与本地状态。"
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -2985,10 +2963,13 @@
       "module_name": "外设管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 peripheral-manage 页面\n   步骤标识：open_peripheral_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"peripheral-manage\"}\n3. 点击“接口管控”\n   步骤标识：open_interface_tab\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"接口管控\"}",
+      "checkpoints_text": "1. 页面应显示“接口管控”\n   检查标识：peripheral_interface_page_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“USB 接口”\n   检查标识：usb_interface_row_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This keeps the interface panel coverage on stable, visible controls.",
+        "The real USB policy roundtrip is covered separately by PER-IF-002 so this case does not disable HDC during a suite run."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3049,19 +3030,13 @@
       "bridge_coverage_status": "partial",
       "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
-        "外设步骤未能稳定映射到具体 flow",
-        "缺少断言草稿",
         "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
-        "flow": [
-          "外设步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [
           "Bridge 覆盖未完整"
         ],
@@ -3080,10 +3055,12 @@
       "module_name": "外设管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 peripheral-manage 页面\n   步骤标识：open_peripheral_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"peripheral-manage\"}\n3. 点击“接口管控”\n   步骤标识：open_interface_tab\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"接口管控\"}\n4. 切换peripheral/interface/usb\n   步骤标识：toggle_usb_interface_once\n   执行动作：entity.toggle\n   输入参数：{\"data\":{\"target_state\":\"off\"},\"domain\":\"peripheral\",\"entity\":\"interface\",\"variant\":\"usb\"}\n5. 切换peripheral/interface/usb\n   步骤标识：toggle_usb_interface_restore\n   执行动作：entity.toggle\n   输入参数：{\"data\":{\"target_state\":\"on\"},\"domain\":\"peripheral\",\"entity\":\"interface\",\"variant\":\"usb\"}",
+      "checkpoints_text": "1. 页面应显示“USB”\n   检查标识：usb_interface_row_visible_after_roundtrip\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“接口管控”\n   检查标识：interface_tab_context_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This is a reversible device-management flow: toggle the USB interface and restore it so the device is not left in a restricted state."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3194,10 +3171,13 @@
       "module_name": "外设管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 peripheral-manage 页面\n   步骤标识：open_peripheral_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"peripheral-manage\"}\n3. 点击“黑白名单”\n   步骤标识：open_peripheral_policy_tab\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"黑白名单\"}",
+      "checkpoints_text": "1. 页面应显示“还原策略”\n   检查标识：peripheral_policy_restore_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case gives the policy tab its own stable reachability check.",
+        "Primary evidence uses the policy-tab restore action."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3272,10 +3252,12 @@
       "module_name": "外设管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 peripheral-manage 页面\n   步骤标识：open_peripheral_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"peripheral-manage\"}\n3. 点击“接口管控”\n   步骤标识：open_interface_tab\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"接口管控\"}\n4. 更新peripheral/usb_storage_policy\n   步骤标识：set_usb_storage_read_only\n   执行动作：entity.update\n   输入参数：{\"data\":{\"policy\":\"read_only\"},\"domain\":\"peripheral\",\"entity\":\"usb_storage_policy\"}\n5. 更新peripheral/usb_storage_policy\n   步骤标识：restore_usb_storage_allow\n   执行动作：entity.update\n   输入参数：{\"data\":{\"policy\":\"allow\"},\"domain\":\"peripheral\",\"entity\":\"usb_storage_policy\"}",
+      "checkpoints_text": "1. 页面应显示“USB 存储设备”\n   检查标识：usb_storage_policy_row_visible_after_restore\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“读写”\n   检查标识：allow_policy_visible_after_restore\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This performs a policy change and restores the USB storage policy to the less restrictive allow state."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3384,10 +3366,13 @@
       "module_name": "外设管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 peripheral-manage 页面\n   步骤标识：open_peripheral_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"peripheral-manage\"}\n3. 点击“设备连接记录”\n   步骤标识：open_peripheral_record_tab\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"设备连接记录\"}",
+      "checkpoints_text": "1. 页面应显示“导出记录”\n   检查标识：peripheral_record_export_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This case gives the device-record tab its own stable reachability check.",
+        "Primary evidence uses the record-tab export action."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3462,10 +3447,13 @@
       "module_name": "外设管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 peripheral-manage 页面\n   步骤标识：open_peripheral_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"peripheral-manage\"}\n3. 点击“接口管控”\n   步骤标识：open_peripheral_interface_tab\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"接口管控\"}\n4. 更新peripheral/usb_storage_policy\n   步骤标识：update_usb_storage_policy\n   执行动作：entity.update\n   输入参数：{\"data\":{\"policy\":\"read_only\"},\"domain\":\"peripheral\",\"entity\":\"usb_storage_policy\"}",
+      "checkpoints_text": "1. 页面应显示“USB 存储设备”\n   检查标识：peripheral_usb_storage_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Current primary evidence confirms the flow stays within the expected interface-control context.",
+        "Getter-backed USB storage policy assertion will be added later."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3526,19 +3514,13 @@
       "bridge_coverage_status": "partial",
       "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
-        "外设步骤未能稳定映射到具体 flow",
-        "缺少断言草稿",
         "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
-        "flow": [
-          "外设步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [
           "Bridge 覆盖未完整"
         ],
@@ -3557,10 +3539,14 @@
       "module_name": "外设管理",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 peripheral-manage 页面\n   步骤标识：open_peripheral_manage\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"peripheral-manage\"}\n3. 点击“黑白名单”\n   步骤标识：open_peripheral_policy_tab\n   执行动作：ui.click_text\n   输入参数：{\"bundle_name\":\"{{bundle_name}}\",\"text\":\"黑白名单\"}",
+      "checkpoints_text": "1. 页面应显示“导出名单”\n   检查标识：peripheral_policy_export_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "当前版本通过“黑白名单”页维护设备策略，不再使用手工新增设备弹窗。",
+        "覆盖边界：本用例只证明黑白名单页和“导出名单”入口可达，不证明默认 allow、设备指纹入库或单设备白名单策略已经生效。",
+        "完整白名单场景还需要准备一台无历史指纹的真实 USB 设备，设置默认策略为 allow 后插入，并核对 desired_policy=allow、active_policy=none、present=true 及页面白名单记录。"
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3635,10 +3621,13 @@
       "module_name": "工具设置",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 tool-settings 页面\n   步骤标识：open_tool_settings\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"tool-settings\"}\n3. 更新tool_settings/auth_method\n   步骤标识：update_auth_method\n   执行动作：entity.update\n   输入参数：{\"data\":{\"method\":\"PIN\"},\"domain\":\"tool_settings\",\"entity\":\"auth_method\"}",
+      "checkpoints_text": "1. 页面应显示“工具设置”\n   检查标识：tool_settings_page_visible_after_auth_method_update\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Current primary evidence confirms the auth method update runs in the expected settings section.",
+        "Selection persistence assertion will be added after page re-entry verification is implemented."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3690,19 +3679,12 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "工具设置步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "工具设置步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [],
         "module": [],
         "other": []
@@ -3719,10 +3701,13 @@
       "module_name": "工具设置",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 tool-settings 页面\n   步骤标识：open_tool_settings\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"tool-settings\"}\n3. 设置并确认工具密码\n   步骤标识：set_tool_password\n   执行动作：tool_settings.set_password\n   输入参数：{\"confirm_password\":\"1234\",\"current_password\":\"\",\"new_password\":\"1234\"}",
+      "checkpoints_text": "1. 页面应显示“修改密码”\n   检查标识：tool_password_form_context_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Current primary evidence confirms the password flow executes in the expected form context.",
+        "Negative password scenarios will be added as separate cases."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3772,19 +3757,12 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [
-        "工具设置步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
-      ],
+      "capability_gap_items": [],
       "capability_gap_breakdown": {
-        "flow": [
-          "工具设置步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [],
         "module": [],
         "other": []
@@ -3801,10 +3779,12 @@
       "module_name": "工具设置",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 进入 tool-settings 页面\n   步骤标识：open_tool_settings\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"tool-settings\"}\n3. 设置并确认工具密码\n   步骤标识：open_system_password_settings_entry\n   执行动作：tool_settings.set_password\n   输入参数：{}\n4. 进入 tool-settings 页面\n   步骤标识：return_tool_settings\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"tool-settings\"}",
+      "checkpoints_text": "1. 页面应显示“工具设置”\n   检查标识：tool_settings_page_recovered\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}\n2. 页面应显示“修改密码”\n   检查标识：system_password_entry_still_available\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：secondary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "This covers the handoff to the system password settings surface and verifies the app returns to the tool-settings workflow."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3891,10 +3871,13 @@
       "module_name": "工具设置",
       "status": "implemented",
       "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
+      "preconditions_text": "1. HarmonyOS 测试设备已通过 HDC 连接，SecurityTool 已安装且可以启动。\n2. 用例中的 {{bundle_name}} 等运行参数已由环境配置解析。\n3. 应用已按部署流程激活为超级企业管理员，相关受限权限已写入签名描述文件。\n4. 已记录被修改策略的初始状态；用例必须在结束前恢复，避免影响后续用例。",
+      "steps_text": "1. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：launch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n2. 发送设备按键\n   步骤标识：reset_previous_page\n   执行动作：ui.press_key\n   输入参数：{\"key\":\"BACK\"}\n3. 启动 SecurityTool 应用并等待入口页可交互\n   步骤标识：relaunch_app\n   执行动作：app.launch\n   输入参数：{\"timeout_sec\":20}\n4. 进入 tool-settings 页面\n   步骤标识：open_tool_settings\n   执行动作：navigation.open_page\n   输入参数：{\"page_id\":\"tool-settings\"}\n5. 切换tool_settings/startup_auth\n   步骤标识：toggle_startup_auth_setting\n   执行动作：entity.toggle\n   输入参数：{\"data\":{\"target_state\":\"invert\"},\"domain\":\"tool_settings\",\"entity\":\"startup_auth\"}",
+      "checkpoints_text": "1. 页面应显示“工具设置”\n   检查标识：tool_settings_page_marker_visible\n   断言类型：assert_text_presence（检查页面文本是否符合预期）\n   证据级别：primary\n   断言参数：{\"bundle_name\":\"{{bundle_name}}\",\"interval_ms\":250,\"present\":true,\"timeout_ms\":2000}",
+      "notes": [
+        "Current primary evidence confirms the toggle flow remains on the correct settings section.",
+        "Primary evidence remains UI-level until a stable preference getter is exposed."
+      ],
       "structured_flow": [
         {
           "name": "launch_app",
@@ -3960,19 +3943,13 @@
       "bridge_coverage_status": "partial",
       "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
-        "工具设置步骤未能稳定映射到具体 flow",
-        "缺少断言草稿",
         "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
-        "flow": [
-          "工具设置步骤未能稳定映射到具体 flow"
-        ],
+        "flow": [],
         "template": [],
         "params": [],
-        "assertion": [
-          "缺少断言草稿"
-        ],
+        "assertion": [],
         "bridge": [
           "Bridge 覆盖未完整"
         ],

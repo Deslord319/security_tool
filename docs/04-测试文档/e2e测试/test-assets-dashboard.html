@@ -709,7 +709,9 @@
       els.structuredFlow.textContent = [
         "整理后的步骤动作",
         "",
-        formatFlow(record.structured_flow || []),
+        (record.structured_flow || []).length
+          ? formatFlow(record.structured_flow)
+          : (record.steps_text || "还没有整理出步骤动作。先改“操作步骤”，再点“整理当前记录”。"),
         "",
         "整理后的检查点",
         "",

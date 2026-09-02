@@ -1,0 +1,782 @@
+{
+  "case_id": "PER-POLICY-002",
+  "case_name": "Peripheral USB Storage Policy Roundtrip",
+  "module": "peripheral",
+  "started_at": "2026-09-02T02:56:50+00:00",
+  "finished_at": "2026-09-02T02:58:09+00:00",
+  "status": "PASS",
+  "failure_code": "",
+  "failure_stage": "",
+  "primary_evidence": {
+    "type": "step_success",
+    "step_name": "allow_policy_visible_after_restore",
+    "message": "Text presence assertion passed"
+  },
+  "secondary_evidence": [
+    {
+      "step_name": "launch_app",
+      "wakeup": {
+        "returncode": 0,
+        "stdout": "WakeupDevice is called",
+        "stderr": ""
+      },
+      "password_prompt": {
+        "status": "PASS",
+        "failure_code": "",
+        "message": "Auth prompt handled",
+        "handled": false,
+        "prompt_detected": false,
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_input_password_if_prompted",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "timeout_ms": 4000
+          },
+          "expected": "Clear lock screen password prompt when present",
+          "prompt_detected": false,
+          "handled": false,
+          "still_present": false,
+          "execution_backend": "real_bridge",
+          "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+          "bridge": "harmonyos_mcp_bridge",
+          "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+          "bridge_backend": "real_harmonyos_mcp_backend"
+        }
+      }
+    },
+    {
+      "step_name": "open_peripheral_manage",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      },
+      "expected": "Navigate to page peripheral-manage",
+      "page_id": "peripheral-manage",
+      "sidebar_id": "sidebar-nav-peripheral-manage",
+      "route_id": "route-page-peripheral-manage",
+      "marker_text": "接口管控",
+      "page_text": "外设管理",
+      "page_marker": {
+        "query": {
+          "page_id": "peripheral-manage",
+          "text": "接口管控"
+        },
+        "element": {
+          "type": "Text",
+          "text": "接口管控",
+          "id": "608",
+          "x": 1027,
+          "y": 528,
+          "left": 974,
+          "top": 513,
+          "width": 107,
+          "height": 31,
+          "checked": false,
+          "clickable": false,
+          "properties": {
+            "text": "接口管控",
+            "ID": "608",
+            "compid": "211:608",
+            "left": 974,
+            "top": 513,
+            "width": 107,
+            "height": 31,
+            "visible": true,
+            "clickable": false,
+            "enabled": true,
+            "focused": false,
+            "scrollable": false,
+            "checked": false,
+            "description": "",
+            "bundleName": "",
+            "pagePath": ""
+          }
+        }
+      },
+      "execution_backend": "real_bridge",
+      "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "bridge": "harmonyos_mcp_bridge",
+      "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+      "bridge_backend": "real_harmonyos_mcp_backend"
+    },
+    {
+      "step_name": "open_interface_tab",
+      "type": "mcp_action",
+      "action": "click_text",
+      "params": {
+        "text": "接口管控",
+        "bundle_name": "com.huawei.securitytool"
+      },
+      "expected": "Click visible text 接口管控",
+      "target": {
+        "type": "Text",
+        "text": "接口管控",
+        "id": "608",
+        "x": 1027,
+        "y": 528,
+        "left": 974,
+        "top": 513,
+        "width": 107,
+        "height": 31,
+        "checked": false,
+        "clickable": false,
+        "properties": {
+          "text": "接口管控",
+          "ID": "608",
+          "compid": "211:608",
+          "left": 974,
+          "top": 513,
+          "width": 107,
+          "height": 31,
+          "visible": true,
+          "clickable": false,
+          "enabled": true,
+          "focused": false,
+          "scrollable": false,
+          "checked": false,
+          "description": "",
+          "bundleName": "",
+          "pagePath": ""
+        }
+      },
+      "bundle_name": "com.huawei.securitytool",
+      "contains": false,
+      "execution_backend": "real_bridge",
+      "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "bridge": "harmonyos_mcp_bridge",
+      "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+      "bridge_backend": "real_harmonyos_mcp_backend"
+    },
+    {
+      "step_name": "set_usb_storage_read_only",
+      "type": "mcp_action",
+      "action": "execute_template_action",
+      "params": {
+        "template_key": "peripheral.usb_storage_policy.update",
+        "operation_ref": "entity.update",
+        "domain": "peripheral",
+        "entity": "usb_storage_policy",
+        "action": "update",
+        "variant": "",
+        "data": {
+          "policy": "read_only"
+        }
+      },
+      "expected": "peripheral usb_storage_policy update",
+      "template_key": "peripheral.usb_storage_policy.update",
+      "operation_ref": "entity.update",
+      "template_steps": [
+        {
+          "index": 1,
+          "type": "select_indexed_option",
+          "handler": "",
+          "status": "PASS",
+          "message": "Indexed select option chosen",
+          "evidence": {
+            "index": 0,
+            "value": "read_only",
+            "labels": [
+              "只读",
+              "仅读"
+            ],
+            "option_group": "peripheral_usb_policy"
+          }
+        }
+      ],
+      "execution_backend": "real_bridge",
+      "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "bridge": "harmonyos_mcp_bridge",
+      "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+      "bridge_backend": "real_harmonyos_mcp_backend"
+    },
+    {
+      "step_name": "restore_usb_storage_allow",
+      "type": "mcp_action",
+      "action": "execute_template_action",
+      "params": {
+        "template_key": "peripheral.usb_storage_policy.update",
+        "operation_ref": "entity.update",
+        "domain": "peripheral",
+        "entity": "usb_storage_policy",
+        "action": "update",
+        "variant": "",
+        "data": {
+          "policy": "allow"
+        }
+      },
+      "expected": "peripheral usb_storage_policy update",
+      "template_key": "peripheral.usb_storage_policy.update",
+      "operation_ref": "entity.update",
+      "template_steps": [
+        {
+          "index": 1,
+          "type": "select_indexed_option",
+          "handler": "",
+          "status": "PASS",
+          "message": "Indexed select option chosen",
+          "evidence": {
+            "index": 0,
+            "value": "allow",
+            "labels": [
+              "允许",
+              "可读写",
+              "读写"
+            ],
+            "option_group": "peripheral_usb_policy"
+          }
+        }
+      ],
+      "execution_backend": "real_bridge",
+      "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "bridge": "harmonyos_mcp_bridge",
+      "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+      "bridge_backend": "real_harmonyos_mcp_backend"
+    },
+    {
+      "step_name": "usb_storage_policy_row_visible_after_restore",
+      "type": "mcp_action",
+      "action": "__driver_text_presence",
+      "params": {
+        "bundle_name": "com.huawei.securitytool",
+        "text": "USB 存储设备",
+        "expected_present": true,
+        "match_mode": "contains",
+        "timeout_ms": 2000,
+        "interval_ms": 250,
+        "window_id": ""
+      },
+      "expected": "Detect whether text USB 存储设备 is present",
+      "exists": true,
+      "element": {
+        "type": "Text",
+        "text": "USB 存储设备",
+        "id": "726",
+        "x": 853,
+        "y": 778,
+        "left": 770,
+        "top": 763,
+        "width": 166,
+        "height": 31,
+        "checked": false,
+        "clickable": false,
+        "properties": {
+          "text": "USB 存储设备",
+          "ID": "726",
+          "compid": "211:726",
+          "left": 770,
+          "top": 763,
+          "width": 166,
+          "height": 31,
+          "visible": true,
+          "clickable": false,
+          "enabled": true,
+          "focused": false,
+          "scrollable": false,
+          "checked": false,
+          "description": "",
+          "bundleName": "",
+          "pagePath": ""
+        }
+      },
+      "source": "ui_tree",
+      "match_mode": "contains",
+      "execution_backend": "real_bridge",
+      "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "bridge": "harmonyos_mcp_bridge",
+      "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+      "bridge_backend": "real_harmonyos_mcp_backend"
+    },
+    {
+      "step_name": "allow_policy_visible_after_restore",
+      "type": "mcp_action",
+      "action": "__driver_text_presence",
+      "params": {
+        "bundle_name": "com.huawei.securitytool",
+        "text": "读写",
+        "expected_present": true,
+        "match_mode": "contains",
+        "timeout_ms": 2000,
+        "interval_ms": 250,
+        "window_id": ""
+      },
+      "expected": "Detect whether text 读写 is present",
+      "exists": true,
+      "element": {
+        "type": "Text",
+        "text": "设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。",
+        "id": "728",
+        "x": 1083,
+        "y": 811,
+        "left": 770,
+        "top": 798,
+        "width": 627,
+        "height": 27,
+        "checked": false,
+        "clickable": false,
+        "properties": {
+          "text": "设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。",
+          "ID": "728",
+          "compid": "211:728",
+          "left": 770,
+          "top": 798,
+          "width": 627,
+          "height": 27,
+          "visible": true,
+          "clickable": false,
+          "enabled": true,
+          "focused": false,
+          "scrollable": false,
+          "checked": false,
+          "description": "",
+          "bundleName": "",
+          "pagePath": ""
+        }
+      },
+      "source": "ui_tree",
+      "match_mode": "contains",
+      "execution_backend": "real_bridge",
+      "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "bridge": "harmonyos_mcp_bridge",
+      "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+      "bridge_backend": "real_harmonyos_mcp_backend"
+    }
+  ],
+  "steps": [
+    {
+      "name": "launch_app",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:56:50+00:00",
+      "finished_at": "2026-09-02T02:57:00+00:00",
+      "failure_code": "",
+      "command": "hdc -t 3QC0124C11000711 shell aa start -a EntryAbility -b com.huawei.securitytool -m entry",
+      "returncode": 0,
+      "stdout": "start ability successfully.",
+      "stderr": "",
+      "message": "Flow executed",
+      "evidence": {
+        "wakeup": {
+          "returncode": 0,
+          "stdout": "WakeupDevice is called",
+          "stderr": ""
+        },
+        "password_prompt": {
+          "status": "PASS",
+          "failure_code": "",
+          "message": "Auth prompt handled",
+          "handled": false,
+          "prompt_detected": false,
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_input_password_if_prompted",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "timeout_ms": 4000
+            },
+            "expected": "Clear lock screen password prompt when present",
+            "prompt_detected": false,
+            "handled": false,
+            "still_present": false,
+            "execution_backend": "real_bridge",
+            "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+            "bridge": "harmonyos_mcp_bridge",
+            "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+            "bridge_backend": "real_harmonyos_mcp_backend"
+          }
+        }
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:57:00+00:00",
+      "finished_at": "2026-09-02T02:57:27+00:00",
+      "failure_code": "",
+      "command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Already on target page",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "navigate_page",
+        "params": {
+          "page_id": "peripheral-manage"
+        },
+        "expected": "Navigate to page peripheral-manage",
+        "page_id": "peripheral-manage",
+        "sidebar_id": "sidebar-nav-peripheral-manage",
+        "route_id": "route-page-peripheral-manage",
+        "marker_text": "接口管控",
+        "page_text": "外设管理",
+        "page_marker": {
+          "query": {
+            "page_id": "peripheral-manage",
+            "text": "接口管控"
+          },
+          "element": {
+            "type": "Text",
+            "text": "接口管控",
+            "id": "608",
+            "x": 1027,
+            "y": 528,
+            "left": 974,
+            "top": 513,
+            "width": 107,
+            "height": 31,
+            "checked": false,
+            "clickable": false,
+            "properties": {
+              "text": "接口管控",
+              "ID": "608",
+              "compid": "211:608",
+              "left": 974,
+              "top": 513,
+              "width": 107,
+              "height": 31,
+              "visible": true,
+              "clickable": false,
+              "enabled": true,
+              "focused": false,
+              "scrollable": false,
+              "checked": false,
+              "description": "",
+              "bundleName": "",
+              "pagePath": ""
+            }
+          }
+        },
+        "execution_backend": "real_bridge",
+        "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+        "bridge": "harmonyos_mcp_bridge",
+        "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+        "bridge_backend": "real_harmonyos_mcp_backend"
+      }
+    },
+    {
+      "name": "open_interface_tab",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:57:27+00:00",
+      "finished_at": "2026-09-02T02:57:34+00:00",
+      "failure_code": "",
+      "command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Text target clicked",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "click_text",
+        "params": {
+          "text": "接口管控",
+          "bundle_name": "com.huawei.securitytool"
+        },
+        "expected": "Click visible text 接口管控",
+        "target": {
+          "type": "Text",
+          "text": "接口管控",
+          "id": "608",
+          "x": 1027,
+          "y": 528,
+          "left": 974,
+          "top": 513,
+          "width": 107,
+          "height": 31,
+          "checked": false,
+          "clickable": false,
+          "properties": {
+            "text": "接口管控",
+            "ID": "608",
+            "compid": "211:608",
+            "left": 974,
+            "top": 513,
+            "width": 107,
+            "height": 31,
+            "visible": true,
+            "clickable": false,
+            "enabled": true,
+            "focused": false,
+            "scrollable": false,
+            "checked": false,
+            "description": "",
+            "bundleName": "",
+            "pagePath": ""
+          }
+        },
+        "bundle_name": "com.huawei.securitytool",
+        "contains": false,
+        "execution_backend": "real_bridge",
+        "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+        "bridge": "harmonyos_mcp_bridge",
+        "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+        "bridge_backend": "real_harmonyos_mcp_backend"
+      }
+    },
+    {
+      "name": "set_usb_storage_read_only",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:57:34+00:00",
+      "finished_at": "2026-09-02T02:57:44+00:00",
+      "failure_code": "",
+      "command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Update the USB storage policy through generic select steps.",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "execute_template_action",
+        "params": {
+          "template_key": "peripheral.usb_storage_policy.update",
+          "operation_ref": "entity.update",
+          "domain": "peripheral",
+          "entity": "usb_storage_policy",
+          "action": "update",
+          "variant": "",
+          "data": {
+            "policy": "read_only"
+          }
+        },
+        "expected": "peripheral usb_storage_policy update",
+        "template_key": "peripheral.usb_storage_policy.update",
+        "operation_ref": "entity.update",
+        "template_steps": [
+          {
+            "index": 1,
+            "type": "select_indexed_option",
+            "handler": "",
+            "status": "PASS",
+            "message": "Indexed select option chosen",
+            "evidence": {
+              "index": 0,
+              "value": "read_only",
+              "labels": [
+                "只读",
+                "仅读"
+              ],
+              "option_group": "peripheral_usb_policy"
+            }
+          }
+        ],
+        "execution_backend": "real_bridge",
+        "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+        "bridge": "harmonyos_mcp_bridge",
+        "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+        "bridge_backend": "real_harmonyos_mcp_backend"
+      }
+    },
+    {
+      "name": "restore_usb_storage_allow",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:57:44+00:00",
+      "finished_at": "2026-09-02T02:57:58+00:00",
+      "failure_code": "",
+      "command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Update the USB storage policy through generic select steps.",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "execute_template_action",
+        "params": {
+          "template_key": "peripheral.usb_storage_policy.update",
+          "operation_ref": "entity.update",
+          "domain": "peripheral",
+          "entity": "usb_storage_policy",
+          "action": "update",
+          "variant": "",
+          "data": {
+            "policy": "allow"
+          }
+        },
+        "expected": "peripheral usb_storage_policy update",
+        "template_key": "peripheral.usb_storage_policy.update",
+        "operation_ref": "entity.update",
+        "template_steps": [
+          {
+            "index": 1,
+            "type": "select_indexed_option",
+            "handler": "",
+            "status": "PASS",
+            "message": "Indexed select option chosen",
+            "evidence": {
+              "index": 0,
+              "value": "allow",
+              "labels": [
+                "允许",
+                "可读写",
+                "读写"
+              ],
+              "option_group": "peripheral_usb_policy"
+            }
+          }
+        ],
+        "execution_backend": "real_bridge",
+        "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+        "bridge": "harmonyos_mcp_bridge",
+        "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+        "bridge_backend": "real_harmonyos_mcp_backend"
+      }
+    },
+    {
+      "name": "usb_storage_policy_row_visible_after_restore",
+      "step_type": "assertion_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:57:58+00:00",
+      "finished_at": "2026-09-02T02:58:04+00:00",
+      "failure_code": "",
+      "command": null,
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Text presence assertion passed",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "__driver_text_presence",
+        "params": {
+          "bundle_name": "com.huawei.securitytool",
+          "text": "USB 存储设备",
+          "expected_present": true,
+          "match_mode": "contains",
+          "timeout_ms": 2000,
+          "interval_ms": 250,
+          "window_id": ""
+        },
+        "expected": "Detect whether text USB 存储设备 is present",
+        "exists": true,
+        "element": {
+          "type": "Text",
+          "text": "USB 存储设备",
+          "id": "726",
+          "x": 853,
+          "y": 778,
+          "left": 770,
+          "top": 763,
+          "width": 166,
+          "height": 31,
+          "checked": false,
+          "clickable": false,
+          "properties": {
+            "text": "USB 存储设备",
+            "ID": "726",
+            "compid": "211:726",
+            "left": 770,
+            "top": 763,
+            "width": 166,
+            "height": 31,
+            "visible": true,
+            "clickable": false,
+            "enabled": true,
+            "focused": false,
+            "scrollable": false,
+            "checked": false,
+            "description": "",
+            "bundleName": "",
+            "pagePath": ""
+          }
+        },
+        "source": "ui_tree",
+        "match_mode": "contains",
+        "execution_backend": "real_bridge",
+        "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+        "bridge": "harmonyos_mcp_bridge",
+        "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+        "bridge_backend": "real_harmonyos_mcp_backend"
+      }
+    },
+    {
+      "name": "allow_policy_visible_after_restore",
+      "step_type": "assertion_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:58:04+00:00",
+      "finished_at": "2026-09-02T02:58:09+00:00",
+      "failure_code": "",
+      "command": null,
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Text presence assertion passed",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "__driver_text_presence",
+        "params": {
+          "bundle_name": "com.huawei.securitytool",
+          "text": "读写",
+          "expected_present": true,
+          "match_mode": "contains",
+          "timeout_ms": 2000,
+          "interval_ms": 250,
+          "window_id": ""
+        },
+        "expected": "Detect whether text 读写 is present",
+        "exists": true,
+        "element": {
+          "type": "Text",
+          "text": "设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。",
+          "id": "728",
+          "x": 1083,
+          "y": 811,
+          "left": 770,
+          "top": 798,
+          "width": 627,
+          "height": 27,
+          "checked": false,
+          "clickable": false,
+          "properties": {
+            "text": "设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。",
+            "ID": "728",
+            "compid": "211:728",
+            "left": 770,
+            "top": 798,
+            "width": 627,
+            "height": 27,
+            "visible": true,
+            "clickable": false,
+            "enabled": true,
+            "focused": false,
+            "scrollable": false,
+            "checked": false,
+            "description": "",
+            "bundleName": "",
+            "pagePath": ""
+          }
+        },
+        "source": "ui_tree",
+        "match_mode": "contains",
+        "execution_backend": "real_bridge",
+        "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+        "bridge": "harmonyos_mcp_bridge",
+        "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+        "bridge_backend": "real_harmonyos_mcp_backend"
+      }
+    }
+  ],
+  "artifacts": [],
+  "notes": [
+    "This adapter is the reference implementation inside the business repository.",
+    "The structure is designed so core modules can be extracted into a standalone repository later.",
+    "Registered pages: dashboard, firewall, firewall-rules, log-manage, peripheral-manage, identity, tool-settings, help-feedback",
+    "This performs a policy change and restores the USB storage policy to the less restrictive allow state."
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "environment_snapshot": {
+    "project_id": "security_tool",
+    "adapter_name": "security_tool",
+    "adapter_version": "1.0.0",
+    "bundle_name": "com.huawei.securitytool",
+    "device_id": "3QC0124C11000711",
+    "mode": "completeness",
+    "connected": true,
+    "page_registry_version": "2026-04-09"
+  }
+}

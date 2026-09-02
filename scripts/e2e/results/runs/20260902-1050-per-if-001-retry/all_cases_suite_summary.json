@@ -1,0 +1,20 @@
+{
+  "suite_name": "all_cases",
+  "adapter_name": "security_tool",
+  "adapter_version": "1.0.0",
+  "project_id": "security_tool",
+  "mode": "completeness",
+  "started_at": "2026-09-02T02:50:25+00:00",
+  "finished_at": "2026-09-02T02:51:32+00:00",
+  "overall_status": "PASS",
+  "total_cases": 1,
+  "pass_count": 1,
+  "fail_count": 0,
+  "unknown_count": 0,
+  "execution_backend": "real_bridge",
+  "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+  "bridge_backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+  "result_files": [
+    "scripts\\e2e\\results\\runs\\20260902-1050-per-if-001-retry\\PER-IF-001.json"
+  ]
+}

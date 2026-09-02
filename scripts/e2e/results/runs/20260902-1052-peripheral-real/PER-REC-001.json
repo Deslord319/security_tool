@@ -1,0 +1,469 @@
+{
+  "case_id": "PER-REC-001",
+  "case_name": "Peripheral Record Tab Reachable",
+  "module": "peripheral",
+  "started_at": "2026-09-02T02:54:45+00:00",
+  "finished_at": "2026-09-02T02:55:47+00:00",
+  "status": "PASS",
+  "failure_code": "",
+  "failure_stage": "",
+  "primary_evidence": {
+    "type": "step_success",
+    "step_name": "peripheral_record_export_visible",
+    "message": "Text presence assertion passed"
+  },
+  "secondary_evidence": [
+    {
+      "step_name": "launch_app",
+      "wakeup": {
+        "returncode": 0,
+        "stdout": "WakeupDevice is called",
+        "stderr": ""
+      },
+      "password_prompt": {
+        "status": "PASS",
+        "failure_code": "",
+        "message": "Auth prompt handled",
+        "handled": false,
+        "prompt_detected": false,
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_input_password_if_prompted",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "timeout_ms": 4000
+          },
+          "expected": "Clear lock screen password prompt when present",
+          "prompt_detected": false,
+          "handled": false,
+          "still_present": false,
+          "execution_backend": "real_bridge",
+          "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+          "bridge": "harmonyos_mcp_bridge",
+          "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+          "bridge_backend": "real_harmonyos_mcp_backend"
+        }
+      }
+    },
+    {
+      "step_name": "open_peripheral_manage",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      },
+      "expected": "Navigate to page peripheral-manage",
+      "page_id": "peripheral-manage",
+      "sidebar_id": "sidebar-nav-peripheral-manage",
+      "route_id": "route-page-peripheral-manage",
+      "marker_text": "接口管控",
+      "page_text": "外设管理",
+      "page_marker": {
+        "query": {
+          "page_id": "peripheral-manage",
+          "text": "接口管控"
+        },
+        "element": {
+          "type": "Text",
+          "text": "接口管控",
+          "id": "608",
+          "x": 1027,
+          "y": 528,
+          "left": 974,
+          "top": 513,
+          "width": 107,
+          "height": 31,
+          "checked": false,
+          "clickable": false,
+          "properties": {
+            "text": "接口管控",
+            "ID": "608",
+            "compid": "211:608",
+            "left": 974,
+            "top": 513,
+            "width": 107,
+            "height": 31,
+            "visible": true,
+            "clickable": false,
+            "enabled": true,
+            "focused": false,
+            "scrollable": false,
+            "checked": false,
+            "description": "",
+            "bundleName": "",
+            "pagePath": ""
+          }
+        }
+      },
+      "execution_backend": "real_bridge",
+      "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "bridge": "harmonyos_mcp_bridge",
+      "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+      "bridge_backend": "real_harmonyos_mcp_backend"
+    },
+    {
+      "step_name": "open_peripheral_record_tab",
+      "type": "mcp_action",
+      "action": "click_text",
+      "params": {
+        "text": "设备连接记录",
+        "bundle_name": "com.huawei.securitytool"
+      },
+      "expected": "Click visible text 设备连接记录",
+      "target": {
+        "type": "Text",
+        "text": "设备连接记录",
+        "id": "611",
+        "x": 1711,
+        "y": 528,
+        "left": 1631,
+        "top": 513,
+        "width": 160,
+        "height": 31,
+        "checked": false,
+        "clickable": false,
+        "properties": {
+          "text": "设备连接记录",
+          "ID": "611",
+          "compid": "211:611",
+          "left": 1631,
+          "top": 513,
+          "width": 160,
+          "height": 31,
+          "visible": true,
+          "clickable": false,
+          "enabled": true,
+          "focused": false,
+          "scrollable": false,
+          "checked": false,
+          "description": "",
+          "bundleName": "",
+          "pagePath": ""
+        }
+      },
+      "bundle_name": "com.huawei.securitytool",
+      "contains": false,
+      "execution_backend": "real_bridge",
+      "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "bridge": "harmonyos_mcp_bridge",
+      "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+      "bridge_backend": "real_harmonyos_mcp_backend"
+    },
+    {
+      "step_name": "peripheral_record_export_visible",
+      "type": "mcp_action",
+      "action": "__driver_text_presence",
+      "params": {
+        "bundle_name": "com.huawei.securitytool",
+        "text": "导出记录",
+        "expected_present": true,
+        "match_mode": "contains",
+        "timeout_ms": 2000,
+        "interval_ms": 250,
+        "window_id": ""
+      },
+      "expected": "Detect whether text 导出记录 is present",
+      "exists": true,
+      "element": {
+        "type": "Text",
+        "text": "导出记录",
+        "id": "3554",
+        "x": 2391,
+        "y": 417,
+        "left": 2338,
+        "top": 402,
+        "width": 107,
+        "height": 31,
+        "checked": false,
+        "clickable": false,
+        "properties": {
+          "text": "导出记录",
+          "ID": "3554",
+          "compid": "211:3554",
+          "left": 2338,
+          "top": 402,
+          "width": 107,
+          "height": 31,
+          "visible": true,
+          "clickable": false,
+          "enabled": true,
+          "focused": false,
+          "scrollable": false,
+          "checked": false,
+          "description": "",
+          "bundleName": "",
+          "pagePath": ""
+        }
+      },
+      "source": "ui_tree",
+      "match_mode": "contains",
+      "execution_backend": "real_bridge",
+      "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "bridge": "harmonyos_mcp_bridge",
+      "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+      "bridge_backend": "real_harmonyos_mcp_backend"
+    }
+  ],
+  "steps": [
+    {
+      "name": "launch_app",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:54:45+00:00",
+      "finished_at": "2026-09-02T02:54:55+00:00",
+      "failure_code": "",
+      "command": "hdc -t 3QC0124C11000711 shell aa start -a EntryAbility -b com.huawei.securitytool -m entry",
+      "returncode": 0,
+      "stdout": "start ability successfully.",
+      "stderr": "",
+      "message": "Flow executed",
+      "evidence": {
+        "wakeup": {
+          "returncode": 0,
+          "stdout": "WakeupDevice is called",
+          "stderr": ""
+        },
+        "password_prompt": {
+          "status": "PASS",
+          "failure_code": "",
+          "message": "Auth prompt handled",
+          "handled": false,
+          "prompt_detected": false,
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_input_password_if_prompted",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "timeout_ms": 4000
+            },
+            "expected": "Clear lock screen password prompt when present",
+            "prompt_detected": false,
+            "handled": false,
+            "still_present": false,
+            "execution_backend": "real_bridge",
+            "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+            "bridge": "harmonyos_mcp_bridge",
+            "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+            "bridge_backend": "real_harmonyos_mcp_backend"
+          }
+        }
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:54:55+00:00",
+      "finished_at": "2026-09-02T02:55:34+00:00",
+      "failure_code": "",
+      "command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Already on target page",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "navigate_page",
+        "params": {
+          "page_id": "peripheral-manage"
+        },
+        "expected": "Navigate to page peripheral-manage",
+        "page_id": "peripheral-manage",
+        "sidebar_id": "sidebar-nav-peripheral-manage",
+        "route_id": "route-page-peripheral-manage",
+        "marker_text": "接口管控",
+        "page_text": "外设管理",
+        "page_marker": {
+          "query": {
+            "page_id": "peripheral-manage",
+            "text": "接口管控"
+          },
+          "element": {
+            "type": "Text",
+            "text": "接口管控",
+            "id": "608",
+            "x": 1027,
+            "y": 528,
+            "left": 974,
+            "top": 513,
+            "width": 107,
+            "height": 31,
+            "checked": false,
+            "clickable": false,
+            "properties": {
+              "text": "接口管控",
+              "ID": "608",
+              "compid": "211:608",
+              "left": 974,
+              "top": 513,
+              "width": 107,
+              "height": 31,
+              "visible": true,
+              "clickable": false,
+              "enabled": true,
+              "focused": false,
+              "scrollable": false,
+              "checked": false,
+              "description": "",
+              "bundleName": "",
+              "pagePath": ""
+            }
+          }
+        },
+        "execution_backend": "real_bridge",
+        "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+        "bridge": "harmonyos_mcp_bridge",
+        "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+        "bridge_backend": "real_harmonyos_mcp_backend"
+      }
+    },
+    {
+      "name": "open_peripheral_record_tab",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:55:34+00:00",
+      "finished_at": "2026-09-02T02:55:42+00:00",
+      "failure_code": "",
+      "command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Text target clicked",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "click_text",
+        "params": {
+          "text": "设备连接记录",
+          "bundle_name": "com.huawei.securitytool"
+        },
+        "expected": "Click visible text 设备连接记录",
+        "target": {
+          "type": "Text",
+          "text": "设备连接记录",
+          "id": "611",
+          "x": 1711,
+          "y": 528,
+          "left": 1631,
+          "top": 513,
+          "width": 160,
+          "height": 31,
+          "checked": false,
+          "clickable": false,
+          "properties": {
+            "text": "设备连接记录",
+            "ID": "611",
+            "compid": "211:611",
+            "left": 1631,
+            "top": 513,
+            "width": 160,
+            "height": 31,
+            "visible": true,
+            "clickable": false,
+            "enabled": true,
+            "focused": false,
+            "scrollable": false,
+            "checked": false,
+            "description": "",
+            "bundleName": "",
+            "pagePath": ""
+          }
+        },
+        "bundle_name": "com.huawei.securitytool",
+        "contains": false,
+        "execution_backend": "real_bridge",
+        "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+        "bridge": "harmonyos_mcp_bridge",
+        "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+        "bridge_backend": "real_harmonyos_mcp_backend"
+      }
+    },
+    {
+      "name": "peripheral_record_export_visible",
+      "step_type": "assertion_action",
+      "status": "PASS",
+      "started_at": "2026-09-02T02:55:42+00:00",
+      "finished_at": "2026-09-02T02:55:47+00:00",
+      "failure_code": "",
+      "command": null,
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Text presence assertion passed",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "__driver_text_presence",
+        "params": {
+          "bundle_name": "com.huawei.securitytool",
+          "text": "导出记录",
+          "expected_present": true,
+          "match_mode": "contains",
+          "timeout_ms": 2000,
+          "interval_ms": 250,
+          "window_id": ""
+        },
+        "expected": "Detect whether text 导出记录 is present",
+        "exists": true,
+        "element": {
+          "type": "Text",
+          "text": "导出记录",
+          "id": "3554",
+          "x": 2391,
+          "y": 417,
+          "left": 2338,
+          "top": 402,
+          "width": 107,
+          "height": 31,
+          "checked": false,
+          "clickable": false,
+          "properties": {
+            "text": "导出记录",
+            "ID": "3554",
+            "compid": "211:3554",
+            "left": 2338,
+            "top": 402,
+            "width": 107,
+            "height": 31,
+            "visible": true,
+            "clickable": false,
+            "enabled": true,
+            "focused": false,
+            "scrollable": false,
+            "checked": false,
+            "description": "",
+            "bundleName": "",
+            "pagePath": ""
+          }
+        },
+        "source": "ui_tree",
+        "match_mode": "contains",
+        "execution_backend": "real_bridge",
+        "bridge_command": "python scripts\\e2e\\bridges\\harmonyos_mcp_bridge.py",
+        "bridge": "harmonyos_mcp_bridge",
+        "backend_module": "scripts\\e2e\\bridges\\real_harmonyos_mcp_backend.py",
+        "bridge_backend": "real_harmonyos_mcp_backend"
+      }
+    }
+  ],
+  "artifacts": [],
+  "notes": [
+    "This adapter is the reference implementation inside the business repository.",
+    "The structure is designed so core modules can be extracted into a standalone repository later.",
+    "Registered pages: dashboard, firewall, firewall-rules, log-manage, peripheral-manage, identity, tool-settings, help-feedback",
+    "This case gives the device-record tab its own stable reachability check.",
+    "Primary evidence uses the record-tab export action."
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "environment_snapshot": {
+    "project_id": "security_tool",
+    "adapter_name": "security_tool",
+    "adapter_version": "1.0.0",
+    "bundle_name": "com.huawei.securitytool",
+    "device_id": "3QC0124C11000711",
+    "mode": "completeness",
+    "connected": true,
+    "page_registry_version": "2026-04-09"
+  }
+}
