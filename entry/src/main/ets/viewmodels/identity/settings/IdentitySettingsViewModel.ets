@@ -1,6 +1,5 @@
 import { securityManager } from '@kit.MDMKit'
 import { AdminText, MessageText } from '../../../constants/StringCatalog'
-import { IdentityActionStrings } from '../../../constants/modules/IdentityStrings'
 import { IdentityMessageStrings } from '../../../constants/modules/IdentityStrings'
 import { AdminActivationState } from '../../../models/CommonModels'
 import {
@@ -149,7 +148,7 @@ export class IdentitySettingsViewModel {
         status: 'failure',
         message: this.adminState.errorMessage?.trim().length ?
           this.adminState.errorMessage :
-          `${IdentityActionStrings.SAVE}${IdentityMessageStrings.ADMIN_REQUIRED_WITH_ACTION_SUFFIX}`
+          IdentityMessageStrings.SAVE_ADMIN_REQUIRED
       }
     }
 
@@ -254,7 +253,7 @@ export class IdentitySettingsViewModel {
       this.refreshDerivedState()
       let message = result.isAdminMissing
         ? DialogService.displayReason(result.errorMessage, AdminText.NOT_ACTIVATED)
-        : DialogService.displayReason(result.errorMessage, `${IdentityActionStrings.PASSWORD_POLICY}${IdentityMessageStrings.ACTION_RETRY_SUFFIX}`)
+        : DialogService.displayReason(result.errorMessage, IdentityMessageStrings.PASSWORD_POLICY_RETRY)
       return {
         kind: 'result',
         status: 'failure',

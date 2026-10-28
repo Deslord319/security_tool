@@ -1,11 +1,7 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
 import { ActionText, ModuleText } from '../../../constants/StringCatalog'
-import {
-  IdentityFormStrings,
-  IdentityPageStrings,
-  IdentitySectionStrings
-} from '../../../constants/modules/IdentityStrings'
+import { IdentityFormStrings } from '../../../constants/modules/IdentityStrings'
 import { PASSWORD_LENGTH_OPTIONS } from '../../../models/IdentityModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { SectionCard } from '../../../components/SettingsSectionCard'
@@ -31,14 +27,14 @@ export struct IdentityPage {
   @Event onBack: () => void = () => {}
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
-    value: `${value} ${IdentityFormStrings.BYTE_UNIT_SUFFIX}`
+    value: IdentityFormStrings.buildLengthOption(value)
   } as SelectOption))
 
   private validityOptions: SelectOption[] = [
-    { value: IdentityFormStrings.HALF_YEAR_OPTION } as SelectOption,
-    { value: IdentityFormStrings.ONE_YEAR_OPTION } as SelectOption,
-    { value: IdentityFormStrings.PERMANENT_OPTION } as SelectOption,
-    { value: IdentityFormStrings.CUSTOM_OPTION } as SelectOption
+    { value: $r('app.string.identity_form_half_year_option') } as SelectOption,
+    { value: $r('app.string.identity_form_one_year_option') } as SelectOption,
+    { value: $r('app.string.identity_form_permanent_option') } as SelectOption,
+    { value: $r('app.string.identity_form_custom_option') } as SelectOption
   ]
 
   private async saveConfig(skipImmediateExpiryConfirm: boolean = false): Promise<void> {
@@ -85,8 +81,8 @@ export struct IdentityPage {
   build() {
     Column() {
       SubPageHeader({
-        title: ModuleText.IDENTITY,
-        subtitle: IdentityPageStrings.SUBTITLE,
+        title: $r('app.string.common_module_identity'),
+        subtitle: $r('app.string.identity_page_subtitle'),
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
         actions: () => {
@@ -97,7 +93,7 @@ export struct IdentityPage {
       Scroll() {
         Column({ space: 24 }) {
           SectionCard({
-            title: IdentitySectionStrings.PASSWORD_COMPLEXITY,
+            title: $r('app.string.identity_section_password_complexity'),
             currentTheme: this.currentTheme,
             content: () => {
               this.passwordComplexityContent()
@@ -147,8 +143,8 @@ export struct IdentityPage {
         .height(96)
     } else {
       SectionSelectRow({
-      title: IdentitySectionStrings.MIN_PASSWORD_LENGTH,
-      description: IdentitySectionStrings.MIN_PASSWORD_LENGTH_DESC,
+      title: $r('app.string.identity_section_min_password_length'),
+      description: $r('app.string.identity_section_min_password_length_desc'),
       options: this.lengthOptions,
       selectedIndex: this.viewModel.state.minLengthIndex,
       value: this.getSelectedMinLengthLabel(),
@@ -164,8 +160,8 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionToggleRow({
-      title: IdentitySectionStrings.REQUIRE_UPPERCASE,
-      description: IdentitySectionStrings.REQUIRE_UPPERCASE_DESC,
+      title: $r('app.string.identity_section_require_uppercase'),
+      description: $r('app.string.identity_section_require_uppercase_desc'),
       isOn: this.viewModel.state.requireUppercase,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -178,8 +174,8 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionToggleRow({
-      title: IdentitySectionStrings.REQUIRE_LOWERCASE,
-      description: IdentitySectionStrings.REQUIRE_LOWERCASE_DESC,
+      title: $r('app.string.identity_section_require_lowercase'),
+      description: $r('app.string.identity_section_require_lowercase_desc'),
       isOn: this.viewModel.state.requireLowercase,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -192,8 +188,8 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionToggleRow({
-      title: IdentitySectionStrings.REQUIRE_DIGIT,
-      description: IdentitySectionStrings.REQUIRE_DIGIT_DESC,
+      title: $r('app.string.identity_section_require_digit'),
+      description: $r('app.string.identity_section_require_digit_desc'),
       isOn: this.viewModel.state.requireDigit,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -206,8 +202,8 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionToggleRow({
-      title: IdentitySectionStrings.REQUIRE_SPECIAL_CHAR,
-      description: IdentitySectionStrings.REQUIRE_SPECIAL_CHAR_DESC,
+      title: $r('app.string.identity_section_require_special_char'),
+      description: $r('app.string.identity_section_require_special_char_desc'),
       isOn: this.viewModel.state.requireSpecialChar,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -220,17 +216,17 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionSelectInputRow({
-      title: IdentitySectionStrings.PASSWORD_VALIDITY_PERIOD,
-      description: IdentitySectionStrings.PASSWORD_VALIDITY_PERIOD_DESC,
+      title: $r('app.string.identity_section_password_validity_period'),
+      description: $r('app.string.identity_section_password_validity_period_desc'),
       options: this.validityOptions,
       selectedIndex: this.viewModel.state.validityPeriodIndex,
       value: this.getSelectedValidityLabel(),
       selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
       showInput: this.viewModel.state.validityPeriodIndex === CUSTOM_VALIDITY_OPTION_INDEX,
       inputText: this.viewModel.state.customValidityPeriodText,
-      inputPlaceholder: IdentityFormStrings.CUSTOM_DAYS_PLACEHOLDER,
+      inputPlaceholder: $r('app.string.identity_form_custom_days_placeholder'),
       inputWidth: 112,
-      inputSuffix: IdentityFormStrings.DAY_UNIT,
+      inputSuffix: $r('app.string.identity_form_day_unit'),
       currentTheme: this.currentTheme,
       onSelect: (index: number) => {
         this.viewModel.setValidityPeriodIndex(index)

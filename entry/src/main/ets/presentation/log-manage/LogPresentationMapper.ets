@@ -15,29 +15,35 @@ export interface LogEventTypeOption {
   icon?: Resource
 }
 
-export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = ALL_LOG_EVENT_TYPES.map((value: LogEventType): LogEventTypeOption => ({
-  label: resolveLogEventTypeLabel(value),
-  value: value
-}))
-
 export interface LogTimeRangeOption {
   label: string
   durationMs?: number
 }
 
-const LOG_TIME_RANGE_LABELS: string[] = [
-  LogManageFilterStrings.ALL_TIME,
-  LogManageFilterStrings.LAST_1_HOUR,
-  LogManageFilterStrings.LAST_12_HOURS,
-  LogManageFilterStrings.LAST_24_HOURS,
-  LogManageFilterStrings.LAST_3_DAYS
-]
+/**
+ * 事件类型与时间范围下拉选项以惰性函数提供：选项标签经文案门面按当前
+ * locale 解析，不得在模块顶层常量中读取文案门面。
+ */
+export function getLogEventTypeOptions(): LogEventTypeOption[] {
+  return ALL_LOG_EVENT_TYPES.map((value: LogEventType): LogEventTypeOption => ({
+    label: resolveLogEventTypeLabel(value),
+    value: value
+  }))
+}
 
-export const LOG_TIME_RANGE_OPTIONS: LogTimeRangeOption[] =
-  LOG_TIME_RANGE_DEFINITIONS.map((definition, index): LogTimeRangeOption => ({
-    label: LOG_TIME_RANGE_LABELS[index] ?? LogManageFilterStrings.ALL_TIME,
+export function getLogTimeRangeOptions(): LogTimeRangeOption[] {
+  const timeRangeLabels: string[] = [
+    LogManageFilterStrings.ALL_TIME,
+    LogManageFilterStrings.LAST_1_HOUR,
+    LogManageFilterStrings.LAST_12_HOURS,
+    LogManageFilterStrings.LAST_24_HOURS,
+    LogManageFilterStrings.LAST_3_DAYS
+  ]
+  return LOG_TIME_RANGE_DEFINITIONS.map((definition, index): LogTimeRangeOption => ({
+    label: timeRangeLabels[index] ?? LogManageFilterStrings.ALL_TIME,
     durationMs: definition.durationMs
   }))
+}
 
 export function getLogEventTypeLabel(type: LogEventType): string {
   return resolveLogEventTypeLabel(type)

@@ -4,8 +4,8 @@ import { ThemeMode } from '../theme/ThemeColors'
 
 @ComponentV2
 export struct SubPageHeader {
-  @Param title: string = ''
-  @Param subtitle: string = ''
+  @Param title: ResourceStr = ''
+  @Param subtitle: ResourceStr = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onBack: () => void = () => {}
   @BuilderParam actions?: () => void

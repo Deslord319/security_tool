@@ -3,8 +3,8 @@ import { ModuleText } from '../../../constants/StringCatalog'
 import {
   FaqItemString,
   GuideItemString,
-  HELP_FEEDBACK_FAQ_ITEMS,
-  HELP_FEEDBACK_GUIDE_ITEMS,
+  getHelpFeedbackFaqItems,
+  getHelpFeedbackGuideItems,
   HelpFeedbackActionStrings,
   HelpFeedbackContactStrings,
   HelpFeedbackPageStrings
@@ -37,7 +37,7 @@ struct ExpandableInfoList {
               .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
               .layoutWeight(1)
 
-            Text(this.expandedIndex === index ? HelpFeedbackActionStrings.COLLAPSE : HelpFeedbackActionStrings.EXPAND)
+            Text(this.expandedIndex === index ? $r('app.string.help_feedback_action_collapse') : $r('app.string.help_feedback_action_expand'))
               .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -75,14 +75,14 @@ export struct HelpFeedbackPage {
   @Local expandedGuide: number = -1
   @Local expandedFaq: number = -1
 
-  private guideItems: GuideItemString[] = HELP_FEEDBACK_GUIDE_ITEMS
-  private faqItems: FaqItemString[] = HELP_FEEDBACK_FAQ_ITEMS
+  private guideItems: GuideItemString[] = getHelpFeedbackGuideItems()
+  private faqItems: FaqItemString[] = getHelpFeedbackFaqItems()
 
   build() {
     Column() {
       SubPageHeader({
-        title: ModuleText.HELP_FEEDBACK,
-        subtitle: HelpFeedbackPageStrings.SUBTITLE,
+        title: $r('app.string.common_module_help_feedback'),
+        subtitle: $r('app.string.help_feedback_page_subtitle'),
         currentTheme: this.currentTheme,
         onBack: () => this.onBack()
       })
@@ -90,7 +90,7 @@ export struct HelpFeedbackPage {
       Scroll() {
         Column({ space: 20 }) {
           SectionCard({
-            title: HelpFeedbackPageStrings.GUIDE_SECTION_TITLE,
+            title: $r('app.string.help_feedback_guide_section_title'),
             currentTheme: this.currentTheme,
             content: () => {
               this.guideSectionContent()
@@ -98,7 +98,7 @@ export struct HelpFeedbackPage {
           })
 
           SectionCard({
-            title: HelpFeedbackPageStrings.FAQ_SECTION_TITLE,
+            title: $r('app.string.help_feedback_faq_section_title'),
             currentTheme: this.currentTheme,
             content: () => {
               this.faqSectionContent()
@@ -106,7 +106,7 @@ export struct HelpFeedbackPage {
           })
 
           SectionCard({
-            title: HelpFeedbackPageStrings.CONTACT_SECTION_TITLE,
+            title: $r('app.string.help_feedback_contact_section_title'),
             currentTheme: this.currentTheme,
             content: () => {
               this.contactSectionContent()
@@ -164,14 +164,14 @@ export struct HelpFeedbackPage {
   @Builder
   private contactSectionContent() {
     Column({ space: 8 }) {
-      Text(HelpFeedbackContactStrings.DESCRIPTION)
+      Text($r('app.string.help_feedback_contact_description'))
         .fontSize(AppStyles.FONT_SIZE_SMALL)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         .lineHeight(20)
 
       Row({ space: 8 }) {
-        Text(HelpFeedbackContactStrings.EMAIL_LABEL)
+        Text($r('app.string.help_feedback_contact_email_label'))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)

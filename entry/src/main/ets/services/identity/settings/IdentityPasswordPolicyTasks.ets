@@ -3,9 +3,9 @@ import { securityManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { OperationResult } from '../../../models/CommonModels'
 import { PasswordComplexityConfig } from '../../../models/IdentityModels'
-import { OperationResultUtils } from '../../common/OperationResultUtils'
+import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
-import { IdentityActionStrings } from '../../../constants/modules/IdentityStrings'
+import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { IdentityPasswordPolicyMapper } from './IdentityPasswordPolicyMapper'
 
 @Concurrent
@@ -20,7 +20,13 @@ export function setPasswordPolicyWithResultTask(config: PasswordComplexityConfig
     return { success: true } as OperationResult<void>
   } catch (err) {
     LogUtils.error('IdentityService', `setPasswordPolicy failed: ${JSON.stringify(err)}`)
-    return OperationResultUtils.buildFailureResult<void>(IdentityActionStrings.PASSWORD_POLICY, err as ErrorLike)
+    // 任务线程内文案门面不可见：返回空 errorMessage，由页面 displayReason 走本地化兜底
+    return {
+      success: false,
+      errorCode: CommonErrorUtils.extractErrorCode(err as ErrorLike),
+      errorMessage: '',
+      isAdminMissing: EnterpriseAdminService.isAdminMissingError(err as ErrorLike)
+    } as OperationResult<void>
   }
 }
 
@@ -37,10 +43,12 @@ export function getPasswordPolicyWithResultTask(): OperationResult<securityManag
     } as OperationResult<securityManager.PasswordPolicy | null>
   } catch (err) {
     LogUtils.error('IdentityService', `getPasswordPolicy failed: ${JSON.stringify(err)}`)
-    return OperationResultUtils.buildFailureResult<securityManager.PasswordPolicy | null>(
-      IdentityActionStrings.READ_PASSWORD_POLICY,
-      err as ErrorLike,
-      null
-    )
+    return {
+      success: false,
+      data: null,
+      errorCode: CommonErrorUtils.extractErrorCode(err as ErrorLike),
+      errorMessage: '',
+      isAdminMissing: EnterpriseAdminService.isAdminMissingError(err as ErrorLike)
+    } as OperationResult<securityManager.PasswordPolicy | null>
   }
 }

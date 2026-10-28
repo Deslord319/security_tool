@@ -38,7 +38,7 @@ export struct DetailDialogShell {
             Blank()
             if (this.showCloseAction) {
               IconTextActionButton({
-                label: ActionText.CLOSE,
+                label: $r('app.string.common_action_close'),
                 showIcon: false,
                 currentTheme: this.currentTheme,
                 onTap: this.onClose

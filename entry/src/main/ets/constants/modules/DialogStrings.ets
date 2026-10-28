@@ -1,22 +1,39 @@
 /**
- * 通用对话框字符串常量
+ * 通用对话框字符串资源门面
  *
- * 统一管理所有对话框组件中的硬编码文字，包括：
- * - 加载状态文本
- * - 空状态提示
+ * 文案唯一来源为 resources/{base,en_US}/element/string.json 中的 common_* 资源，
+ * 经 AppStrings 资源管理器按当前 locale 解析。单元测试环境（AppStrings 未
+ * 初始化）下门面返回资源名；相关断言必须经门面构造，不得断言字面量。
  */
+import { AppStrings } from '../AppStrings'
 
 export class LoadingStrings {
-  static readonly LOADING: string = '加载中...'
-  static readonly LOADING_USERS: string = '正在加载用户列表...'
-  static readonly LOADING_RULES: string = '正在加载规则...'
-  static readonly APPLYING_MODE: string = '正在应用防火墙模式...'
+  static get LOADING(): string {
+    return AppStrings.get('common_loading')
+  }
+
+  static get LOADING_USERS(): string {
+    return AppStrings.get('common_loading_users')
+  }
+
+  static get LOADING_RULES(): string {
+    return AppStrings.get('common_loading_rules')
+  }
+
+  static get APPLYING_MODE(): string {
+    return AppStrings.get('common_applying_mode')
+  }
 }
 
 export class EmptyStateStrings {
-  static readonly NO_USERS: string = '暂无可选用户'
-  static readonly NO_RECORDS: string = '暂无连接记录'
-  static readonly NO_RULES: string = '暂无自定义规则'
-  static readonly NO_DEVICES: string = '暂无可管理的设备'
-  static readonly NO_RESULTS: string = '未找到相关结果'
+
+  static get NO_RECORDS(): string {
+    return AppStrings.get('common_empty_no_records')
+  }
+
+
+
+  static get NO_RESULTS(): string {
+    return AppStrings.get('common_empty_no_results')
+  }
 }

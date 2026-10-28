@@ -4,7 +4,7 @@ import { HoverUtils } from '../utils/HoverUtils'
 
 @ComponentV2
 export struct SectionCard {
-  @Param title: string = ''
+  @Param title: ResourceStr = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @BuilderParam headerAction?: () => void
   @BuilderParam content?: () => void

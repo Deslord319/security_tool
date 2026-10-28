@@ -1,9 +1,12 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { SecurityEventResult } from '../../main/ets/models/CommonModels'
+import { ResultText, LabelText } from '../../main/ets/constants/StringCatalog'
 import {
   PeripheralConnectionRecord,
   PeripheralType
 } from '../../main/ets/models/PeripheralModels'
+import { PeripheralConnectionRecordStrings, PeripheralMatchedPolicyStrings, PeripheralRecordActionPresentationStrings, PeripheralRecordResultPresentationStrings } from '../../main/ets/constants/modules/PeripheralStrings'
+import { FirewallDialogStrings } from '../../main/ets/constants/modules/FirewallStrings'
 import {
   getPeripheralConnectionActionLabel,
   getPeripheralConnectionPolicyLabel,
@@ -46,14 +49,14 @@ export default function peripheralRecordDisplayUtilsTest() {
     })
 
     it('should expose stable labels for all matched policy kinds', 0, () => {
-      expect(getPeripheralMatchedPolicyKindLabel('usb_disabled')).assertEqual('USB 接口已禁用')
-      expect(getPeripheralMatchedPolicyKindLabel('usb_storage_disabled')).assertEqual('USB 存储已禁用')
-      expect(getPeripheralMatchedPolicyKindLabel('usb_storage_read_only')).assertEqual('USB 存储只读')
-      expect(getPeripheralMatchedPolicyKindLabel('device_deny')).assertEqual('命中单设备禁止接入')
-      expect(getPeripheralMatchedPolicyKindLabel('bluetooth_disabled')).assertEqual('蓝牙已禁用')
-      expect(getPeripheralMatchedPolicyKindLabel('bluetooth_connection')).assertEqual('蓝牙连接事件')
-      expect(getPeripheralMatchedPolicyKindLabel('default_allow')).assertEqual('默认允许接入')
-      expect(getPeripheralMatchedPolicyKindLabel('disconnect_event')).assertEqual('设备断开连接')
+      expect(getPeripheralMatchedPolicyKindLabel('usb_disabled')).assertEqual(PeripheralMatchedPolicyStrings.USB_DISABLED)
+      expect(getPeripheralMatchedPolicyKindLabel('usb_storage_disabled')).assertEqual(PeripheralMatchedPolicyStrings.USB_STORAGE_DISABLED)
+      expect(getPeripheralMatchedPolicyKindLabel('usb_storage_read_only')).assertEqual(PeripheralMatchedPolicyStrings.USB_STORAGE_READ_ONLY)
+      expect(getPeripheralMatchedPolicyKindLabel('device_deny')).assertEqual(PeripheralMatchedPolicyStrings.DEVICE_DENY)
+      expect(getPeripheralMatchedPolicyKindLabel('bluetooth_disabled')).assertEqual(PeripheralMatchedPolicyStrings.BLUETOOTH_DISABLED)
+      expect(getPeripheralMatchedPolicyKindLabel('bluetooth_connection')).assertEqual(PeripheralMatchedPolicyStrings.BLUETOOTH_CONNECTION)
+      expect(getPeripheralMatchedPolicyKindLabel('default_allow')).assertEqual(PeripheralMatchedPolicyStrings.DEFAULT_ALLOW)
+      expect(getPeripheralMatchedPolicyKindLabel('disconnect_event')).assertEqual(PeripheralMatchedPolicyStrings.DISCONNECT_EVENT)
       expect(getPeripheralMatchedPolicyKindLabel('unknown')).assertEqual('--')
     })
 
@@ -65,9 +68,9 @@ export default function peripheralRecordDisplayUtilsTest() {
       record.summary = 'runtime'
       record.matchedPolicyKind = 'device_deny'
 
-      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('命中单设备禁止接入')
-      expect(getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)).assertEqual('命中单设备禁止接入')
-      expect(getPeripheralConnectionResultLabel(record)).assertEqual('已阻止')
+      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual(PeripheralMatchedPolicyStrings.DEVICE_DENY)
+      expect(getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)).assertEqual(PeripheralMatchedPolicyStrings.DEVICE_DENY)
+      expect(getPeripheralConnectionResultLabel(record)).assertEqual(PeripheralRecordResultPresentationStrings.BLOCKED)
     })
 
     it('should fallback to policy hit labels when matched policy kind is missing', 0, () => {
@@ -87,9 +90,9 @@ export default function peripheralRecordDisplayUtilsTest() {
       unknownRecord.policyHit = 'unknown'
       unknownRecord.summary = 'unknown'
 
-      expect(getPeripheralConnectionPolicyLabel(allowRecord)).assertEqual('允许')
-      expect(getPeripheralConnectionPolicyLabel(denyRecord)).assertEqual('阻止')
-      expect(getPeripheralConnectionPolicyLabel(unknownRecord)).assertEqual('未知')
+      expect(getPeripheralConnectionPolicyLabel(allowRecord)).assertEqual(FirewallDialogStrings.ACTION_ALLOW)
+      expect(getPeripheralConnectionPolicyLabel(denyRecord)).assertEqual(FirewallDialogStrings.ACTION_DENY)
+      expect(getPeripheralConnectionPolicyLabel(unknownRecord)).assertEqual(LabelText.UNKNOWN)
     })
 
     it('should render policy snapshot labels from actual policy and operation result', 0, () => {
@@ -99,9 +102,9 @@ export default function peripheralRecordDisplayUtilsTest() {
       record.action = 'discover'
       record.summary = 'snapshot'
 
-      expect(getPeripheralConnectionActionLabel(record)).assertEqual('策略变更')
-      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('允许')
-      expect(getPeripheralConnectionResultLabel(record)).assertEqual('成功')
+      expect(getPeripheralConnectionActionLabel(record)).assertEqual(PeripheralRecordActionPresentationStrings.POLICY_CHANGE)
+      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual(FirewallDialogStrings.ACTION_ALLOW)
+      expect(getPeripheralConnectionResultLabel(record)).assertEqual(ResultText.SUCCESS)
     })
 
     it('should render usb storage policy snapshots as policy changes', 0, () => {
@@ -116,10 +119,10 @@ export default function peripheralRecordDisplayUtilsTest() {
       enabledRecord.source = 'policy_snapshot'
       enabledRecord.action = 'discover'
 
-      expect(getPeripheralConnectionActionLabel(disabledRecord)).assertEqual('策略变更')
-      expect(getPeripheralConnectionPolicyLabel(disabledRecord)).assertEqual('阻止')
-      expect(getPeripheralConnectionResultLabel(disabledRecord)).assertEqual('已阻止')
-      expect(getPeripheralConnectionActionLabel(enabledRecord)).assertEqual('策略变更')
+      expect(getPeripheralConnectionActionLabel(disabledRecord)).assertEqual(PeripheralRecordActionPresentationStrings.POLICY_CHANGE)
+      expect(getPeripheralConnectionPolicyLabel(disabledRecord)).assertEqual(FirewallDialogStrings.ACTION_DENY)
+      expect(getPeripheralConnectionResultLabel(disabledRecord)).assertEqual(PeripheralRecordResultPresentationStrings.BLOCKED)
+      expect(getPeripheralConnectionActionLabel(enabledRecord)).assertEqual(PeripheralRecordActionPresentationStrings.POLICY_CHANGE)
     })
 
     it('should render bluetooth acl connection labels', 0, () => {
@@ -129,12 +132,12 @@ export default function peripheralRecordDisplayUtilsTest() {
       record.deviceType = PeripheralType.BLUETOOTH
       record.deviceId = 'MAC: 11:22:33:44:55:66'
       record.policyHit = 'unknown'
-      record.summary = '蓝牙设备已连接'
+      record.summary = PeripheralConnectionRecordStrings.BLUETOOTH_CONNECTED
       record.matchedPolicyKind = 'bluetooth_connection'
 
-      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('蓝牙连接事件')
-      expect(getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)).assertEqual('蓝牙连接事件')
-      expect(getPeripheralConnectionResultLabel(record)).assertEqual('成功')
+      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual(PeripheralMatchedPolicyStrings.BLUETOOTH_CONNECTION)
+      expect(getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)).assertEqual(PeripheralMatchedPolicyStrings.BLUETOOTH_CONNECTION)
+      expect(getPeripheralConnectionResultLabel(record)).assertEqual(ResultText.SUCCESS)
     })
 
     it('should map all result states to stable labels', 0, () => {
@@ -145,10 +148,10 @@ export default function peripheralRecordDisplayUtilsTest() {
       failedRecord.result = SecurityEventResult.FAILED
       const unexpectedRecord = createUnexpectedResultRecord()
 
-      expect(getPeripheralConnectionResultLabel(baseRecord)).assertEqual('成功')
-      expect(getPeripheralConnectionResultLabel(blockedRecord)).assertEqual('已阻止')
-      expect(getPeripheralConnectionResultLabel(failedRecord)).assertEqual('失败')
-      expect(getPeripheralConnectionResultLabel(unexpectedRecord)).assertEqual('未知')
+      expect(getPeripheralConnectionResultLabel(baseRecord)).assertEqual(ResultText.SUCCESS)
+      expect(getPeripheralConnectionResultLabel(blockedRecord)).assertEqual(PeripheralRecordResultPresentationStrings.BLOCKED)
+      expect(getPeripheralConnectionResultLabel(failedRecord)).assertEqual(ResultText.FAILED)
+      expect(getPeripheralConnectionResultLabel(unexpectedRecord)).assertEqual(LabelText.UNKNOWN)
     })
   })
 }

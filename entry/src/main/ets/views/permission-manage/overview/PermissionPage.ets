@@ -1,14 +1,7 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
 import { ActionText, MessageText, ModuleText } from '../../../constants/StringCatalog'
-import {
-  PermissionEmptyStrings,
-  PermissionApplicationStrings,
-  PermissionLoadingStrings,
-  PermissionPageStrings,
-  PermissionSectionStrings,
-  PermissionSummaryStrings
-} from '../../../constants/modules/PermissionStrings'
+import { PermissionEmptyStrings, PermissionApplicationStrings, PermissionLoadingStrings, PermissionSectionStrings, PermissionSummaryStrings } from '../../../constants/modules/PermissionStrings'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
 import { LoadingStatePanel } from '../../../components/LoadingStatePanel'
@@ -192,8 +185,8 @@ export struct PermissionPage {
   build() {
     Column() {
       SubPageHeader({
-        title: ModuleText.PERMISSION_MANAGE,
-        subtitle: PermissionPageStrings.SUBTITLE,
+        title: $r('app.string.common_module_permission_manage'),
+        subtitle: $r('app.string.permission_page_subtitle'),
         currentTheme: this.currentTheme,
         onBack: () => this.onBack()
       })
@@ -203,7 +196,7 @@ export struct PermissionPage {
           this.summaryContent()
 
           SectionCard({
-            title: PermissionSectionStrings.APPLICATIONS,
+            title: $r('app.string.permission_section_applications'),
             currentTheme: this.currentTheme,
             headerAction: () => {
               this.applicationRefreshAction()
@@ -214,7 +207,7 @@ export struct PermissionPage {
           })
 
           SectionCard({
-            title: PermissionSectionStrings.APPLICATION_CONTROL,
+            title: $r('app.string.permission_section_application_control'),
             currentTheme: this.currentTheme,
             content: () => {
               this.applicationPolicyContent()
@@ -223,7 +216,7 @@ export struct PermissionPage {
 
           if (this.viewModel.state.initialized) {
             SectionCard({
-              title: PermissionSectionStrings.CURRENT_POLICIES,
+              title: $r('app.string.permission_section_current_policies'),
               currentTheme: this.currentTheme,
               content: () => {
                 this.currentPolicyContent()
@@ -260,7 +253,7 @@ export struct PermissionPage {
       }
 
       IconTextActionButton({
-        label: PermissionApplicationStrings.REFRESH_APPLICATIONS,
+        label: $r('app.string.permission_application_refresh'),
         showIcon: false,
         isEnabled: this.canRefreshApplicationInventory(),
         currentTheme: this.currentTheme,
@@ -353,7 +346,7 @@ export struct PermissionPage {
   @Builder
   private applicationPolicyContent() {
     if (this.getSelectedAppSnapshot() === undefined) {
-      Text(PermissionEmptyStrings.SELECT_APPLICATION_FIRST)
+      Text($r('app.string.permission_empty_select_application_first'))
         .width('100%')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

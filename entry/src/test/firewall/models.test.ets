@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { netFirewall } from '@kit.NetworkKit'
 import { LabelText, ResultText } from '../../main/ets/constants/StringCatalog'
+import { AppStrings } from '../../main/ets/constants/AppStrings'
 import {
   buildFirewallUserLabel,
   FirewallDialogStrings,
@@ -37,10 +38,10 @@ export default function firewallModelsTest() {
       expect(FirewallDialogStrings.ACTION_ALLOW.length > 0).assertTrue()
       expect(FirewallDialogStrings.ACTION_DENY.length > 0).assertTrue()
       expect(LabelText.UNKNOWN.length > 0).assertTrue()
-      expect(ResultText.FAILED).assertEqual('失败')
-      expect(buildFirewallUserLabel(100, true, '张三')).assertEqual('张三（当前）')
+      expect(ResultText.FAILED.length > 0).assertTrue()
+      expect(buildFirewallUserLabel(100, true, '张三')).assertEqual(AppStrings.format('firewall_user_current', '张三'))
       expect(buildFirewallUserLabel(101, false, '李四')).assertEqual('李四')
-      expect(buildFirewallUserLabel(102, false, '')).assertEqual('用户 102')
+      expect(buildFirewallUserLabel(102, false, '')).assertEqual(AppStrings.format('firewall_user_fallback', 102))
     })
 
     it('should infer user policy mode from default actions', 0, () => {

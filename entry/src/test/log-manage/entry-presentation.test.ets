@@ -4,6 +4,7 @@ import {
   buildLogDetailViewData,
   buildLogListItemViewData
 } from '../../main/ets/presentation/log-manage/LogEntryPresentationMapper'
+import { AppStrings } from '../../main/ets/constants/AppStrings'
 
 function createEntry(): LogEntry {
   return {
@@ -28,8 +29,8 @@ export default function logEntryPresentationTest() {
   describe('LogEntryPresentationMapper', () => {
     it('should build concise list content from semantic fields', 0, () => {
       const item = buildLogListItemViewData(createEntry())
-      expect(item.eventLabel).assertEqual('企业策略变更')
-      expect(item.title).assertEqual('禁止 USB')
+      expect(item.eventLabel).assertEqual(AppStrings.get('log_event_edm_policy_change'))
+      expect(item.title).assertEqual(AppStrings.get('log_edm_policy_disallow_usb'))
       expect(item.context?.includes('com.example.admin')).assertTrue()
       expect(item.title.includes('{')).assertFalse()
     })
@@ -40,10 +41,10 @@ export default function logEntryPresentationTest() {
       const object = detail.sections.find((section): boolean => section.id === 'object')
       const technical = detail.sections.find((section): boolean => section.id === 'technical')
 
-      expect(detail.title).assertEqual('企业策略变更')
-      expect(overview?.fields[0].value).assertEqual('设置/变更策略状态')
-      expect(object?.fields[0].value).assertEqual('禁止 USB')
-      expect(technical?.fields.some((field): boolean => field.label === '源事件 ID')).assertTrue()
+      expect(detail.title).assertEqual(AppStrings.get('log_event_edm_policy_change'))
+      expect(overview?.fields[0].value).assertEqual(AppStrings.get('log_edm_operation_type_set'))
+      expect(object?.fields[0].value).assertEqual(AppStrings.get('log_edm_policy_disallow_usb'))
+      expect(technical?.fields.some((field): boolean => field.label === AppStrings.get('log_field_common_event_id'))).assertTrue()
     })
 
     it('should provide a stable fallback for unknown event keys', 0, () => {
@@ -53,8 +54,8 @@ export default function logEntryPresentationTest() {
       entry.processName = undefined
       entry.pid = undefined
       const item = buildLogListItemViewData(entry)
-      expect(item.eventLabel).assertEqual('未知日志事件')
-      expect(item.title).assertEqual('未知日志事件')
+      expect(item.eventLabel).assertEqual(AppStrings.get('log_event_unknown'))
+      expect(item.title).assertEqual(AppStrings.get('log_event_unknown'))
     })
   })
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { securityManager } from '@kit.MDMKit'
+import { AppStrings } from '../../main/ets/constants/AppStrings'
+import { IdentityRequirementStrings } from '../../main/ets/constants/modules/IdentityStrings'
 import { PasswordComplexityConfig } from '../../main/ets/models/IdentityModels'
 import { IdentityPasswordPolicyMapper } from '../../main/ets/services/identity/settings/IdentityPasswordPolicyMapper'
 
@@ -36,7 +38,14 @@ export default function identityServiceTest() {
       let policy = IdentityPasswordPolicyMapper.toPasswordPolicy(config)
 
       expect(policy.complexityRegex).assertEqual('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*]).{10,}$')
-      expect(policy.additionalDescription).assertEqual('至少10个字符，包含大写字母，包含小写字母，包含数字，包含特殊字符(!@#$%^&*)')
+      let expectedDescription: string = [
+        IdentityRequirementStrings.buildPasswordMinLengthRequirement(10),
+        IdentityRequirementStrings.UPPERCASE,
+        IdentityRequirementStrings.LOWERCASE,
+        IdentityRequirementStrings.DIGIT,
+        IdentityRequirementStrings.SPECIAL
+      ].join(AppStrings.get('common_list_separator'))
+      expect(policy.additionalDescription).assertEqual(expectedDescription)
       expect(policy.validityPeriod).assertEqual(365 * DAY_IN_MS)
     })
 
@@ -189,7 +198,13 @@ export default function identityServiceTest() {
       config.requireSpecialChar = true
       let description = IdentityPasswordPolicyMapper.buildDescription(config)
 
-      expect(description).assertEqual('至少12个字符，包含小写字母，包含数字，包含特殊字符(!@#$%^&*)')
+      let expectedDescription: string = [
+        IdentityRequirementStrings.buildPasswordMinLengthRequirement(12),
+        IdentityRequirementStrings.LOWERCASE,
+        IdentityRequirementStrings.DIGIT,
+        IdentityRequirementStrings.SPECIAL
+      ].join(AppStrings.get('common_list_separator'))
+      expect(description).assertEqual(expectedDescription)
     })
   })
 }

@@ -5,7 +5,7 @@ import { FormControlUtils } from '../utils/FormControlUtils'
 @ComponentV2
 export struct StyledTextInput {
   @Param text: string = ''
-  @Param placeholder: string = ''
+  @Param placeholder: ResourceStr = ''
   @Param inputType: InputType = InputType.Normal
   @Param controlWidth: number = 0
   @Param controlHeight: number = AppStyles.INPUT_HEIGHT

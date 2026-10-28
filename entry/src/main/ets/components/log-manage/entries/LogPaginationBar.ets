@@ -57,7 +57,7 @@ export struct LogPaginationBar {
         })
 
         IconTextActionButton({
-          label: ActionText.PREVIOUS_PAGE,
+          label: $r('app.string.common_action_previous_page'),
           showIcon: false,
           isEnabled: this.paginationState.currentPage > 1,
           currentTheme: this.currentTheme,
@@ -72,7 +72,7 @@ export struct LogPaginationBar {
 
         StyledTextInput({
           text: this.paginationState.pageInputText,
-          placeholder: LogManagePaginationStrings.PAGE_INPUT_PLACEHOLDER,
+          placeholder: $r('app.string.log_manage_pagination_page_input_placeholder'),
           inputType: InputType.Number,
           controlWidth: 62,
           controlHeight: 32,
@@ -84,7 +84,7 @@ export struct LogPaginationBar {
         })
 
         IconTextActionButton({
-          label: ActionText.JUMP,
+          label: $r('app.string.common_action_jump'),
           showIcon: false,
           isEnabled: this.paginationState.pageInputText.trim().length > 0,
           currentTheme: this.currentTheme,
@@ -92,7 +92,7 @@ export struct LogPaginationBar {
         })
 
         IconTextActionButton({
-          label: ActionText.NEXT_PAGE,
+          label: $r('app.string.common_action_next_page'),
           showIcon: false,
           isEnabled: this.paginationState.currentPage < this.paginationState.totalPages,
           currentTheme: this.currentTheme,

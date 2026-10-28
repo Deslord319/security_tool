@@ -1,4 +1,4 @@
-import { AppColors, AppStyles, InteractiveItemStyles, NavItem, NAV_ITEMS } from '../constants/AppConstants'
+import { AppColors, AppStyles, getNavItems, InteractiveItemStyles, NavItem } from '../constants/AppConstants'
 import { AppResources } from '../constants/AppResources'
 import { AppText, ThemeText } from '../constants/StringCatalog'
 import { RouteIds } from '../constants/RouteIds'
@@ -53,7 +53,7 @@ export struct SideBar {
           .height(20)
           .draggable(false)
 
-        Text(AppText.NAME)
+        Text($r('app.string.common_app_name'))
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -70,7 +70,7 @@ export struct SideBar {
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       List({ space: 4 }) {
-        ForEach(NAV_ITEMS, (item: NavItem) => {
+        ForEach(getNavItems(), (item: NavItem) => {
           ListItem() {
             InteractiveMenuRow({
               icon: item.icon,

@@ -13,6 +13,8 @@ import { createCsvFileExportResult } from '../common/CsvExportResultFactory'
 import { LogExportService } from '../../main/ets/services/log-manage/export/LogExportService'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
 import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
+import { LabelText } from '../../main/ets/constants/StringCatalog'
+import { LogManageCsvStrings } from '../../main/ets/constants/modules/LogManageStrings'
 
 function createLogEntry(
   id: string,
@@ -140,7 +142,14 @@ export default function logExportServiceTest() {
       expect(result.success).assertTrue()
       expect(captured.length >= 2).assertTrue()
       expect(captured[0].charCodeAt(0)).assertEqual(0xFEFF)
-      expect(captured[0].substring(1).indexOf('时间,事件类型,详情,进程名,PID')).assertEqual(0)
+      let expectedHeader: string = [
+        LabelText.TIME,
+        LogManageCsvStrings.EVENT_TYPE,
+        LabelText.DETAIL,
+        LogManageCsvStrings.PROCESS_NAME,
+        LogManageCsvStrings.PID
+      ].join(',')
+      expect(captured[0].substring(1).indexOf(expectedHeader)).assertEqual(0)
       expect(captured[0].indexOf('结果')).assertEqual(-1)
       expect(captured[1].indexOf('alpha') > -1).assertTrue()
       done()

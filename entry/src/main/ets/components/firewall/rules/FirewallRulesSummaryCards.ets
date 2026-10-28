@@ -42,13 +42,13 @@ export struct FirewallRulesSummaryCards {
     const disabledCount = this.defaultPolicyItems.filter((item: FirewallDefaultPolicyDisplayItem): boolean => !item.isOpen).length
     let parts: string[] = []
     if (customCount > 0) {
-      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_CUSTOM} ${buildFirewallUserCountText(customCount)}`)
+      parts.push(`${$r('app.string.firewall_rule_default_policy_custom')} ${buildFirewallUserCountText(customCount)}`)
     }
     if (unknownCount > 0) {
-      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_UNKNOWN} ${buildFirewallUserCountText(unknownCount)}`)
+      parts.push(`${$r('app.string.firewall_rule_default_policy_unknown')} ${buildFirewallUserCountText(unknownCount)}`)
     }
     if (disabledCount > 0) {
-      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_DISABLED} ${buildFirewallUserCountText(disabledCount)}`)
+      parts.push(`${$r('app.string.firewall_rule_default_policy_disabled')} ${buildFirewallUserCountText(disabledCount)}`)
     }
     return parts.join(' · ')
   }

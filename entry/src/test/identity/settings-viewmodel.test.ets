@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { securityManager } from '@kit.MDMKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { AdminText, MessageText } from '../../main/ets/constants/StringCatalog'
-import { IdentityActionStrings, IdentityMessageStrings } from '../../main/ets/constants/modules/IdentityStrings'
+import { IdentityMessageStrings } from '../../main/ets/constants/modules/IdentityStrings'
 import {
   AdminActivationState,
   OperationResult
@@ -385,7 +385,7 @@ export default function identitySettingsViewModelTest() {
 
       expectResultFailure(
         result,
-        DialogService.displayReason('io failed', `${IdentityActionStrings.PASSWORD_POLICY}${IdentityMessageStrings.ACTION_RETRY_SUFFIX}`)
+        DialogService.displayReason('io failed', IdentityMessageStrings.PASSWORD_POLICY_RETRY)
       )
     })
 
@@ -413,7 +413,7 @@ export default function identitySettingsViewModelTest() {
 
       let result = viewModel.requestSave()
 
-      expectResultFailure(result, `${IdentityActionStrings.SAVE}${IdentityMessageStrings.ADMIN_REQUIRED_WITH_ACTION_SUFFIX}`)
+      expectResultFailure(result, IdentityMessageStrings.SAVE_ADMIN_REQUIRED)
     })
 
     it('should map half-year validity period to half-year option', 0, async () => {

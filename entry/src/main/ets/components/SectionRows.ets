@@ -11,10 +11,15 @@ const SECTION_SELECT_INPUT_GAP: number = 8
 const SECTION_INPUT_SUFFIX_GAP: number = 6
 const SECTION_INPUT_WIDTH_DEFAULT: number = 112
 
+// ResourceStr 空文案判断：Resource 恒视为有文案，string 按长度判断
+function hasResourceText(text: ResourceStr): boolean {
+  return typeof text === 'string' ? text.length > 0 : true
+}
+
 @ComponentV2
 export struct SectionLabel {
-  @Param title: string = ''
-  @Param description: string = ''
+  @Param title: ResourceStr = ''
+  @Param description: ResourceStr = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
@@ -24,7 +29,7 @@ export struct SectionLabel {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-      if (this.description.length > 0) {
+      if (hasResourceText(this.description)) {
         Text(this.description)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -38,8 +43,8 @@ export struct SectionLabel {
 
 @ComponentV2
 export struct SectionToggleRow {
-  @Param title: string = ''
-  @Param description: string = ''
+  @Param title: ResourceStr = ''
+  @Param description: ResourceStr = ''
   @Param isOn: boolean = false
   @Param processing: boolean = false
   @Param enabledValue: boolean = true
@@ -82,11 +87,11 @@ export struct SectionToggleRow {
 
 @ComponentV2
 export struct SectionSelectRow {
-  @Param title: string = ''
-  @Param description: string = ''
+  @Param title: ResourceStr = ''
+  @Param description: ResourceStr = ''
   @Param options: SelectOption[] = []
   @Param selectedIndex: number = 0
-  @Param value: string = ''
+  @Param value: ResourceStr = ''
   @Param selectWidth: number = AppStyles.SELECT_WIDTH_DEFAULT
   @Param processing: boolean = false
   @Param enabledValue: boolean = true
@@ -138,9 +143,9 @@ export struct SectionSelectRow {
 
 @ComponentV2
 export struct SectionActionRow {
-  @Param title: string = ''
-  @Param description: string = ''
-  @Param actionLabel: string = ''
+  @Param title: ResourceStr = ''
+  @Param description: ResourceStr = ''
+  @Param actionLabel: ResourceStr = ''
   @Param isEnabled: boolean = true
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onTap: () => void = () => {}
@@ -216,17 +221,17 @@ export struct SectionActionRow {
 
 @ComponentV2
 export struct SectionSelectInputRow {
-  @Param title: string = ''
-  @Param description: string = ''
+  @Param title: ResourceStr = ''
+  @Param description: ResourceStr = ''
   @Param options: SelectOption[] = []
   @Param selectedIndex: number = 0
-  @Param value: string = ''
+  @Param value: ResourceStr = ''
   @Param selectWidth: number = AppStyles.SELECT_WIDTH_DEFAULT
   @Param showInput: boolean = false
   @Param inputText: string = ''
-  @Param inputPlaceholder: string = ''
+  @Param inputPlaceholder: ResourceStr = ''
   @Param inputWidth: number = SECTION_INPUT_WIDTH_DEFAULT
-  @Param inputSuffix: string = ''
+  @Param inputSuffix: ResourceStr = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onSelect: (index: number) => void = () => {}
   @Event onInputChange: (value: string) => void = () => {}
@@ -270,7 +275,7 @@ export struct SectionSelectInputRow {
               }
             })
 
-            if (this.inputSuffix.length > 0) {
+            if (hasResourceText(this.inputSuffix)) {
               Text(this.inputSuffix)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

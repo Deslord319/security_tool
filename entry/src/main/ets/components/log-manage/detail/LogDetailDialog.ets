@@ -44,7 +44,7 @@ export struct LogDetailDialog {
   private dialogContent(viewData: LogDetailViewData) {
     Column({ space: 12 }) {
       Column({ space: 8 }) {
-        Text(LogManageDetailStrings.SUMMARY)
+        Text($r('app.string.log_manage_detail_summary'))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -52,7 +52,7 @@ export struct LogDetailDialog {
         Row({ space: 10 }) {
           this.summaryMetric(LogManageDetailStrings.TIME_LABEL, viewData.timestamp)
           this.summaryMetric(LogManageDetailStrings.EVENT_TYPE_LABEL, viewData.typeLabel)
-          this.summaryMetric('事件名称', viewData.title)
+          this.summaryMetric(LogManageDetailStrings.EVENT_NAME_LABEL, viewData.title)
         }
         .width('100%')
       }
@@ -62,7 +62,7 @@ export struct LogDetailDialog {
       .borderRadius(AppStyles.RADIUS_MD)
 
       Column({ space: 8 }) {
-        Text(LogManageDetailStrings.STRUCTURED_DETAILS)
+        Text($r('app.string.log_manage_detail_structured_details'))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

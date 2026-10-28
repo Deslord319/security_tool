@@ -51,7 +51,7 @@ export struct LogDetailTable {
   build() {
     Column({ space: 12 }) {
       if (this.sections.length === 0) {
-        Text(LogManageDetailStrings.EMPTY)
+        Text($r('app.string.log_manage_detail_empty'))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)

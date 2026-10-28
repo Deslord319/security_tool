@@ -294,7 +294,7 @@ export struct FirewallPage {
               .width(12)
               .height(12)
               .fillColor(this.getModeStatusTextColor(mode))
-            Text(StatusText.CURRENT_MODE)
+            Text($r('app.string.common_status_current_mode'))
               .fontSize(AppStyles.FONT_SIZE_MICRO)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getModeStatusTextColor(mode))
@@ -324,7 +324,7 @@ export struct FirewallPage {
       Column({ space: 8 }) {
         if (mode === 'custom') {
           Row({ space: 4 }) {
-            Text(FirewallPageStrings.RULES_PAGE)
+            Text($r('app.string.firewall_page_rules_page'))
               .fontSize(AppStyles.FONT_SIZE_MICRO)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
@@ -337,7 +337,7 @@ export struct FirewallPage {
           }
         } else if (this.isModeSelected(mode)) {
           Row({ space: 4 }) {
-            Text(StatusText.EFFECTIVE)
+            Text($r('app.string.common_status_effective'))
               .fontSize(AppStyles.FONT_SIZE_MICRO)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
@@ -399,8 +399,8 @@ export struct FirewallPage {
   build() {
     Column() {
       SubPageHeader({
-          title: ModuleText.FIREWALL,
-        subtitle: FirewallPageStrings.SUBTITLE,
+          title: $r('app.string.common_module_firewall'),
+        subtitle: $r('app.string.firewall_page_subtitle'),
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
         actions: () => {

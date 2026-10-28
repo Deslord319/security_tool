@@ -2,6 +2,7 @@ import { LogEntry, LogField } from '../../models/LogModels'
 import { formatStandardDateTime } from '../../utils/DateTimeFormatUtils'
 import { getLogEventTypeLabel } from './LogPresentationMapper'
 import { getLogEventDisplayDefinition } from './LogEventDisplayRegistry'
+import { AppStrings } from '../../constants/AppStrings'
 import {
   LogDetailSection,
   LogDetailViewData,
@@ -16,54 +17,82 @@ interface FieldDisplayDefinition {
   fullWidth: boolean
 }
 
-const FIELD_DEFINITIONS: Map<string, FieldDisplayDefinition> = new Map<string, FieldDisplayDefinition>([
-  ['event.action', field('操作', 'overview', '事件概览')],
-  ['event.outcome', field('结果', 'overview', '事件概览')],
-  ['event.risk_level', field('风险等级', 'overview', '事件概览')],
-  ['event.duration', field('耗时', 'overview', '事件概览')],
-  ['event.auth_type', field('认证方式', 'overview', '事件概览')],
-  ['event.category', field('事件类别', 'overview', '事件概览')],
-  ['event.crash_type', field('崩溃类型', 'overview', '事件概览')],
-  ['event.summary', field('摘要', 'overview', '事件概览', true)],
-  ['event.reason', field('原因', 'overview', '事件概览', true)],
-  ['event.error_name', field('错误名称', 'overview', '事件概览')],
-  ['event.error_message', field('错误消息', 'overview', '事件概览', true)],
-  ['event.top_stack', field('Top stack', 'overview', '事件概览', true)],
-  ['object.application', field('应用', 'object', '操作对象')],
-  ['object.bundle_name', field('应用包名', 'object', '操作对象', true)],
-  ['object.process_name', field('进程', 'object', '操作对象')],
-  ['object.file_path', field('文件路径', 'object', '操作对象', true)],
-  ['object.file_size', field('文件大小', 'object', '操作对象')],
-  ['object.file_mode', field('文件权限', 'object', '操作对象')],
-  ['object.user_name', field('用户名', 'object', '操作对象')],
-  ['object.user_id', field('用户 ID', 'object', '操作对象')],
-  ['object.domain', field('域名', 'object', '操作对象', true)],
-  ['object.device', field('设备', 'object', '操作对象')],
-  ['object.policy', field('策略对象', 'object', '操作对象', true)],
-  ['actor.application', field('调用应用', 'actor', '操作主体')],
-  ['actor.bundle_name', field('调用应用包名', 'actor', '操作主体', true)],
-  ['actor.process_name', field('执行进程', 'actor', '操作主体')],
-  ['change.old_path', field('原文件路径', 'change', '影响与变更', true)],
-  ['change.new_path', field('新文件路径', 'change', '影响与变更', true)],
-  ['change.new_mode', field('新文件权限', 'change', '影响与变更')],
-  ['change.permission_name', field('权限名称', 'change', '影响与变更', true)],
-  ['change.permission_state', field('权限状态', 'change', '影响与变更')],
-  ['change.owner_uid', field('原属主 UID', 'change', '影响与变更')],
-  ['change.owner_gid', field('原属组 GID', 'change', '影响与变更')],
-  ['change.new_owner_uid', field('新属主 UID', 'change', '影响与变更')],
-  ['change.new_owner_gid', field('新属组 GID', 'change', '影响与变更')],
-  ['change.xattr_name', field('扩展属性名', 'change', '影响与变更')],
-  ['edm.operation_type', field('操作类型', 'overview', '事件概览')],
-  ['technical.rule_id', field('规则 ID', 'technical', '技术信息')],
-  ['technical.source_file', field('来源文件', 'technical', '技术信息', true)],
-  ['technical.line_number', field('行号', 'technical', '技术信息')],
-  ['technical.string_id', field('STRINGID', 'technical', '技术信息', true)]
+interface FieldDisplayRegistration {
+  labelResource: string
+  literalLabel?: string
+  sectionId: string
+  sectionTitleResource: string
+  fullWidth: boolean
+}
+
+/**
+ * 字段展示定义注册表：注册项只保存资源名与展示键，字段标签与分组标题经
+ * AppStrings 从 string.json 的 log_field_* / log_section_* 资源按当前
+ * locale 解析，不在模块顶层常量中读取文案门面。
+ */
+const FIELD_DEFINITIONS: Map<string, FieldDisplayRegistration> = new Map<string, FieldDisplayRegistration>([
+  ['event.action', field('log_field_event_action', 'overview', 'log_section_overview')],
+  ['event.outcome', field('log_field_event_outcome', 'overview', 'log_section_overview')],
+  ['event.risk_level', field('log_field_event_risk_level', 'overview', 'log_section_overview')],
+  ['event.duration', field('log_field_event_duration', 'overview', 'log_section_overview')],
+  ['event.auth_type', field('log_field_event_auth_type', 'overview', 'log_section_overview')],
+  ['event.category', field('log_field_event_category', 'overview', 'log_section_overview')],
+  ['event.crash_type', field('log_field_event_crash_type', 'overview', 'log_section_overview')],
+  ['event.summary', field('log_field_event_summary', 'overview', 'log_section_overview', true)],
+  ['event.reason', field('log_field_event_reason', 'overview', 'log_section_overview', true)],
+  ['event.error_name', field('log_field_event_error_name', 'overview', 'log_section_overview')],
+  ['event.error_message', field('log_field_event_error_message', 'overview', 'log_section_overview', true)],
+  ['event.top_stack', defineLiteral('Top stack', 'overview', 'log_section_overview', true)],
+  ['object.application', field('log_field_object_application', 'object', 'log_section_object')],
+  ['object.bundle_name', field('log_field_object_bundle_name', 'object', 'log_section_object', true)],
+  ['object.process_name', field('log_field_object_process_name', 'object', 'log_section_object')],
+  ['object.file_path', field('log_field_object_file_path', 'object', 'log_section_object', true)],
+  ['object.file_size', field('log_field_object_file_size', 'object', 'log_section_object')],
+  ['object.file_mode', field('log_field_object_file_mode', 'object', 'log_section_object')],
+  ['object.user_name', field('log_field_object_user_name', 'object', 'log_section_object')],
+  ['object.user_id', field('log_field_object_user_id', 'object', 'log_section_object')],
+  ['object.domain', field('log_field_object_domain', 'object', 'log_section_object', true)],
+  ['object.device', field('log_field_object_device', 'object', 'log_section_object')],
+  ['object.policy', field('log_field_object_policy', 'object', 'log_section_object', true)],
+  ['actor.application', field('log_field_actor_application', 'actor', 'log_section_actor')],
+  ['actor.bundle_name', field('log_field_actor_bundle_name', 'actor', 'log_section_actor', true)],
+  ['actor.process_name', field('log_field_actor_process_name', 'actor', 'log_section_actor')],
+  ['change.old_path', field('log_field_change_old_path', 'change', 'log_section_change', true)],
+  ['change.new_path', field('log_field_change_new_path', 'change', 'log_section_change', true)],
+  ['change.new_mode', field('log_field_change_new_mode', 'change', 'log_section_change')],
+  ['change.permission_name', field('log_field_change_permission_name', 'change', 'log_section_change', true)],
+  ['change.permission_state', field('log_field_change_permission_state', 'change', 'log_section_change')],
+  ['change.owner_uid', field('log_field_change_owner_uid', 'change', 'log_section_change')],
+  ['change.owner_gid', field('log_field_change_owner_gid', 'change', 'log_section_change')],
+  ['change.new_owner_uid', field('log_field_change_new_owner_uid', 'change', 'log_section_change')],
+  ['change.new_owner_gid', field('log_field_change_new_owner_gid', 'change', 'log_section_change')],
+  ['change.xattr_name', field('log_field_change_xattr_name', 'change', 'log_section_change')],
+  ['edm.operation_type', field('log_field_edm_operation_type', 'overview', 'log_section_overview')],
+  ['technical.rule_id', field('log_field_technical_rule_id', 'technical', 'log_section_technical')],
+  ['technical.source_file', field('log_field_technical_source_file', 'technical', 'log_section_technical', true)],
+  ['technical.line_number', field('log_field_technical_line_number', 'technical', 'log_section_technical')],
+  ['technical.string_id', defineLiteral('STRINGID', 'technical', 'log_section_technical', true)]
 ])
 
 const SECTION_ORDER: string[] = ['overview', 'object', 'actor', 'change', 'technical']
 
-function field(label: string, sectionId: string, sectionTitle: string, fullWidth: boolean = false): FieldDisplayDefinition {
-  return { label, sectionId, sectionTitle, fullWidth }
+function field(labelResource: string, sectionId: string, sectionTitleResource: string, fullWidth: boolean = false): FieldDisplayRegistration {
+  return { labelResource, sectionId, sectionTitleResource, fullWidth }
+}
+
+function defineLiteral(label: string, sectionId: string, sectionTitleResource: string, fullWidth: boolean): FieldDisplayRegistration {
+  return { labelResource: '', literalLabel: label, sectionId, sectionTitleResource, fullWidth }
+}
+
+function resolveFieldDefinition(registration: FieldDisplayRegistration): FieldDisplayDefinition {
+  return {
+    label: registration.literalLabel !== undefined && registration.literalLabel.length > 0 ?
+      registration.literalLabel :
+      AppStrings.get(registration.labelResource),
+    sectionId: registration.sectionId,
+    sectionTitle: AppStrings.get(registration.sectionTitleResource),
+    fullWidth: registration.fullWidth
+  }
 }
 
 export function buildLogListItemViewData(entry: LogEntry): LogListItemViewData {
@@ -94,8 +123,9 @@ export function buildLogDetailViewData(entry: LogEntry): LogDetailViewData {
 function buildSections(entry: LogEntry): LogDetailSection[] {
   const sectionMap = new Map<string, LogDetailSection>()
   for (const sourceField of entry.fields || []) {
-    const definition = FIELD_DEFINITIONS.get(sourceField.key)
-    if (!definition) continue
+    const registration = FIELD_DEFINITIONS.get(sourceField.key)
+    if (!registration) continue
+    const definition = resolveFieldDefinition(registration)
     appendDisplayField(sectionMap, definition.sectionId, definition.sectionTitle, {
       key: sourceField.key,
       label: definition.label,
@@ -111,13 +141,13 @@ function buildSections(entry: LogEntry): LogDetailSection[] {
 
 function appendCommonTechnicalFields(sectionMap: Map<string, LogDetailSection>, entry: LogEntry): void {
   if (entry.processName && !hasDisplayedField(sectionMap, 'actor.process_name') && !hasDisplayedField(sectionMap, 'object.process_name')) {
-    appendTechnical(sectionMap, 'common.process_name', '进程名称', entry.processName)
+    appendTechnical(sectionMap, 'common.process_name', AppStrings.get('log_field_common_process_name'), entry.processName)
   }
   if (entry.pid !== undefined) appendTechnical(sectionMap, 'common.pid', 'PID', `${entry.pid}`)
   if (entry.uid !== undefined) appendTechnical(sectionMap, 'common.uid', 'UID', `${entry.uid}`)
-  if (entry.remoteAddr) appendTechnical(sectionMap, 'common.remote_addr', '远端地址', entry.remoteAddr, true)
-  if (entry.sourceEventId !== undefined) appendTechnical(sectionMap, 'common.event_id', '源事件 ID', formatEventId(entry.sourceEventId))
-  if (entry.rawEventName) appendTechnical(sectionMap, 'common.event_name', '事件标识', entry.rawEventName)
+  if (entry.remoteAddr) appendTechnical(sectionMap, 'common.remote_addr', AppStrings.get('log_field_common_remote_addr'), entry.remoteAddr, true)
+  if (entry.sourceEventId !== undefined) appendTechnical(sectionMap, 'common.event_id', AppStrings.get('log_field_common_event_id'), formatEventId(entry.sourceEventId))
+  if (entry.rawEventName) appendTechnical(sectionMap, 'common.event_name', AppStrings.get('log_field_common_event_name'), entry.rawEventName)
 }
 
 function appendTechnical(
@@ -127,7 +157,7 @@ function appendTechnical(
   value: string,
   fullWidth: boolean = false
 ): void {
-  appendDisplayField(sectionMap, 'technical', '技术信息', { key, label, value, fullWidth })
+  appendDisplayField(sectionMap, 'technical', AppStrings.get('log_section_technical'), { key, label, value, fullWidth })
 }
 
 function appendDisplayField(
@@ -172,8 +202,8 @@ function formatFieldValue(source: LogField): string {
     return `0${source.value.toString(8)}`
   }
   if (source.key === 'edm.operation_type') {
-    if (`${source.value}` === '0') return '读取/查询策略状态'
-    if (`${source.value}` === '1') return '设置/变更策略状态'
+    if (`${source.value}` === '0') return AppStrings.get('log_edm_operation_type_read')
+    if (`${source.value}` === '1') return AppStrings.get('log_edm_operation_type_set')
     return `type=${source.value}`
   }
   if (source.key === 'object.policy') return formatEdmPolicy(`${source.value}`)
@@ -182,16 +212,17 @@ function formatFieldValue(source: LogField): string {
 }
 
 function formatEdmPolicy(value: string): string {
-  const labels = new Map<string, string>([
-    ['disallow_add_local_account', '禁止添加本地账号'],
-    ['disallow_modify_datetime', '禁止修改系统时间'],
-    ['disallow_print', '禁止打印'],
-    ['disallow_hdc', '禁止 HDC 调试'],
-    ['disallow_usb', '禁止 USB'],
-    ['disallow_bluetooth', '禁止蓝牙'],
-    ['disallow_wifi', '禁止 WLAN']
+  const labelResources = new Map<string, string>([
+    ['disallow_add_local_account', 'log_edm_policy_disallow_add_local_account'],
+    ['disallow_modify_datetime', 'log_edm_policy_disallow_modify_datetime'],
+    ['disallow_print', 'log_edm_policy_disallow_print'],
+    ['disallow_hdc', 'log_edm_policy_disallow_hdc'],
+    ['disallow_usb', 'log_edm_policy_disallow_usb'],
+    ['disallow_bluetooth', 'log_edm_policy_disallow_bluetooth'],
+    ['disallow_wifi', 'log_edm_policy_disallow_wifi']
   ])
-  return labels.get(value) || value
+  const labelResource = labelResources.get(value)
+  return labelResource ? AppStrings.get(labelResource) : value
 }
 
 function formatFileSize(value: number): string {

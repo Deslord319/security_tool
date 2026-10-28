@@ -9,19 +9,7 @@ import { PolicyList } from '../../../components/peripheral/device-policy/PolicyL
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
 import { ActionText, ModuleText } from '../../../constants/StringCatalog'
-import {
-  PERIPHERAL_ADMIN_REQUIRED_ACTION_SUFFIX,
-  PeripheralActionStrings,
-  PeripheralEmptyStateStrings,
-  PeripheralExportStrings,
-  PeripheralLoadingStrings,
-  PeripheralOptionStrings,
-  PeripheralPageStrings,
-  PeripheralPolicyOptionIndexes,
-  PeripheralReasonCodes,
-  PeripheralTabIndexes,
-  resolvePeripheralReason
-} from '../../../constants/modules/PeripheralStrings'
+import { PeripheralEmptyStateStrings, PeripheralExportStrings, PeripheralLoadingStrings, PeripheralMessageStrings, PeripheralOptionStrings, PeripheralPageStrings, PeripheralPolicyOptionIndexes, PeripheralReasonCodes, PeripheralTabIndexes, resolvePeripheralReason } from '../../../constants/modules/PeripheralStrings'
 import {
   PeripheralConnectionRecord,
   PeripheralInterfaceFeature,
@@ -172,8 +160,8 @@ export struct PeripheralPage {
   @Builder
   private header() {
     SubPageHeader({
-      title: ModuleText.PERIPHERAL_MANAGE,
-      subtitle: PeripheralPageStrings.SUBTITLE,
+      title: $r('app.string.common_module_peripheral_manage'),
+      subtitle: $r('app.string.peripheral_page_subtitle'),
       currentTheme: this.currentTheme,
       onBack: () => this.onBack(),
       actions: () => {
@@ -299,7 +287,7 @@ export struct PeripheralPage {
     )
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        DialogService.openFailure(this.getUIContext(), `${PeripheralActionStrings.SET_INTERFACE}${PERIPHERAL_ADMIN_REQUIRED_ACTION_SUFFIX}`)
+        DialogService.openFailure(this.getUIContext(), PeripheralMessageStrings.SET_INTERFACE_ADMIN_REQUIRED)
       } else {
         DialogService.openFailure(this.getUIContext(), resolvePeripheralReason(this.viewModel.reasonCode))
       }
@@ -316,7 +304,7 @@ export struct PeripheralPage {
     const success = await this.viewModel.toggleInterface(feature, disallow)
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        DialogService.openFailure(this.getUIContext(), `${PeripheralActionStrings.SET_INTERFACE}${PERIPHERAL_ADMIN_REQUIRED_ACTION_SUFFIX}`)
+        DialogService.openFailure(this.getUIContext(), PeripheralMessageStrings.SET_INTERFACE_ADMIN_REQUIRED)
       } else {
         DialogService.openFailure(this.getUIContext(), resolvePeripheralReason(this.viewModel.reasonCode))
       }
@@ -338,7 +326,7 @@ export struct PeripheralPage {
     if (!success) {
       LogUtils.warn(TAG, `usb storage policy switch failed: index=${index}, reason=${this.viewModel.reasonCode ?? 'unknown'}`)
       if (!this.viewModel.adminState.activated) {
-        DialogService.openFailure(this.getUIContext(), `${PeripheralActionStrings.SET_USB_STORAGE}${PERIPHERAL_ADMIN_REQUIRED_ACTION_SUFFIX}`)
+        DialogService.openFailure(this.getUIContext(), PeripheralMessageStrings.SET_USB_STORAGE_ADMIN_REQUIRED)
       } else {
         DialogService.openFailure(this.getUIContext(), resolvePeripheralReason(this.viewModel.reasonCode))
       }
@@ -356,7 +344,7 @@ export struct PeripheralPage {
     )
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        DialogService.openFailure(this.getUIContext(), `${PeripheralActionStrings.UPDATE_POLICY}${PERIPHERAL_ADMIN_REQUIRED_ACTION_SUFFIX}`)
+        DialogService.openFailure(this.getUIContext(), PeripheralMessageStrings.UPDATE_POLICY_ADMIN_REQUIRED)
       } else {
         DialogService.openFailure(this.getUIContext(), resolvePeripheralReason(this.viewModel.reasonCode))
       }
@@ -383,7 +371,7 @@ export struct PeripheralPage {
   private connectionHeaderActions() {
     Row({ space: 8 }) {
       IconTextActionButton({
-        label: PeripheralExportStrings.HISTORY_LABEL,
+        label: $r('app.string.peripheral_export_history_label'),
         icon: AppResources.SAVE_ICON,
         kind: 'primary',
         isEnabled: this.viewModel.records.state.records.length > 0,
@@ -392,7 +380,7 @@ export struct PeripheralPage {
       })
 
       IconTextActionButton({
-        label: PeripheralExportStrings.CLEAR_HISTORY_LABEL,
+        label: $r('app.string.peripheral_export_clear_history_label'),
         icon: AppResources.TRASH_ICON,
         kind: 'danger',
         isEnabled: this.viewModel.records.state.records.length > 0,
@@ -406,7 +394,7 @@ export struct PeripheralPage {
   private policyHeaderActions() {
     Row({ space: 8 }) {
       IconTextActionButton({
-        label: PeripheralExportStrings.EXPORT_POLICY_LABEL,
+        label: $r('app.string.peripheral_export_policy_label'),
         icon: AppResources.SAVE_ICON,
         kind: 'primary',
         isEnabled: this.viewModel.policy.state.records.length > 0,
@@ -415,7 +403,7 @@ export struct PeripheralPage {
       })
 
       IconTextActionButton({
-        label: PeripheralExportStrings.CLEAR_POLICY_LABEL,
+        label: $r('app.string.peripheral_export_clear_policy_label'),
         icon: AppResources.RESTORE_ICON,
         kind: 'danger',
         isEnabled: this.viewModel.policy.state.hasRestorableRecords &&

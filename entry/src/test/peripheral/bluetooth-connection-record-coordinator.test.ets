@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from '@ohos/hypium'
 import { connection } from '@kit.ConnectivityKit'
+import { PeripheralConnectionRecordStrings } from '../../main/ets/constants/modules/PeripheralStrings'
 import { BluetoothConnectionRecordCoordinator } from '../../main/ets/services/peripheral/connection-record/BluetoothConnectionRecordCoordinator'
 import { BluetoothDeviceNameResolver } from '../../main/ets/services/peripheral/connection-record/BluetoothDeviceNameResolver'
 import { BluetoothRuntimeConnectionStore } from '../../main/ets/services/peripheral/connection-record/BluetoothRuntimeConnectionStore'
@@ -76,7 +77,7 @@ export default function bluetoothConnectionRecordCoordinatorTest() {
     })
 
     it('should reject generic bluetooth name', 0, () => {
-      expect(BluetoothRuntimeConnectionStore.isValidResolvedDeviceName('蓝牙设备')).assertFalse()
+      expect(BluetoothRuntimeConnectionStore.isValidResolvedDeviceName(PeripheralConnectionRecordStrings.BLUETOOTH_DEVICE)).assertFalse()
       expect(BluetoothRuntimeConnectionStore.isValidResolvedDeviceName('Bluetooth Keyboard')).assertTrue()
     })
 

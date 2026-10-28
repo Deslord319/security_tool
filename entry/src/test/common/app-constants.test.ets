@@ -5,7 +5,7 @@ import {
   AppInfo,
   AppStyles,
   InteractiveItemStyles,
-  NAV_ITEMS
+  getNavItems
 } from '../../main/ets/constants/AppConstants'
 import { RouteIds } from '../../main/ets/constants/RouteIds'
 import { AppText, ModuleText } from '../../main/ets/constants/StringCatalog'
@@ -17,13 +17,13 @@ export default function appConstantsTest() {
     it('should expose stable app metadata and navigation items', 0, () => {
       expect(AppText.NAME.length > 0).assertTrue()
       expect(AppInfo.BUNDLE_NAME).assertEqual('com.huawei.securitytool')
-      expect(NAV_ITEMS.length).assertEqual(7)
-      expect(NAV_ITEMS[0].id).assertEqual(RouteIds.DASHBOARD)
-      expect(NAV_ITEMS[0].label).assertEqual(ModuleText.DASHBOARD)
-      expect(NAV_ITEMS[4].id).assertEqual(RouteIds.PERMISSION_MANAGE)
-      expect(NAV_ITEMS[4].label).assertEqual(ModuleText.PERMISSION_MANAGE)
-      expect(NAV_ITEMS[5].id).assertEqual(RouteIds.IDENTITY)
-      expect(NAV_ITEMS[6].id).assertEqual(RouteIds.TOOL_SETTINGS)
+      expect(getNavItems().length).assertEqual(7)
+      expect(getNavItems()[0].id).assertEqual(RouteIds.DASHBOARD)
+      expect(getNavItems()[0].label).assertEqual(ModuleText.DASHBOARD)
+      expect(getNavItems()[4].id).assertEqual(RouteIds.PERMISSION_MANAGE)
+      expect(getNavItems()[4].label).assertEqual(ModuleText.PERMISSION_MANAGE)
+      expect(getNavItems()[5].id).assertEqual(RouteIds.IDENTITY)
+      expect(getNavItems()[6].id).assertEqual(RouteIds.TOOL_SETTINGS)
     })
 
     it('should expose layout constants used by shell pages', 0, () => {

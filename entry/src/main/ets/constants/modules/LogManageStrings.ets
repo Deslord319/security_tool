@@ -1,111 +1,240 @@
 import { LabelText } from '../StringCatalog'
+import { AppStrings } from '../AppStrings'
 import { LogEventType } from '../../models/LogModels'
 
-export class LogManagePageStrings {
-  static readonly SETTINGS_TITLE: string = '日志存储配置'
-  static readonly SUBTITLE: string = '监控和审计系统安全事件日志'
-  static readonly SETTINGS_SUBTITLE: string = '配置日志留存、自动导出与审计诊断'
-}
+/**
+ * 日志管理模块文案资源门面
+ *
+ * 文案唯一来源为 resources/{base,en_US}/element/string.json 中的 log_manage_* 资源。
+ * 门面保持与旧常量一致的访问方式，内部经 AppStrings 资源管理器按当前 locale 解析，
+ * 清空确认、分页范围等动态文案由占位符资源构造。
+ *
+ * 单元测试环境（AppStrings 未初始化）下门面返回资源名；相关断言必须经门面构造，
+ * 不得断言中文或英文字面量。模块顶层常量不得在 AppStrings.init 之前读取本门面，
+ * 下拉选项等集合文案统一由 presentation/log-manage/LogPresentation.ets 的惰性函数提供。
+ */
 
 export class LogManageDetailStrings {
-  static readonly DIALOG_TITLE: string = '日志详情'
-  static readonly SUMMARY: string = '摘要'
-  static readonly TIME_LABEL: string = '时间'
-  static readonly EVENT_TYPE_LABEL: string = '事件类型'
-  static readonly STRUCTURED_DETAILS: string = '结构化详情'
-  static readonly EMPTY: string = '暂无详情'
-  static readonly PROCESS_LABEL: string = '进程'
+  static get DIALOG_TITLE(): string {
+    return AppStrings.get('log_manage_detail_dialog_title')
+  }
+
+  static get TIME_LABEL(): string {
+    return AppStrings.get('log_manage_detail_time_label')
+  }
+
+  static get EVENT_TYPE_LABEL(): string {
+    return AppStrings.get('log_manage_detail_event_type_label')
+  }
+
+  static get EVENT_NAME_LABEL(): string {
+    return AppStrings.get('log_manage_detail_event_name_label')
+  }
 }
 
 export class LogManageFilterStrings {
-  static readonly ALL_EVENT_TYPES: string = '全部类型'
-  static readonly ALL_TIME: string = '全部时间'
-  static readonly LAST_1_HOUR: string = '最近1小时'
-  static readonly LAST_12_HOURS: string = '最近12小时'
-  static readonly LAST_24_HOURS: string = '最近24小时'
-  static readonly LAST_3_DAYS: string = '最近3天'
-  static readonly SEARCH_PLACEHOLDER: string = '搜索日志内容...'
-}
 
-export class LogManageActionStrings {
-  static readonly IMPORT_LOGS: string = '添加日志'
-  static readonly EXPORT_LOGS: string = '导出日志'
-  static readonly CLEAR_LOGS: string = '清空日志'
-  static readonly OPEN_STORAGE_SETTINGS: string = '存储设置'
-  static readonly BACK_TO_LOG_LIST: string = '日志列表'
+  static get ALL_TIME(): string {
+    return AppStrings.get('log_manage_filter_all_time')
+  }
+
+  static get LAST_1_HOUR(): string {
+    return AppStrings.get('log_manage_filter_last_1_hour')
+  }
+
+  static get LAST_12_HOURS(): string {
+    return AppStrings.get('log_manage_filter_last_12_hours')
+  }
+
+  static get LAST_24_HOURS(): string {
+    return AppStrings.get('log_manage_filter_last_24_hours')
+  }
+
+  static get LAST_3_DAYS(): string {
+    return AppStrings.get('log_manage_filter_last_3_days')
+  }
+
 }
 
 export class LogManageImportStrings {
-  static readonly IMPORTING: string = '正在导入日志，请稍候...'
-  static readonly ADD_SUCCESS: string = '日志添加成功'
-  static readonly USER_CANCELED: string = '已取消导入'
-  static readonly INVALID_ARCHIVE: string = '请选择 zip 格式日志包'
-  static readonly EXTRACT_FAILED: string = '日志包解压失败'
-  static readonly SAVE_FAILED: string = '日志入库失败'
-}
+  static get IMPORTING(): string {
+    return AppStrings.get('log_manage_import_importing')
+  }
 
-export class LogManageImportDetailStrings {
-  static readonly RULE_ID: string = '规则ID'
-  static readonly CATEGORY: string = '类别'
-  static readonly SOURCE_FILE: string = '来源文件'
-  static readonly LINE_NUMBER: string = '原始行号'
+  static get ADD_SUCCESS(): string {
+    return AppStrings.get('log_manage_import_add_success')
+  }
+
+  static get USER_CANCELED(): string {
+    return AppStrings.get('log_manage_import_user_canceled')
+  }
+
+  static get INVALID_ARCHIVE(): string {
+    return AppStrings.get('log_manage_import_invalid_archive')
+  }
+
+  static get EXTRACT_FAILED(): string {
+    return AppStrings.get('log_manage_import_extract_failed')
+  }
+
+  static get SAVE_FAILED(): string {
+    return AppStrings.get('log_manage_import_save_failed')
+  }
 }
 
 export class LogManageKernelImportStrings {
-  static readonly CATEGORY_SECURITY_DENIED: string = '安全访问控制拒绝'
-  static readonly CATEGORY_BINDER_PERMISSION: string = 'Binder/IPC 权限失败'
-  static readonly CATEGORY_HMDEC: string = 'DEC 规则设置'
-  static readonly CATEGORY_FS_DEVFS: string = 'DEC 设备文件事件'
+  static get CATEGORY_SECURITY_DENIED(): string {
+    return AppStrings.get('log_manage_kernel_import_category_security_denied')
+  }
+
+  static get CATEGORY_BINDER_PERMISSION(): string {
+    return AppStrings.get('log_manage_kernel_import_category_binder_permission')
+  }
+
+  static get CATEGORY_HMDEC(): string {
+    return AppStrings.get('log_manage_kernel_import_category_hmdec')
+  }
+
+  static get CATEGORY_FS_DEVFS(): string {
+    return AppStrings.get('log_manage_kernel_import_category_fs_devfs')
+  }
+}
+
+export class LogManageSystemImportStrings {
+  static get CATEGORY_SERVICE_TIMEOUT(): string {
+    return AppStrings.get('log_import_category_system_service_timeout')
+  }
+
+  static get CATEGORY_WINDOW_EXCEPTION(): string {
+    return AppStrings.get('log_import_category_system_window_exception')
+  }
+
+  static get CATEGORY_HISI_DIAG(): string {
+    return AppStrings.get('log_import_category_system_hisi_diag')
+  }
+
+  static get CATEGORY_FSCK(): string {
+    return AppStrings.get('log_import_category_system_fsck')
+  }
+
+  static get CATEGORY_RESIZE(): string {
+    return AppStrings.get('log_import_category_system_resize')
+  }
+
+  static get CATEGORY_MEMINFO(): string {
+    return AppStrings.get('log_import_category_system_meminfo')
+  }
+
+  static get CATEGORY_MEMVIEW(): string {
+    return AppStrings.get('log_import_category_system_memview')
+  }
+
+  static get CATEGORY_MEMORY_LEAK(): string {
+    return AppStrings.get('log_import_category_system_memory_leak')
+  }
+
+  static get CATEGORY_UPDATER_LOG(): string {
+    return AppStrings.get('log_import_category_system_updater_log')
+  }
+
+  static get CATEGORY_UPDATER_STAGE(): string {
+    return AppStrings.get('log_import_category_system_updater_stage')
+  }
+
+  static get CATEGORY_INSTALLER(): string {
+    return AppStrings.get('log_import_category_system_installer')
+  }
+
+  static get CATEGORY_HSLD(): string {
+    return AppStrings.get('log_import_category_system_hsld')
+  }
 }
 
 export class LogManageStatStrings {
-  static readonly TOTAL: string = '总计'
-  static readonly TODAY: string = '今日'
-  static readonly FILTERED: string = '过滤后'
-  static readonly CURRENT_SHOWN: string = '当前显示'
-  static readonly TOTAL_DESCRIPTION: string = '全部日志数量'
-  static readonly TODAY_DESCRIPTION: string = '今日新增日志'
-  static readonly FILTERED_DESCRIPTION: string = '当前筛选结果数量'
-  static readonly CURRENT_SHOWN_DESCRIPTION: string = '当前页显示数量'
+  static get TOTAL(): string {
+    return AppStrings.get('log_manage_stat_total')
+  }
+
+  static get TODAY(): string {
+    return AppStrings.get('log_manage_stat_today')
+  }
+
+  static get FILTERED(): string {
+    return AppStrings.get('log_manage_stat_filtered')
+  }
+
+  static get CURRENT_SHOWN(): string {
+    return AppStrings.get('log_manage_stat_current_shown')
+  }
+
+  static get TOTAL_DESCRIPTION(): string {
+    return AppStrings.get('log_manage_stat_total_description')
+  }
+
+  static get TODAY_DESCRIPTION(): string {
+    return AppStrings.get('log_manage_stat_today_description')
+  }
+
+  static get FILTERED_DESCRIPTION(): string {
+    return AppStrings.get('log_manage_stat_filtered_description')
+  }
+
+  static get CURRENT_SHOWN_DESCRIPTION(): string {
+    return AppStrings.get('log_manage_stat_current_shown_description')
+  }
 }
 
 export class LogManageEmptyStateStrings {
-  static readonly TITLE: string = '暂无日志记录'
+  static get TITLE(): string {
+    return AppStrings.get('log_manage_empty_state_title')
+  }
 }
 
 export class LogManageSettingStrings {
-  static readonly MAX_ENTRIES_LABEL: string = '最大存储条数'
-  static readonly MAX_ENTRIES_DESCRIPTION: string = '选择本地最多保留的日志数量，达到上限后会按时间清理旧日志。'
-  static readonly RETENTION_DAYS_LABEL: string = '日志保留天数'
-  static readonly RETENTION_DAYS_DESCRIPTION: string = '选择日志在本地保留的时间，到期后会自动清理历史日志。'
-  static readonly SAVE_SUCCESS: string = '设置已保存'
+
+  static get SAVE_SUCCESS(): string {
+    return AppStrings.get('log_manage_setting_save_success')
+  }
 }
 
 export class LogManageClearingStrings {
-  static readonly NO_EXPORTABLE_LOGS: string = '当前没有可导出的日志'
-  static readonly CONFIRM_TITLE: string = '确认清空'
-  static readonly SUCCESS: string = '日志已清空'
+  static get NO_EXPORTABLE_LOGS(): string {
+    return AppStrings.get('log_manage_clearing_no_exportable_logs')
+  }
+
+  static get CONFIRM_TITLE(): string {
+    return AppStrings.get('log_manage_clearing_confirm_title')
+  }
+
+  static get SUCCESS(): string {
+    return AppStrings.get('log_manage_clearing_success')
+  }
 
   static buildConfirmMessage(totalCount: number): string {
-    return `确认清空当前全部 ${totalCount} 条日志吗？该操作不可恢复。`
+    return AppStrings.format('log_manage_clearing_confirm_message', totalCount)
   }
 }
 
 export class LogManagePaginationStrings {
-  static readonly PAGE_INPUT_PLACEHOLDER: string = '页码'
 
   static buildPageRangeText(rangeText: string, totalCount: number): string {
-    return `${rangeText} / 共 ${totalCount} 条`
+    return AppStrings.format('log_manage_pagination_page_range', rangeText, totalCount)
   }
 
   static buildPageSizeText(pageSize: number): string {
-    return `${pageSize} 条/页`
+    return AppStrings.format('log_manage_pagination_page_size', pageSize)
   }
 }
 
 export class LogManageCsvStrings {
-  static readonly EVENT_TYPE: string = '事件类型'
-  static readonly PROCESS_NAME: string = '进程名'
+  static get EVENT_TYPE(): string {
+    return AppStrings.get('log_manage_csv_event_type')
+  }
+
+  static get PROCESS_NAME(): string {
+    return AppStrings.get('log_manage_csv_process_name')
+  }
+
   static readonly PID: string = 'PID'
 
   static get HEADERS(): string[] {
@@ -119,30 +248,38 @@ export class LogManageCsvStrings {
   }
 }
 
-export class LogManageAuditStrings {
-  static readonly FALLBACK_DETAIL: string = '安全审计事件'
-  static readonly DESCRIPTION_LABEL: string = '事件说明'
-  static readonly RAW_JSON_LABEL: string = '事件原始JSON'
-  static readonly EDM_OBJECT_INFO_LABEL: string = '操作对象'
-  static readonly EDM_OBJECT_REMARK_LABEL: string = '操作备注'
-  static readonly EDM_OPERATION_TYPE_LABEL: string = '操作类型'
-  static readonly EDM_OPERATION_TYPE_REMARK_LABEL: string = '操作类型备注'
-}
-
 export class LogEventPresentationStrings {
-  static readonly CRASH: string = '崩溃日志'
-  static readonly FILE: string = '文件操作日志'
-  static readonly ACCOUNT: string = '用户认证日志'
-  static readonly PERMISSION: string = '权限变更日志'
-  static readonly POWER: string = '开关机日志'
-  static readonly SYSTEM: string = '系统日志'
-  static readonly KERNEL: string = '内核日志'
-  static readonly AUDIT: string = '审计日志'
-}
+  static get CRASH(): string {
+    return AppStrings.get('log_manage_event_type_crash')
+  }
 
-export class LogDeviceLifecycleStrings {
-  static readonly BOOT: string = '设备启动'
-  static readonly SHUTDOWN_REQUESTED: string = '设备关闭'
+  static get FILE(): string {
+    return AppStrings.get('log_manage_event_type_file')
+  }
+
+  static get ACCOUNT(): string {
+    return AppStrings.get('log_manage_event_type_account')
+  }
+
+  static get PERMISSION(): string {
+    return AppStrings.get('log_manage_event_type_permission')
+  }
+
+  static get POWER(): string {
+    return AppStrings.get('log_manage_event_type_power')
+  }
+
+  static get SYSTEM(): string {
+    return AppStrings.get('log_manage_event_type_system')
+  }
+
+  static get KERNEL(): string {
+    return AppStrings.get('log_manage_event_type_kernel')
+  }
+
+  static get AUDIT(): string {
+    return AppStrings.get('log_manage_event_type_audit')
+  }
 }
 
 export function resolveLogEventTypeLabel(type: LogEventType): string {

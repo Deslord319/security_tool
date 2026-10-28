@@ -129,6 +129,15 @@ hdc shell edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility 
 - 新增日志优先保留错误、告警和关键流程结论，避免重复的 start/success/info 噪音日志
 - 如果后续需要对测试日志做统一封装，沿用同样思路，不要继续扩散裸 `hilog`
 
+## 文案与国际化约定
+
+- 用户可见文案的唯一来源是 `entry/src/main/resources/{base,en_US}/element/string.json`（base 为中文默认值，en_US 为英文，两处资源键集合必须一致）；新增文案必须先定义资源，再在对应 `entry/src/main/ets/constants/modules/*Strings.ets` 门面中经 `AppStrings.get/format` 按资源名引用，不得在业务文件中硬编码文案
+- `EntryAbility.onCreate` 必须先调用 `AppStrings.init(this.context)` 再加载页面或执行业务逻辑；`@Concurrent` 任务线程内静态门面不可见，所需文案由主线程解析后作为参数传入任务
+- 页面静态文案优先 `$r('app.string.*')` 直引（共享组件显示属性已 ResourceStr 化，直接绑定 ArkUI 内建组件天然支持）；逻辑层（Service/ViewModel、弹窗消息、拼接、系统 API 参数等需要 string 的场景）经 `*Strings` 门面取值
+- 本地单测无资源上下文，门面回退返回资源名本身；单测文案断言必须经门面构造，不得断言中文或英文字面量
+- 模块顶层常量不得在 `AppStrings.init` 之前读取文案门面
+- 提交前运行 `python scripts/check_string_resources.py`，确认 base 与 en_US 键集合一致、引用完整、占位符规格一致
+
 ## 编码约定
 
 - 含中文的代码、测试、文档文件必须按 UTF-8 处理；修改后必须回读验证，禁止提交乱码、`?`、`�`、异常转码文本

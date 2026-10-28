@@ -2,14 +2,9 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
 import { ActionText, LabelText, ModuleText } from '../../../constants/StringCatalog'
-import {
-  ToolSettingsConfirmationStrings,
-  ToolSettingsPageStrings,
-  ToolSettingsPasswordStrings,
-  ToolSettingsStartupAuthStrings
-} from '../../../constants/modules/ToolSettingsStrings'
+import { ToolSettingsConfirmationStrings, ToolSettingsPageStrings } from '../../../constants/modules/ToolSettingsStrings'
 import { common } from '@kit.AbilityKit'
-import { AUTH_METHOD_OPTIONS } from '../../../viewmodels/tool-settings/system-settings/ToolSettingsPresentationOptions'
+import { AuthMethodOption, getAuthMethodOptions } from '../../../viewmodels/tool-settings/system-settings/ToolSettingsPresentationOptions'
 
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { SectionCard } from '../../../components/SettingsSectionCard'
@@ -26,8 +21,7 @@ export struct ToolSettingsPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param viewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   @Event onBack: () => void = () => {}
-  private authMethodOptions: SelectOption[] =
-    AUTH_METHOD_OPTIONS.map((opt): SelectOption => ({ value: opt.label }))
+  private authMethodOptions: AuthMethodOption[] = getAuthMethodOptions()
 
   aboutToAppear() {
     LogUtils.info(TAG, '[PAGE_ENTER] aboutToAppear | route=tool-settings')
@@ -52,9 +46,9 @@ export struct ToolSettingsPage {
   private getSelectedAuthMethodLabel(): string {
     let selectedIndex = this.viewModel.selectedAuthMethodIndex
     if (selectedIndex < 0 || selectedIndex >= this.authMethodOptions.length) {
-      return this.authMethodOptions[0].value as string
+      return this.authMethodOptions[0].label
     }
-    return this.authMethodOptions[selectedIndex].value as string
+    return this.authMethodOptions[selectedIndex].label
   }
 
   private async handleSave(allowUnsupportedAuthMethod: boolean = false): Promise<void> {
@@ -83,8 +77,8 @@ export struct ToolSettingsPage {
   build() {
     Column() {
       SubPageHeader({
-        title: ModuleText.TOOL_SETTINGS,
-        subtitle: ToolSettingsPageStrings.SUBTITLE,
+        title: $r('app.string.common_module_tool_settings'),
+        subtitle: $r('app.string.tool_settings_page_subtitle'),
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
         actions: () => {
@@ -96,7 +90,7 @@ export struct ToolSettingsPage {
         Column({ space: 24 }) {
           if (this.viewModel.state.initialized) {
             SectionCard({
-              title: ToolSettingsStartupAuthStrings.SECTION_TITLE,
+              title: $r('app.string.tool_settings_startup_auth_section_title'),
               currentTheme: this.currentTheme,
               content: () => {
                 this.startupAuthContent()
@@ -130,7 +124,7 @@ export struct ToolSettingsPage {
   @Builder
   private headerActions() {
     IconTextActionButton({
-      label: ActionText.SAVE_SETTINGS,
+      label: $r('app.string.common_action_save_settings'),
       icon: AppResources.SAVE_ICON,
       kind: 'primary',
       currentTheme: this.currentTheme,
@@ -161,8 +155,8 @@ export struct ToolSettingsPage {
   @Builder
   private startupAuthSwitchRow() {
     SectionToggleRow({
-      title: ToolSettingsStartupAuthStrings.TITLE,
-      description: ToolSettingsStartupAuthStrings.DESCRIPTION,
+      title: $r('app.string.tool_settings_startup_auth_title'),
+      description: $r('app.string.tool_settings_startup_auth_description'),
       isOn: this.viewModel.state.config.startupAuthEnabled,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -174,16 +168,16 @@ export struct ToolSettingsPage {
   @Builder
   private authMethodRow() {
     SectionSelectRow({
-      title: LabelText.AUTH_METHOD,
-      description: ToolSettingsStartupAuthStrings.AUTH_METHOD_DESCRIPTION,
-      options: this.authMethodOptions,
+      title: $r('app.string.common_label_auth_method'),
+      description: $r('app.string.tool_settings_startup_auth_method_description'),
+      options: this.authMethodOptions.map((opt): SelectOption => ({ value: opt.label })),
       selectedIndex: this.viewModel.selectedAuthMethodIndex,
       value: this.getSelectedAuthMethodLabel(),
       selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
       currentTheme: this.currentTheme,
       onSelect: (index: number) => {
-        if (index >= 0 && index < AUTH_METHOD_OPTIONS.length) {
-          this.viewModel.setAuthMethod(AUTH_METHOD_OPTIONS[index].value)
+        if (index >= 0 && index < this.authMethodOptions.length) {
+          this.viewModel.setAuthMethod(this.authMethodOptions[index].value)
         }
       }
     })
@@ -192,9 +186,9 @@ export struct ToolSettingsPage {
   @Builder
   private changePasswordRow() {
     SectionActionRow({
-      title: ToolSettingsPasswordStrings.CHANGE_LABEL,
-      description: ToolSettingsPasswordStrings.CHANGE_DESCRIPTION,
-      actionLabel: ToolSettingsPasswordStrings.CHANGE_LABEL,
+      title: $r('app.string.tool_settings_password_change_label'),
+      description: $r('app.string.tool_settings_password_change_description'),
+      actionLabel: $r('app.string.tool_settings_password_change_label'),
       currentTheme: this.currentTheme,
       onTap: () => {
         this.viewModel.openPasswordSettings(this.getPageContext()).then((request: ToolSettingsActionRequest) => {

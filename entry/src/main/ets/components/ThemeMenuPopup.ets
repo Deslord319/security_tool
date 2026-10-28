@@ -94,13 +94,13 @@ export struct AboutDialogContent {
         .margin({ top: 18 })
         .draggable(false)
 
-      Text(AppText.NAME)
+      Text($r('app.string.common_app_name'))
         .fontSize(18)
         .fontWeight(FontWeight.Bold)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-      Text(`${AppText.VERSION} ${this.appVersion}`)
+      Text(`${$r('app.string.common_version')} ${this.appVersion}`)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -110,7 +110,7 @@ export struct AboutDialogContent {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
 
-      Button(ActionText.CONFIRM)
+      Button($r('app.string.common_action_confirm'))
         .width(180)
         .height(AppStyles.BUTTON_HEIGHT)
         .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
@@ -161,7 +161,7 @@ export struct ThemeMenuPopup {
   build() {
     Column({ space: 6 }) {
       Column({ space: 6 }) {
-        Text(ThemeText.SECTION_TITLE)
+        Text($r('app.string.common_theme_section_title'))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

@@ -1,97 +1,261 @@
-export class PermissionPageStrings {
-  static readonly SUBTITLE: string = '按账号查看应用级安装、运行、目录和网络管控状态'
-}
+import { AppStrings } from '../AppStrings'
+
+/**
+ * 权限管理模块文案资源门面
+ *
+ * 文案唯一来源为 resources/{base,en_US}/element/string.json 中的 permission_* 资源，
+ * 经 AppStrings 资源管理器按当前 locale 解析。
+ *
+ * 单元测试环境（AppStrings 未初始化）下门面返回资源名；相关断言必须经门面
+ * 构造，不得断言中文或英文字面量。`ApplicationInventoryRepository` 中匹配系统
+ * 应用中文名的过滤关键字属于数据，不在此门面范围内。
+ */
 
 export class PermissionSectionStrings {
-  static readonly APPLICATIONS: string = '应用管控对象'
-  static readonly TARGET_APPLICATION: string = '目标应用'
-  static readonly TARGET_APPLICATION_DESC: string = '选择后下方策略作用于该应用'
-  static readonly TARGET_APPLICATION_PLACEHOLDER: string = '请选择应用'
-  static readonly CURRENT_POLICIES: string = '当前策略'
-  static readonly APPLICATION_CONTROL: string = '应用策略'
+
+  static get TARGET_APPLICATION_PLACEHOLDER(): string {
+    return AppStrings.get('permission_section_target_application_placeholder')
+  }
+
 }
 
 export class PermissionAccountStrings {
-  static readonly SELECT_TITLE: string = '当前账号'
-  static readonly SELECT_DESC: string = '策略读取和后续写入均按账号隔离'
-  static readonly NO_ACCOUNTS: string = '未获取到可管理账号'
+
+  static get NO_ACCOUNTS(): string {
+    return AppStrings.get('permission_account_no_accounts')
+  }
 }
 
 export class PermissionSummaryStrings {
-  static readonly ACCOUNTS_TITLE: string = '账号'
-  static readonly ACCOUNTS_DESC: string = '当前可管理账号'
-  static readonly APPLICATIONS_TITLE: string = '应用'
-  static readonly APPLICATIONS_DESC: string = '可管控应用'
-  static readonly POLICIES_TITLE: string = '策略'
-  static readonly POLICIES_DESC: string = '当前已生效'
+  static get ACCOUNTS_TITLE(): string {
+    return AppStrings.get('permission_summary_accounts_title')
+  }
+
+  static get ACCOUNTS_DESC(): string {
+    return AppStrings.get('permission_summary_accounts_desc')
+  }
+
+  static get APPLICATIONS_TITLE(): string {
+    return AppStrings.get('permission_summary_applications_title')
+  }
+
+  static get APPLICATIONS_DESC(): string {
+    return AppStrings.get('permission_summary_applications_desc')
+  }
+
+  static get POLICIES_TITLE(): string {
+    return AppStrings.get('permission_summary_policies_title')
+  }
+
+  static get POLICIES_DESC(): string {
+    return AppStrings.get('permission_summary_policies_desc')
+  }
 }
 
 export class PermissionEmptyStrings {
-  static readonly APPLICATIONS: string = '当前没有可管控的非系统应用'
-  static readonly SELECT_APPLICATION_FIRST: string = '请先选择应用再下发策略'
-  static readonly POLICIES: string = '当前账号暂无已生效策略'
+  static get APPLICATIONS(): string {
+    return AppStrings.get('permission_empty_applications')
+  }
+
+  static get SELECT_APPLICATION_FIRST(): string {
+    return AppStrings.get('permission_empty_select_application_first')
+  }
+
 }
 
 export class PermissionLoadingStrings {
-  static readonly ACCOUNT_SWITCH: string = '账号策略读取中'
+  static get ACCOUNT_SWITCH(): string {
+    return AppStrings.get('permission_loading_account_switch')
+  }
 }
 
 export class PermissionApplicationStrings {
-  static readonly UNINSTALL_PROTECTED: string = '卸载保护'
-  static readonly RUNNING_POLICY: string = '运行策略'
-  static readonly NETWORK_POLICY: string = '网络策略'
-  static readonly INSTALL_BLOCK_TARGET: string = '禁止安装应用'
-  static readonly INSTALL_BLOCK_TARGET_DESC: string = '输入未安装应用的 appId 或 appIdentifier'
+
   static readonly INSTALL_BLOCK_PLACEHOLDER: string = 'appId / appIdentifier'
-  static readonly INSTALL_BLOCK_ACTION: string = '禁止安装'
-  static readonly POLICY_TYPE_INSTALL_DENY: string = '禁止安装'
-  static readonly POLICY_TYPE_INSTALL_ALLOW: string = '允许安装'
-  static readonly POLICY_TYPE_UNINSTALL: string = '卸载保护'
-  static readonly POLICY_TYPE_RUNNING: string = '运行策略'
-  static readonly POLICY_TYPE_NETWORK: string = '网络策略'
-  static readonly POLICY_TABLE_TYPE: string = '策略类型'
-  static readonly POLICY_TABLE_TARGET: string = '对象'
-  static readonly POLICY_TABLE_STATUS: string = '状态'
-  static readonly POLICY_TABLE_SCOPE: string = '作用范围'
-  static readonly POLICY_TABLE_ACTION: string = '操作'
-  static readonly DELETE_POLICY_ACTION: string = '删除'
-  static readonly DELETE_POLICY_CONFIRM_TITLE: string = '删除当前策略'
-  static readonly DELETE_POLICY_CONFIRM_MESSAGE: string = '删除后将清理系统策略，确认继续？'
-  static readonly POLICY_TARGET_NOT_INSTALLED: string = '未安装应用'
-  static readonly POLICY_SCOPE_ACCOUNT_PREFIX: string = '账号'
-  static readonly UNINSTALL_PROTECTED_DESC: string = '阻止当前账号卸载该应用'
-  static readonly RUNNING_POLICY_DESC: string = '控制应用是否允许启动'
-  static readonly NETWORK_POLICY_DESC: string = '控制应用全部网络访问'
-  static readonly REFRESH_APPLICATIONS: string = '刷新'
-  static readonly CURRENT_STATE_PREFIX: string = '当前'
-  static readonly THREE_D_GROUP_DESC: string = '可托管'
-  static readonly THREE_D_FULL_FILE_DESC: string = '全盘权限覆盖'
-  static readonly POLICY_DEFAULT: string = '默认'
-  static readonly POLICY_ALLOWED: string = '允许'
-  static readonly POLICY_DENIED: string = '禁止'
-  static readonly ENABLED: string = '已启用'
-  static readonly DISABLED: string = '未启用'
-  static readonly SET_SUCCESS: string = '策略已下发。'
-  static readonly SET_FAILED: string = '策略下发失败，请确认激活企业管理员权限。'
-  static readonly POLICY_READ_FAILED: string = '应用策略读取失败，请确认企业管理员激活态、签名权限和设备能力。'
-  static readonly ACCOUNT_CONTEXT_CHANGED: string = '账号列表已变化，请重新选择账号。'
-  static readonly APPLICATION_CONTEXT_CHANGED: string = '应用已卸载或应用清单已变化，请重新选择应用。'
-  static readonly POLICY_CONTEXT_CHANGED: string = '策略已变化，请刷新后重试。'
-  static readonly INSTALL_BLOCK_EMPTY: string = '请输入要禁止安装的 appId 或 appIdentifier。'
-  static readonly INSTALL_BLOCK_INVALID: string = '请输入有效的 appId 或 appIdentifier。'
-  static readonly MISSING_UID: string = '未读取到有效 UID，无法设置网络策略。'
-  static readonly THREE_D_UNDECLARED: string = '未声明此权限'
-  static readonly THREE_D_UNSUPPORTED: string = '不可用'
+
+  static get INSTALL_BLOCK_ACTION(): string {
+    return AppStrings.get('permission_application_install_block_action')
+  }
+
+  static get POLICY_TYPE_INSTALL_DENY(): string {
+    return AppStrings.get('permission_application_policy_type_install_deny')
+  }
+
+  static get POLICY_TYPE_INSTALL_ALLOW(): string {
+    return AppStrings.get('permission_application_policy_type_install_allow')
+  }
+
+  static get POLICY_TYPE_UNINSTALL(): string {
+    return AppStrings.get('permission_application_policy_type_uninstall')
+  }
+
+  static get POLICY_TYPE_RUNNING(): string {
+    return AppStrings.get('permission_application_policy_type_running')
+  }
+
+  static get POLICY_TYPE_NETWORK(): string {
+    return AppStrings.get('permission_application_policy_type_network')
+  }
+
+  static get POLICY_TABLE_TYPE(): string {
+    return AppStrings.get('permission_application_policy_table_type')
+  }
+
+  static get POLICY_TABLE_TARGET(): string {
+    return AppStrings.get('permission_application_policy_table_target')
+  }
+
+  static get POLICY_TABLE_STATUS(): string {
+    return AppStrings.get('permission_application_policy_table_status')
+  }
+
+  static get POLICY_TABLE_SCOPE(): string {
+    return AppStrings.get('permission_application_policy_table_scope')
+  }
+
+  static get POLICY_TABLE_ACTION(): string {
+    return AppStrings.get('permission_application_policy_table_action')
+  }
+
+  static get DELETE_POLICY_CONFIRM_TITLE(): string {
+    return AppStrings.get('permission_application_delete_policy_confirm_title')
+  }
+
+  static get DELETE_POLICY_CONFIRM_MESSAGE(): string {
+    return AppStrings.get('permission_application_delete_policy_confirm_message')
+  }
+
+  static get POLICY_TARGET_NOT_INSTALLED(): string {
+    return AppStrings.get('permission_application_policy_target_not_installed')
+  }
+
+  static get POLICY_SCOPE_ACCOUNT_PREFIX(): string {
+    return AppStrings.get('permission_application_policy_scope_account_prefix')
+  }
+
+  static get UNINSTALL_PROTECTED_DESC(): string {
+    return AppStrings.get('permission_application_uninstall_protected_desc')
+  }
+
+  static get RUNNING_POLICY_DESC(): string {
+    return AppStrings.get('permission_application_running_policy_desc')
+  }
+
+  static get NETWORK_POLICY_DESC(): string {
+    return AppStrings.get('permission_application_network_policy_desc')
+  }
+
+  static get CURRENT_STATE_PREFIX(): string {
+    return AppStrings.get('permission_application_current_state_prefix')
+  }
+
+  static get THREE_D_GROUP_DESC(): string {
+    return AppStrings.get('permission_application_three_d_group_desc')
+  }
+
+  static get THREE_D_FULL_FILE_DESC(): string {
+    return AppStrings.get('permission_application_three_d_full_file_desc')
+  }
+
+  static get POLICY_DEFAULT(): string {
+    return AppStrings.get('permission_application_policy_default')
+  }
+
+  static get POLICY_ALLOWED(): string {
+    return AppStrings.get('permission_application_policy_allowed')
+  }
+
+  static get POLICY_DENIED(): string {
+    return AppStrings.get('permission_application_policy_denied')
+  }
+
+  static get ENABLED(): string {
+    return AppStrings.get('permission_application_enabled')
+  }
+
+  static get DISABLED(): string {
+    return AppStrings.get('permission_application_disabled')
+  }
+
+  static get SET_SUCCESS(): string {
+    return AppStrings.get('permission_application_set_success')
+  }
+
+  static get SET_FAILED(): string {
+    return AppStrings.get('permission_application_set_failed')
+  }
+
+  static get POLICY_READ_FAILED(): string {
+    return AppStrings.get('permission_application_policy_read_failed')
+  }
+
+  static get ACCOUNT_CONTEXT_CHANGED(): string {
+    return AppStrings.get('permission_application_account_context_changed')
+  }
+
+  static get APPLICATION_CONTEXT_CHANGED(): string {
+    return AppStrings.get('permission_application_application_context_changed')
+  }
+
+  static get POLICY_CONTEXT_CHANGED(): string {
+    return AppStrings.get('permission_application_policy_context_changed')
+  }
+
+  static get INSTALL_BLOCK_EMPTY(): string {
+    return AppStrings.get('permission_application_install_block_empty')
+  }
+
+  static get INSTALL_BLOCK_INVALID(): string {
+    return AppStrings.get('permission_application_install_block_invalid')
+  }
+
+  static get MISSING_UID(): string {
+    return AppStrings.get('permission_application_missing_uid')
+  }
+
+  static get THREE_D_UNDECLARED(): string {
+    return AppStrings.get('permission_application_three_d_undeclared')
+  }
+
+  static get THREE_D_UNSUPPORTED(): string {
+    return AppStrings.get('permission_application_three_d_unsupported')
+  }
 }
 
 export class PermissionThreeDStrings {
-  static readonly DOWNLOADS: string = '下载目录'
-  static readonly DOWNLOADS_DESC: string = '托管应用对下载目录文件的访问授权'
-  static readonly DESKTOP: string = '桌面目录'
-  static readonly DESKTOP_DESC: string = '托管应用对桌面目录文件的访问授权'
-  static readonly DOCUMENTS: string = '文档目录'
-  static readonly DOCUMENTS_DESC: string = '托管应用对文档目录文件的访问授权'
-  static readonly NO_DECLARED: string = '未声明'
-  static readonly DETAIL_LOADING: string = '权限详情读取中'
-  static readonly DETAIL_FAILED: string = '权限详情读取失败'
+  static get DOWNLOADS(): string {
+    return AppStrings.get('permission_three_d_downloads')
+  }
+
+  static get DOWNLOADS_DESC(): string {
+    return AppStrings.get('permission_three_d_downloads_desc')
+  }
+
+  static get DESKTOP(): string {
+    return AppStrings.get('permission_three_d_desktop')
+  }
+
+  static get DESKTOP_DESC(): string {
+    return AppStrings.get('permission_three_d_desktop_desc')
+  }
+
+  static get DOCUMENTS(): string {
+    return AppStrings.get('permission_three_d_documents')
+  }
+
+  static get DOCUMENTS_DESC(): string {
+    return AppStrings.get('permission_three_d_documents_desc')
+  }
+
+  static get NO_DECLARED(): string {
+    return AppStrings.get('permission_three_d_no_declared')
+  }
+
+  static get DETAIL_LOADING(): string {
+    return AppStrings.get('permission_three_d_detail_loading')
+  }
+
+  static get DETAIL_FAILED(): string {
+    return AppStrings.get('permission_three_d_detail_failed')
+  }
 }

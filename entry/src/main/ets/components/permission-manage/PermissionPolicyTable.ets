@@ -29,7 +29,7 @@ export struct PermissionPolicyTable {
         })
           .height(92)
       } else if (this.records.length === 0) {
-        Text(PermissionEmptyStrings.POLICIES)
+        Text($r('app.string.permission_empty_policies'))
           .width('100%')
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -175,7 +175,7 @@ export struct PermissionPolicyTable {
           .color(this.getDeleteButtonForeground())
       }
 
-      Text(PermissionApplicationStrings.DELETE_POLICY_ACTION)
+      Text($r('app.string.permission_application_delete_policy_action'))
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Regular)
         .fontColor(this.getDeleteButtonForeground())

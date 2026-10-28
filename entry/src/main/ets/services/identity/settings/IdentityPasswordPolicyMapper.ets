@@ -3,6 +3,7 @@ import {
   PASSWORD_VALIDITY_DAY_IN_MS,
   PasswordComplexityConfig
 } from '../../../models/IdentityModels'
+import { AppStrings } from '../../../constants/AppStrings'
 import { IdentityRequirementStrings } from '../../../constants/modules/IdentityStrings'
 
 export class IdentityPasswordPolicyMapper {
@@ -65,7 +66,7 @@ export class IdentityPasswordPolicyMapper {
     if (config.requireSpecialChar) {
       parts.push(IdentityRequirementStrings.SPECIAL)
     }
-    return parts.join('，')
+    return parts.join(AppStrings.get('common_list_separator'))
   }
 
   private static hasLowercaseRequirement(regex?: string): boolean {

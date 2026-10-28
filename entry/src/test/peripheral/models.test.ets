@@ -10,6 +10,8 @@ import {
   formatBluetoothDeviceId,
   inferPeripheralTypeFromBaseClass
 } from '../../main/ets/models/PeripheralModels'
+import { DeviceTypeLabels } from '../../main/ets/constants/modules/PeripheralStrings'
+import { LabelText } from '../../main/ets/constants/StringCatalog'
 import { getPeripheralTypeLabel } from '../../main/ets/presentation/peripheral/PeripheralRecordPresentationMapper'
 
 export default function peripheralModelsTest() {
@@ -19,27 +21,27 @@ export default function peripheralModelsTest() {
 
     describe('getPeripheralTypeLabel', () => {
       it('should return USB 存储设备 for USB_STORAGE', 0, () => {
-        expect(getPeripheralTypeLabel(PeripheralType.USB_STORAGE)).assertEqual('USB 存储设备')
+        expect(getPeripheralTypeLabel(PeripheralType.USB_STORAGE)).assertEqual(DeviceTypeLabels.USB_STORAGE)
       })
 
       it('should return USB 摄像头 for USB_CAMERA', 0, () => {
-        expect(getPeripheralTypeLabel(PeripheralType.USB_CAMERA)).assertEqual('USB 摄像头')
+        expect(getPeripheralTypeLabel(PeripheralType.USB_CAMERA)).assertEqual(DeviceTypeLabels.USB_CAMERA)
       })
 
       it('should return USB 打印机 for USB_PRINTER', 0, () => {
-        expect(getPeripheralTypeLabel(PeripheralType.USB_PRINTER)).assertEqual('USB 打印机')
+        expect(getPeripheralTypeLabel(PeripheralType.USB_PRINTER)).assertEqual(DeviceTypeLabels.USB_PRINTER)
       })
 
       it('should return USB 其他 for USB_OTHER', 0, () => {
-        expect(getPeripheralTypeLabel(PeripheralType.USB_OTHER)).assertEqual('USB 其他设备')
+        expect(getPeripheralTypeLabel(PeripheralType.USB_OTHER)).assertEqual(DeviceTypeLabels.USB_OTHER)
       })
 
       it('should return 蓝牙设备 for BLUETOOTH', 0, () => {
-        expect(getPeripheralTypeLabel(PeripheralType.BLUETOOTH)).assertEqual('蓝牙设备')
+        expect(getPeripheralTypeLabel(PeripheralType.BLUETOOTH)).assertEqual(DeviceTypeLabels.BLUETOOTH)
       })
 
       it('should return 未知 for invalid type', 0, () => {
-        expect(getPeripheralTypeLabel('invalid' as PeripheralType)).assertEqual('未知')
+        expect(getPeripheralTypeLabel('invalid' as PeripheralType)).assertEqual(LabelText.UNKNOWN)
       })
     })
 

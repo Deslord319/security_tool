@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { commonEventManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { PeripheralConnectionRecordStrings, PeripheralMatchedPolicyStrings } from '../../main/ets/constants/modules/PeripheralStrings'
+import { StatusText } from '../../main/ets/constants/StringCatalog'
 import { OperationResult, SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
   PeripheralType,
@@ -241,7 +243,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.decision).assertEqual('allow')
       expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
       expect(record?.matchedPolicyKind).assertEqual('default_allow')
-      expect(record?.effectivePolicyLabel).assertEqual('已启用')
+      expect(record?.effectivePolicyLabel).assertEqual(StatusText.ENABLED)
       expect(dispatchCount).assertEqual(0)
     })
 
@@ -256,9 +258,9 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.decision).assertEqual('deny')
       expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('usb_storage_disabled')
-      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
-      expect(record?.summary).assertEqual('USB 存储已禁用')
-      expect(record?.detail?.includes('首次接入已自动加入黑名单')).assertFalse()
+      expect(record?.effectivePolicyLabel).assertEqual(StatusText.DISABLED)
+      expect(record?.summary).assertEqual(PeripheralMatchedPolicyStrings.USB_STORAGE_DISABLED)
+      expect(record?.detail?.includes('peripheral_record_first_connect_auto_deny_detail')).assertFalse()
       expect(dispatchCount).assertEqual(0)
       expect(policyByDeviceId.has('VID:1234 PID:5678')).assertFalse()
     })
@@ -275,8 +277,8 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.decision).assertEqual('allow')
       expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
       expect(record?.matchedPolicyKind).assertEqual('usb_storage_read_only')
-      expect(record?.effectivePolicyLabel).assertEqual('已启用')
-      expect(record?.summary).assertEqual('USB 存储只读')
+      expect(record?.effectivePolicyLabel).assertEqual(StatusText.ENABLED)
+      expect(record?.summary).assertEqual(PeripheralMatchedPolicyStrings.USB_STORAGE_READ_ONLY)
       expect(dispatchCount).assertEqual(0)
     })
 
@@ -292,8 +294,8 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.decision).assertEqual('deny')
       expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('device_deny')
-      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
-      expect(record?.summary).assertEqual('命中单设备禁止接入')
+      expect(record?.effectivePolicyLabel).assertEqual(StatusText.DISABLED)
+      expect(record?.summary).assertEqual(PeripheralMatchedPolicyStrings.DEVICE_DENY)
       expect(dispatchCount).assertEqual(0)
     })
 
@@ -307,8 +309,8 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.decision).assertEqual('deny')
       expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('device_deny')
-      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
-      expect(record?.summary).assertEqual('命中单设备禁止接入')
+      expect(record?.effectivePolicyLabel).assertEqual(StatusText.DISABLED)
+      expect(record?.summary).assertEqual(PeripheralMatchedPolicyStrings.DEVICE_DENY)
     })
 
     it('U-USB-005 should auto deny first usb attach event when default policy is deny and no explicit policy exists', 0, async () => {
@@ -331,9 +333,9 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('device_deny')
       expect(record?.deviceType).assertEqual(PeripheralType.USB_HID)
-      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
-      expect(record?.summary).assertEqual('命中单设备禁止接入')
-      expect(record?.detail?.includes('首次接入已自动加入黑名单')).assertTrue()
+      expect(record?.effectivePolicyLabel).assertEqual(StatusText.DISABLED)
+      expect(record?.summary).assertEqual(PeripheralMatchedPolicyStrings.DEVICE_DENY)
+      expect(record?.detail?.includes('peripheral_record_first_connect_auto_deny_detail')).assertTrue()
       expect(dispatchCount).assertEqual(1)
       expect(policyByDeviceId.get('VID:1234 PID:5678')).assertEqual('deny')
     })
@@ -371,8 +373,8 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.decision).assertEqual('unknown')
       expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
       expect(record?.matchedPolicyKind).assertEqual('disconnect_event')
-      expect(record?.summary).assertEqual('设备已断开')
-      expect(record?.detail?.includes('断开前生效策略为')).assertTrue()
+      expect(record?.summary).assertEqual(PeripheralConnectionRecordStrings.USB_DISCONNECTED)
+      expect(record?.detail?.includes('peripheral_record_disconnect_detail')).assertTrue()
     })
 
     it('U-USB-006A should keep detached usb record disabled when device policy is deny', 0, async () => {
@@ -385,8 +387,8 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.action).assertEqual('disconnect')
       expect(record?.decision).assertEqual('unknown')
       expect(record?.matchedPolicyKind).assertEqual('disconnect_event')
-      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
-      expect(record?.detail?.includes('断开前生效策略为：已禁用')).assertTrue()
+      expect(record?.effectivePolicyLabel).assertEqual(StatusText.DISABLED)
+      expect(record?.detail?.includes('peripheral_record_disconnect_detail') && record?.detail?.includes(StatusText.DISABLED)).assertTrue()
     })
 
     it('U-USB-007 should ignore unsupported usb event names', 0, async () => {
@@ -492,7 +494,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record !== null).assertTrue()
       expect(record?.decision).assertEqual('allow')
       expect(record?.matchedPolicyKind).assertEqual('default_allow')
-      expect(record?.detail?.includes('自动加入黑名单失败：usb_dispatch_failed')).assertTrue()
+      expect(record?.detail?.includes('usb_dispatch_failed')).assertTrue()
       expect(dispatchCount).assertEqual(1)
       expect(policyByDeviceId.has('VID:1234 PID:5678')).assertFalse()
     })
@@ -568,7 +570,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
       expect(combinedRecord?.deviceName).assertEqual('Acme Camera')
       expect(deviceNameRecord?.deviceName).assertEqual('kernel-camera')
-      expect(fallbackRecord?.deviceName).assertEqual('USB 设备')
+      expect(fallbackRecord?.deviceName).assertEqual(PeripheralConnectionRecordStrings.USB_DEVICE)
     })
 
     it('U-USB-017 should not use generic name field as usb display name', 0, async () => {
@@ -586,7 +588,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
         }
       ))
 
-      expect(record?.deviceName).assertEqual('USB 设备')
+      expect(record?.deviceName).assertEqual(PeripheralConnectionRecordStrings.USB_DEVICE)
     })
   })
 }
