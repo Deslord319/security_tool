@@ -56,7 +56,7 @@ export struct UserFirewallControlDialog {
           .padding({ top: 20, bottom: 20 })
       } else if (this.viewModel.users.length === 0) {
         Column() {
-          Text(EmptyStateStrings.NO_USERS)
+          Text($r('app.string.common_empty_no_users'))
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -67,7 +67,7 @@ export struct UserFirewallControlDialog {
       } else {
         Column({ space: 16 }) {
           Column({ space: 6 }) {
-            Text(FirewallDialogStrings.TARGET_USER)
+            Text($r('app.string.firewall_dialog_target_user'))
               .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -90,7 +90,7 @@ export struct UserFirewallControlDialog {
           .alignItems(HorizontalAlign.Start)
 
           Column({ space: 6 }) {
-            Text(FirewallDialogStrings.TARGET_MODE)
+            Text($r('app.string.firewall_dialog_target_mode'))
               .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -112,7 +112,7 @@ export struct UserFirewallControlDialog {
           .alignItems(HorizontalAlign.Start)
 
           Row({ space: 16 }) {
-            Button(ActionText.CANCEL)
+            Button($r('app.string.common_action_cancel'))
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .backgroundColor(this.currentTheme === ThemeMode.DARK
@@ -128,7 +128,7 @@ export struct UserFirewallControlDialog {
                 this.controller.close()
               })
 
-            Button(ActionText.ADD)
+            Button($r('app.string.common_action_add'))
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(Color.White)
               .backgroundColor(AppColors.BRAND_PRIMARY)

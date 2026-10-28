@@ -298,8 +298,8 @@ export struct FirewallRulesPage {
   build() {
     Column() {
       SubPageHeader({
-        title: FirewallRuleStrings.CUSTOM_MODE_TITLE,
-        subtitle: FirewallRuleStrings.CUSTOM_RULES_SUBTITLE,
+        title: $r('app.string.firewall_rule_custom_mode_title'),
+        subtitle: $r('app.string.firewall_rule_custom_rules_subtitle'),
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
         actions: () => {
@@ -310,7 +310,7 @@ export struct FirewallRulesPage {
       Column({ space: 6 }) {
         if (this.rulesViewModel.conflictNotice.length > 0) {
           Row({ space: 8 }) {
-            Text(FirewallRuleStrings.WARNING_LABEL)
+            Text($r('app.string.firewall_rule_warning_label'))
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.WARNING)
@@ -395,7 +395,7 @@ export struct FirewallRulesPage {
   private headerActions() {
     Row({ space: 12 }) {
       IconTextActionButton({
-        label: FirewallPageStrings.USER_ID_CONTROL_BUTTON,
+        label: $r('app.string.firewall_page_user_id_control_button'),
         icon: AppResources.GLOBE_ICON,
         kind: 'primary',
         currentTheme: this.currentTheme,
@@ -405,7 +405,7 @@ export struct FirewallRulesPage {
       })
 
       IconTextActionButton({
-        label: FirewallRuleStrings.ADD_BUTTON,
+        label: $r('app.string.firewall_rule_add_button'),
         icon: AppResources.FIREWALL_ICON,
         kind: 'primary',
         currentTheme: this.currentTheme,

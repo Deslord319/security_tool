@@ -56,7 +56,7 @@ export struct PermissionApplicationPolicyPanel {
         .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
         .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-      Text(PermissionThreeDStrings.DETAIL_LOADING)
+      Text($r('app.string.permission_three_d_detail_loading'))
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -75,7 +75,7 @@ export struct PermissionApplicationPolicyPanel {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     AsyncSelectRow({
-      label: PermissionApplicationStrings.RUNNING_POLICY,
+      label: $r('app.string.permission_application_running_policy'),
       description: this.formatDescriptionWithState(
         PermissionApplicationStrings.RUNNING_POLICY_DESC,
         this.formatBlockedState(this.runningBlocked)
@@ -100,13 +100,13 @@ export struct PermissionApplicationPolicyPanel {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     AsyncSelectRow({
-      label: PermissionApplicationStrings.NETWORK_POLICY,
+      label: $r('app.string.permission_application_network_policy'),
       description: this.uid > 0
         ? this.formatDescriptionWithState(
           PermissionApplicationStrings.NETWORK_POLICY_DESC,
           this.formatBlockedState(this.networkBlocked)
         )
-        : PermissionApplicationStrings.MISSING_UID,
+        : $r('app.string.permission_application_missing_uid'),
       options: this.getNetworkPolicyOptions(),
       selectedIndex: this.getNetworkBlockedIndex(this.networkBlocked),
       selectWidth: 116,
@@ -126,7 +126,7 @@ export struct PermissionApplicationPolicyPanel {
   @Builder
   private uninstallProtectedActionRow() {
     AsyncSelectRow({
-      label: PermissionApplicationStrings.UNINSTALL_PROTECTED,
+      label: $r('app.string.permission_application_uninstall_protected'),
       description: this.formatDescriptionWithState(
         PermissionApplicationStrings.UNINSTALL_PROTECTED_DESC,
         this.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED

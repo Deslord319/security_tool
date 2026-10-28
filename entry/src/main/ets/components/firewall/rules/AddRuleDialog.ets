@@ -40,14 +40,14 @@ export struct AddRuleDialog {
   @State selectedUserIds: number[] = []
   @State submitting: boolean = false
   private readonly ruleTypeOptions: SelectOption[] = [
-    { value: FirewallRuleLabelStrings.IP_RULE },
-    { value: FirewallRuleLabelStrings.DOMAIN_RULE },
-    { value: FirewallRuleLabelStrings.DNS_RULE }
+    { value: $r('app.string.firewall_rule_label_ip') },
+    { value: $r('app.string.firewall_rule_label_domain') },
+    { value: $r('app.string.firewall_rule_label_dns') }
   ]
   private readonly ruleTypeValues: number[] = FIREWALL_RULE_TYPE_OPTIONS
   private readonly directionOptions: SelectOption[] = [
-    { value: FirewallDialogStrings.DIRECTION_INBOUND },
-    { value: FirewallDialogStrings.DIRECTION_OUTBOUND }
+    { value: $r('app.string.firewall_dialog_direction_inbound') },
+    { value: $r('app.string.firewall_dialog_direction_outbound') }
   ]
   private readonly directionValues: number[] = [
     netFirewall.NetFirewallRuleDirection.RULE_IN,
@@ -60,8 +60,8 @@ export struct AddRuleDialog {
   ]
   private readonly protocolValues: number[] = FIREWALL_RULE_PROTOCOL_OPTIONS
   private readonly actionOptions: SelectOption[] = [
-    { value: FirewallDialogStrings.ACTION_ALLOW },
-    { value: FirewallDialogStrings.ACTION_DENY }
+    { value: $r('app.string.firewall_dialog_action_allow') },
+    { value: $r('app.string.firewall_dialog_action_deny') }
   ]
   private readonly actionValues: number[] = [
     netFirewall.FirewallRuleAction.RULE_ALLOW,
@@ -206,14 +206,14 @@ export struct AddRuleDialog {
   private formContent() {
     Column({ space: 16 }) {
       Column({ space: 6 }) {
-        Text(FirewallDialogStrings.RULE_NAME)
+        Text($r('app.string.firewall_dialog_rule_name'))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         StyledTextInput({
           text: this.ruleName,
-          placeholder: FirewallDialogStrings.RULE_NAME_PLACEHOLDER,
+          placeholder: $r('app.string.firewall_dialog_rule_name_placeholder'),
           currentTheme: this.currentTheme,
           onChange: (value: string) => { this.ruleName = value }
         })
@@ -222,7 +222,7 @@ export struct AddRuleDialog {
       .alignItems(HorizontalAlign.Start)
 
       Column({ space: 6 }) {
-        Text(FirewallDialogStrings.RULE_TYPE)
+        Text($r('app.string.firewall_dialog_rule_type'))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -239,7 +239,7 @@ export struct AddRuleDialog {
       .alignItems(HorizontalAlign.Start)
 
       Column({ space: 6 }) {
-        Text(FirewallDialogStrings.RULE_DIRECTION)
+        Text($r('app.string.firewall_dialog_rule_direction'))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -271,7 +271,7 @@ export struct AddRuleDialog {
 
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
         Column({ space: 6 }) {
-          Text(FirewallDialogStrings.PROTOCOL)
+          Text($r('app.string.firewall_dialog_protocol'))
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -308,14 +308,14 @@ export struct AddRuleDialog {
 
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
         Column({ space: 6 }) {
-          Text(FirewallDialogStrings.STANDBY_DNS)
+          Text($r('app.string.firewall_dialog_standby_dns'))
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           StyledTextInput({
             text: this.standbyDns,
-            placeholder: FirewallDialogStrings.STANDBY_DNS_PLACEHOLDER,
+            placeholder: $r('app.string.firewall_dialog_standby_dns_placeholder'),
             currentTheme: this.currentTheme,
             onChange: (value: string) => { this.standbyDns = value }
           })
@@ -327,15 +327,15 @@ export struct AddRuleDialog {
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
         Column({ space: 6 }) {
           Text(this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN
-            ? FirewallDialogStrings.LOCAL_PORT
-            : FirewallDialogStrings.REMOTE_PORT)
+            ? $r('app.string.firewall_dialog_local_port')
+            : $r('app.string.firewall_dialog_remote_port'))
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           StyledTextInput({
             text: this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN ? this.localPort : this.remotePort,
-            placeholder: FirewallDialogStrings.PORT_PLACEHOLDER,
+            placeholder: $r('app.string.firewall_dialog_port_placeholder'),
             currentTheme: this.currentTheme,
             onChange: (value: string) => {
               if (this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN) {
@@ -353,14 +353,14 @@ export struct AddRuleDialog {
       }
 
       Column({ space: 6 }) {
-        Text(FirewallDialogStrings.USER_SCOPE)
+        Text($r('app.string.firewall_dialog_user_scope'))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
         if (this.userOptions.length === 0) {
-          Text(FirewallUserStrings.NO_ACTIVATED_USERS)
+          Text($r('app.string.firewall_user_no_activated_users'))
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -382,7 +382,7 @@ export struct AddRuleDialog {
       .alignItems(HorizontalAlign.Start)
 
       Column({ space: 6 }) {
-        Text(FirewallDialogStrings.ACTION)
+        Text($r('app.string.firewall_dialog_action'))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -399,7 +399,7 @@ export struct AddRuleDialog {
       .alignItems(HorizontalAlign.Start)
 
       Row({ space: 16 }) {
-        Button(ActionText.CANCEL)
+        Button($r('app.string.common_action_cancel'))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .backgroundColor(this.getTertiaryButtonBackground())

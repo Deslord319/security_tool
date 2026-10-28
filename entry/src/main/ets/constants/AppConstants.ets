@@ -314,7 +314,8 @@ export interface NavItem {
   icon: Resource
 }
 
-export const NAV_ITEMS: NavItem[] = [
+export function getNavItems(): NavItem[] {
+  return [
   { id: RouteIds.DASHBOARD, label: ModuleText.DASHBOARD, icon: AppResources.DASHBOARD_ICON },
   { id: RouteIds.FIREWALL, label: ModuleText.FIREWALL, icon: AppResources.FIREWALL_ICON },
   { id: RouteIds.LOG_MANAGE, label: ModuleText.LOG_MANAGE, icon: AppResources.LOG_ICON },
@@ -323,4 +324,5 @@ export const NAV_ITEMS: NavItem[] = [
   { id: RouteIds.IDENTITY, label: ModuleText.IDENTITY, icon: AppResources.IDENTITY_ICON },
   // Help feedback is exposed from the top menu so the sidebar remains task-focused.
   { id: RouteIds.TOOL_SETTINGS, label: ModuleText.TOOL_SETTINGS, icon: AppResources.SETTINGS_ICON }
-]
+  ]
+}

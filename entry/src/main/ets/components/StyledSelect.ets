@@ -7,7 +7,7 @@ import { FormControlUtils } from '../utils/FormControlUtils'
 export struct StyledSelect {
   @Param options: SelectOption[] = []
   @Param selectedIndex: number = 0
-  @Param value: string = ''
+  @Param value: ResourceStr = ''
   @Param controlWidth: number = 0
   @Param controlHeight: number = AppStyles.INPUT_HEIGHT
   @Param radius: number = AppStyles.RADIUS_MD

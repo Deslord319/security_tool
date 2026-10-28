@@ -1,38 +1,64 @@
 import { AppColors } from '../AppConstants'
+import { AppStrings } from '../AppStrings'
 
 export interface DashboardGradient {
   start: string
   end: string
 }
 
-export class DashboardPageStrings {
-  static readonly SUBTITLE: string = 'HarmonyOS 安全管理中心，提供企业级设备安全管控能力'
-  static readonly QUICK_ACTIONS_TITLE: string = '快捷方式'
-}
+/**
+ * 安全总览模块文案资源门面
+ *
+ * 文案唯一来源为 resources/{base,en_US}/element/string.json 中的 dashboard_* 资源。
+ * 门面保持与旧常量一致的访问方式，内部经 AppStrings 资源管理器按当前 locale 解析；
+ * 摘要卡次数类副文案由占位符资源构造，不再做前后缀字符串拼接。
+ *
+ * 单元测试环境（AppStrings 未初始化）下门面返回资源名；相关断言必须经门面构造，
+ * 不得断言中文或英文字面量。
+ */
 
 export class DashboardAdminStrings {
-  static readonly TITLE: string = '管理员状态'
-  static readonly PENDING: string = '未激活'
-  static readonly READY_DETAIL: string = '企业管理能力已激活'
-  static readonly PENDING_DETAIL: string = '企业管理能力未激活'
+  static get TITLE(): string {
+    return AppStrings.get('dashboard_admin_title')
+  }
+
+  static get PENDING(): string {
+    return AppStrings.get('dashboard_admin_pending')
+  }
+
+  static get READY_DETAIL(): string {
+    return AppStrings.get('dashboard_admin_ready_detail')
+  }
+
+  static get PENDING_DETAIL(): string {
+    return AppStrings.get('dashboard_admin_pending_detail')
+  }
 }
 
 export class DashboardFirewallCardStrings {
-  static readonly TITLE: string = '防火墙模式'
+  static get TITLE(): string {
+    return AppStrings.get('dashboard_firewall_card_title')
+  }
 }
 
 export class DashboardLogCardStrings {
-  static readonly TITLE: string = '日志记录'
-  static readonly TODAY_DETAIL_PREFIX: string = '累计 '
-  static readonly TODAY_DETAIL_SUFFIX: string = ' 条'
+  static get TITLE(): string {
+    return AppStrings.get('dashboard_log_card_title')
+  }
+
+  static buildTodayDetail(totalCount: number): string {
+    return AppStrings.format('dashboard_log_card_today_detail', totalCount)
+  }
 }
 
 export class DashboardPeripheralCardStrings {
-  static readonly TITLE: string = '外设连接记录'
-  static readonly DETAIL_PREFIX: string = '连接 '
-  static readonly DETAIL_MIDDLE: string = ' 次，断开 '
-  static readonly DETAIL_POLICY_MIDDLE: string = ' 次，策略变更 '
-  static readonly DETAIL_SUFFIX: string = ' 次'
+  static get TITLE(): string {
+    return AppStrings.get('dashboard_peripheral_card_title')
+  }
+
+  static buildDetail(connects: number, disconnects: number, policyChanges: number): string {
+    return AppStrings.format('dashboard_peripheral_card_detail', connects, disconnects, policyChanges)
+  }
 }
 
 export class DashboardGradientPalette {

@@ -34,7 +34,7 @@ export struct ConnectionDetailDialog {
       }
       .width('100%')
     } else {
-      Text(DeviceDetailStrings.NO_RECORDS)
+      Text($r('app.string.device_detail_no_records'))
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -44,7 +44,7 @@ export struct ConnectionDetailDialog {
   @Builder
   private metricCard(record: PeripheralConnectionRecord) {
     Column({ space: 10 }) {
-      Text(DeviceDetailStrings.KEY_INFO)
+      Text($r('app.string.device_detail_key_info'))
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -102,12 +102,12 @@ export struct ConnectionDetailDialog {
   private historyCard() {
     Column({ space: AppStyles.PADDING_SM }) {
       Row() {
-        Text(DeviceDetailStrings.HISTORY_TITLE)
+        Text($r('app.string.device_detail_history_title'))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         Blank()
-        Text(`${this.historyItems.length} ${DeviceDetailStrings.HISTORY_COUNT_SUFFIX}`)
+        Text(`${this.historyItems.length} ${$r('app.string.device_detail_history_count_suffix')}`)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -115,7 +115,7 @@ export struct ConnectionDetailDialog {
       .width('100%')
 
       if (this.historyItems.length === 0) {
-        Text(DeviceDetailStrings.NO_HISTORY)
+        Text($r('app.string.device_detail_no_history'))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)

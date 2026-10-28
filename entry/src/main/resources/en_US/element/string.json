@@ -1,0 +1,2732 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "HarmonyOS Security Management Center"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "Main entry of the Security Management Center"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "Security Management Center"
+    },
+    {
+      "name": "bluetooth_access_reason",
+      "value": "Used to listen for Bluetooth device connection and disconnection events"
+    },
+    {
+      "name": "common_list_separator",
+      "value": ", "
+    },
+    {
+      "name": "identity_page_subtitle",
+      "value": "Configure account password complexity and validity period to secure system access"
+    },
+    {
+      "name": "identity_action_password_policy",
+      "value": "Set the password policy"
+    },
+    {
+      "name": "identity_action_read_password_policy",
+      "value": "Read the password policy"
+    },
+    {
+      "name": "identity_message_save_success",
+      "value": "Identity settings saved"
+    },
+    {
+      "name": "identity_message_save_admin_required",
+      "value": "Could not save the identity settings. Activate the enterprise admin first."
+    },
+    {
+      "name": "identity_message_password_policy_retry",
+      "value": "Could not set the password policy. Try again later."
+    },
+    {
+      "name": "identity_message_invalid_validity_days",
+      "value": "Enter a non-negative number of days"
+    },
+    {
+      "name": "identity_message_immediate_expiry_risk_title",
+      "value": "Risk warning"
+    },
+    {
+      "name": "identity_message_immediate_expiry_risk_message",
+      "value": "The custom validity is 0 days, so the password policy will expire immediately after it is applied. Confirm whether to continue saving."
+    },
+    {
+      "name": "identity_section_password_complexity",
+      "value": "Password complexity policy"
+    },
+    {
+      "name": "identity_section_min_password_length",
+      "value": "Minimum password length"
+    },
+    {
+      "name": "identity_section_min_password_length_desc",
+      "value": "Minimum number of characters required for user passwords"
+    },
+    {
+      "name": "identity_section_require_uppercase",
+      "value": "Require uppercase letters"
+    },
+    {
+      "name": "identity_section_require_uppercase_desc",
+      "value": "Passwords must contain at least one uppercase letter (A-Z)"
+    },
+    {
+      "name": "identity_section_require_lowercase",
+      "value": "Require lowercase letters"
+    },
+    {
+      "name": "identity_section_require_lowercase_desc",
+      "value": "Passwords must contain at least one lowercase letter (a-z)"
+    },
+    {
+      "name": "identity_section_require_digit",
+      "value": "Require digits"
+    },
+    {
+      "name": "identity_section_require_digit_desc",
+      "value": "Passwords must contain at least one digit (0-9)"
+    },
+    {
+      "name": "identity_section_require_special_char",
+      "value": "Require special characters"
+    },
+    {
+      "name": "identity_section_require_special_char_desc",
+      "value": "Passwords must contain at least one special character (!@#$%^&*)"
+    },
+    {
+      "name": "identity_section_password_validity_period",
+      "value": "Password validity period"
+    },
+    {
+      "name": "identity_section_password_validity_period_desc",
+      "value": "How often passwords must be changed"
+    },
+    {
+      "name": "identity_form_custom_days_placeholder",
+      "value": "Enter days"
+    },
+    {
+      "name": "identity_form_day_unit",
+      "value": "days"
+    },
+    {
+      "name": "identity_form_permanent_option",
+      "value": "Permanent"
+    },
+    {
+      "name": "identity_form_half_year_option",
+      "value": "Half a year"
+    },
+    {
+      "name": "identity_form_one_year_option",
+      "value": "One year"
+    },
+    {
+      "name": "identity_form_custom_option",
+      "value": "Custom"
+    },
+    {
+      "name": "identity_form_length_option",
+      "value": "%1$d characters"
+    },
+    {
+      "name": "identity_auth_method_pin",
+      "value": "PIN"
+    },
+    {
+      "name": "identity_auth_method_fingerprint",
+      "value": "Fingerprint"
+    },
+    {
+      "name": "identity_auth_method_unsupported",
+      "value": "This authentication method is not supported on this device"
+    },
+    {
+      "name": "identity_auth_system_available",
+      "value": "System authentication is available"
+    },
+    {
+      "name": "identity_auth_dialog_title",
+      "value": "Identity verification"
+    },
+    {
+      "name": "identity_auth_failed_or_canceled",
+      "value": "Verification failed or was canceled"
+    },
+    {
+      "name": "identity_auth_trust_level_insufficient",
+      "value": "The current system authentication level does not meet the requirement"
+    },
+    {
+      "name": "identity_auth_pin_expired",
+      "value": "The system PIN has expired. Update it in system settings first."
+    },
+    {
+      "name": "identity_auth_permission_denied",
+      "value": "Insufficient permission to invoke system authentication"
+    },
+    {
+      "name": "identity_auth_invalid_params",
+      "value": "Invalid authentication parameters"
+    },
+    {
+      "name": "identity_auth_not_enrolled",
+      "value": "No %1$s is enrolled in the system, or the credential does not meet the requirements"
+    },
+    {
+      "name": "identity_auth_unavailable",
+      "value": "System %1$s authentication is unavailable"
+    },
+    {
+      "name": "identity_requirement_uppercase",
+      "value": "uppercase letters"
+    },
+    {
+      "name": "identity_requirement_lowercase",
+      "value": "lowercase letters"
+    },
+    {
+      "name": "identity_requirement_digit",
+      "value": "digits"
+    },
+    {
+      "name": "identity_requirement_special",
+      "value": "special characters (!@#$%^&*)"
+    },
+    {
+      "name": "identity_requirement_min_length",
+      "value": "At least %1$d characters"
+    },
+    {
+      "name": "tool_settings_page_subtitle",
+      "value": "Configure tool-level security capabilities such as startup authentication and the system password entry"
+    },
+    {
+      "name": "tool_settings_page_save_success",
+      "value": "Tool settings saved"
+    },
+    {
+      "name": "tool_settings_page_open_password_settings_failed",
+      "value": "Could not open system password settings. Go to system settings and change it manually."
+    },
+    {
+      "name": "tool_settings_startup_auth_section_title",
+      "value": "Startup authentication"
+    },
+    {
+      "name": "tool_settings_startup_auth_title",
+      "value": "Identity verification on startup"
+    },
+    {
+      "name": "tool_settings_startup_auth_description",
+      "value": "When enabled, system authentication is required before entering the tool"
+    },
+    {
+      "name": "tool_settings_startup_auth_method_description",
+      "value": "Select the system authentication method used for startup identity verification"
+    },
+    {
+      "name": "tool_settings_password_change_label",
+      "value": "Change password"
+    },
+    {
+      "name": "tool_settings_password_change_description",
+      "value": "Open \"Biometrics & password\" in system settings to change the system PIN/password"
+    },
+    {
+      "name": "tool_settings_confirmation_auth_method_unavailable_title",
+      "value": "Authentication method unavailable"
+    },
+    {
+      "name": "tool_settings_confirmation_auth_method_unavailable_message",
+      "value": "If you continue saving, startup identity verification may not work properly. Confirm whether you still want to save the settings."
+    },
+    {
+      "name": "tool_settings_confirmation_continue_save",
+      "value": "Save anyway"
+    },
+    {
+      "name": "help_feedback_page_subtitle",
+      "value": "Product guide, FAQs, and customer support"
+    },
+    {
+      "name": "help_feedback_guide_section_title",
+      "value": "User guide"
+    },
+    {
+      "name": "help_feedback_faq_section_title",
+      "value": "FAQ"
+    },
+    {
+      "name": "help_feedback_contact_section_title",
+      "value": "Contact & feedback"
+    },
+    {
+      "name": "help_feedback_contact_description",
+      "value": "If you run into problems or have feature suggestions, feel free to reach us through the following channel."
+    },
+    {
+      "name": "help_feedback_contact_email_label",
+      "value": "Feedback email"
+    },
+    {
+      "name": "help_feedback_action_expand",
+      "value": "Expand"
+    },
+    {
+      "name": "help_feedback_action_collapse",
+      "value": "Collapse"
+    },
+    {
+      "name": "help_feedback_guide_theme_title",
+      "value": "Theme mode"
+    },
+    {
+      "name": "help_feedback_guide_firewall_desc",
+      "value": "On the firewall page you can enable or disable the firewall and view and manage rules. Blacklist and whitelist rules can be configured by domain and IP address."
+    },
+    {
+      "name": "help_feedback_guide_peripheral_desc",
+      "value": "The peripheral management page provides unified control over USB, Bluetooth, Wi-Fi and other interfaces; you can enable or disable each peripheral capability as needed."
+    },
+    {
+      "name": "help_feedback_guide_identity_desc",
+      "value": "Configure device password complexity and authentication policies to strengthen system identity verification."
+    },
+    {
+      "name": "help_feedback_guide_tool_settings_desc",
+      "value": "Configure startup verification and the access password. After startup verification is enabled, identity verification is required each time the app is opened."
+    },
+    {
+      "name": "help_feedback_guide_theme_desc",
+      "value": "Tap the menu in the upper-right corner to switch the display mode. Follow system, light, and dark themes are supported."
+    },
+    {
+      "name": "help_feedback_faq_audit_types_q",
+      "value": "How are the different audit event types triggered?"
+    },
+    {
+      "name": "help_feedback_faq_audit_types_a",
+      "value": "Network, traffic, permission-change and account events depend on system reporting. Trigger the corresponding system security operation first, then return to log management and refresh."
+    },
+    {
+      "name": "help_feedback_faq_audit_subscribe_q",
+      "value": "What should I do if audit event subscription fails?"
+    },
+    {
+      "name": "help_feedback_faq_audit_subscribe_a",
+      "value": "This usually indicates a system restriction or an unsupported event type. If account events return 401, it is mostly a system policy restriction rather than missing app permissions."
+    },
+    {
+      "name": "help_feedback_faq_startup_auth_q",
+      "value": "How do I enable startup verification?"
+    },
+    {
+      "name": "help_feedback_faq_startup_auth_a",
+      "value": "Go to tool settings, turn on \"Identity verification on startup\", and select an authentication method."
+    },
+    {
+      "name": "help_feedback_faq_firewall_rules_q",
+      "value": "What if firewall rules do not take effect?"
+    },
+    {
+      "name": "help_feedback_faq_firewall_rules_a",
+      "value": "Confirm that the firewall switch is enabled and check rule priorities. The firewall requires the device to have enterprise admin permissions."
+    },
+    {
+      "name": "help_feedback_faq_forgot_password_q",
+      "value": "What if I forget the tool access password?"
+    },
+    {
+      "name": "help_feedback_faq_forgot_password_a",
+      "value": "In the current version, the access password can only be cleared by resetting app data. Clear Security Management Center data in app management under system settings."
+    },
+    {
+      "name": "help_feedback_faq_peripheral_policy_q",
+      "value": "What if peripheral policy changes do not take effect?"
+    },
+    {
+      "name": "help_feedback_faq_peripheral_policy_a",
+      "value": "Some peripheral policies take effect only after a device restart. Also confirm that the device has obtained the corresponding enterprise admin permissions."
+    },
+    {
+      "name": "help_feedback_faq_identity_sync_q",
+      "value": "What if system settings do not reflect a saved identity policy?"
+    },
+    {
+      "name": "help_feedback_faq_identity_sync_a",
+      "value": "The system settings page may not refresh policy display in real time. Close and reopen system settings to check, and restart the device if necessary."
+    },
+    {
+      "name": "help_feedback_faq_change_pin_q",
+      "value": "Can I change the system PIN directly in the app?"
+    },
+    {
+      "name": "help_feedback_faq_change_pin_a",
+      "value": "Not in the current version. Public APIs mainly provide authentication and policy delivery, not in-app system PIN modification."
+    },
+    {
+      "name": "dashboard_page_subtitle",
+      "value": "HarmonyOS Security Management Center, providing enterprise-grade device security management"
+    },
+    {
+      "name": "dashboard_quick_actions_title",
+      "value": "Quick actions"
+    },
+    {
+      "name": "dashboard_admin_title",
+      "value": "Admin status"
+    },
+    {
+      "name": "dashboard_admin_pending",
+      "value": "Not activated"
+    },
+    {
+      "name": "dashboard_admin_ready_detail",
+      "value": "Enterprise management capabilities activated"
+    },
+    {
+      "name": "dashboard_admin_pending_detail",
+      "value": "Enterprise management capabilities not activated"
+    },
+    {
+      "name": "dashboard_firewall_card_title",
+      "value": "Firewall mode"
+    },
+    {
+      "name": "dashboard_log_card_title",
+      "value": "Log records"
+    },
+    {
+      "name": "dashboard_log_card_today_detail",
+      "value": "A total of %1$d records"
+    },
+    {
+      "name": "dashboard_peripheral_card_title",
+      "value": "Peripheral connection records"
+    },
+    {
+      "name": "dashboard_peripheral_card_detail",
+      "value": "%1$d connections, %2$d disconnections, %3$d policy changes"
+    },
+    {
+      "name": "log_manage_page_settings_title",
+      "value": "Log storage settings"
+    },
+    {
+      "name": "log_manage_page_subtitle",
+      "value": "Monitor and audit system security event logs"
+    },
+    {
+      "name": "log_manage_page_settings_subtitle",
+      "value": "Configure log retention, auto export, and audit diagnostics"
+    },
+    {
+      "name": "log_manage_detail_dialog_title",
+      "value": "Log details"
+    },
+    {
+      "name": "log_manage_detail_summary",
+      "value": "Summary"
+    },
+    {
+      "name": "log_manage_detail_time_label",
+      "value": "Time"
+    },
+    {
+      "name": "log_manage_detail_event_type_label",
+      "value": "Event type"
+    },
+    {
+      "name": "log_manage_detail_structured_details",
+      "value": "Structured details"
+    },
+    {
+      "name": "log_manage_detail_empty",
+      "value": "No details"
+    },
+    {
+      "name": "log_manage_filter_all_event_types",
+      "value": "All types"
+    },
+    {
+      "name": "log_manage_filter_all_time",
+      "value": "All time"
+    },
+    {
+      "name": "log_manage_filter_last_1_hour",
+      "value": "Last 1 hour"
+    },
+    {
+      "name": "log_manage_filter_last_12_hours",
+      "value": "Last 12 hours"
+    },
+    {
+      "name": "log_manage_filter_last_24_hours",
+      "value": "Last 24 hours"
+    },
+    {
+      "name": "log_manage_filter_last_3_days",
+      "value": "Last 3 days"
+    },
+    {
+      "name": "log_manage_filter_search_placeholder",
+      "value": "Search log content..."
+    },
+    {
+      "name": "log_manage_action_import_logs",
+      "value": "Add logs"
+    },
+    {
+      "name": "log_manage_action_export_logs",
+      "value": "Export logs"
+    },
+    {
+      "name": "log_manage_action_clear_logs",
+      "value": "Clear logs"
+    },
+    {
+      "name": "log_manage_action_open_storage_settings",
+      "value": "Storage settings"
+    },
+    {
+      "name": "log_manage_action_back_to_log_list",
+      "value": "Log list"
+    },
+    {
+      "name": "log_manage_import_importing",
+      "value": "Importing logs, please wait..."
+    },
+    {
+      "name": "log_manage_import_add_success",
+      "value": "Logs added successfully"
+    },
+    {
+      "name": "log_manage_import_user_canceled",
+      "value": "Import canceled"
+    },
+    {
+      "name": "log_manage_import_invalid_archive",
+      "value": "Select a log package in zip format"
+    },
+    {
+      "name": "log_manage_import_extract_failed",
+      "value": "Failed to extract the log package"
+    },
+    {
+      "name": "log_manage_import_save_failed",
+      "value": "Failed to save logs"
+    },
+    {
+      "name": "log_manage_kernel_import_category_security_denied",
+      "value": "Security access control denial"
+    },
+    {
+      "name": "log_manage_kernel_import_category_binder_permission",
+      "value": "Binder/IPC permission failure"
+    },
+    {
+      "name": "log_manage_kernel_import_category_hmdec",
+      "value": "DEC rule setting"
+    },
+    {
+      "name": "log_manage_kernel_import_category_fs_devfs",
+      "value": "DEC device file event"
+    },
+    {
+      "name": "log_manage_stat_total",
+      "value": "Total"
+    },
+    {
+      "name": "log_manage_stat_today",
+      "value": "Today"
+    },
+    {
+      "name": "log_manage_stat_filtered",
+      "value": "Filtered"
+    },
+    {
+      "name": "log_manage_stat_current_shown",
+      "value": "Currently shown"
+    },
+    {
+      "name": "log_manage_stat_total_description",
+      "value": "Total number of logs"
+    },
+    {
+      "name": "log_manage_stat_today_description",
+      "value": "New logs today"
+    },
+    {
+      "name": "log_manage_stat_filtered_description",
+      "value": "Number of current filter results"
+    },
+    {
+      "name": "log_manage_stat_current_shown_description",
+      "value": "Number of entries on the current page"
+    },
+    {
+      "name": "log_manage_empty_state_title",
+      "value": "No log records"
+    },
+    {
+      "name": "log_manage_setting_max_entries_label",
+      "value": "Maximum stored entries"
+    },
+    {
+      "name": "log_manage_setting_max_entries_description",
+      "value": "Select the maximum number of logs kept locally. When the limit is reached, older logs are cleaned up by time."
+    },
+    {
+      "name": "log_manage_setting_retention_days_label",
+      "value": "Log retention days"
+    },
+    {
+      "name": "log_manage_setting_retention_days_description",
+      "value": "Select how long logs are kept locally. Expired logs are cleaned up automatically."
+    },
+    {
+      "name": "log_manage_setting_save_success",
+      "value": "Settings saved"
+    },
+    {
+      "name": "log_manage_clearing_no_exportable_logs",
+      "value": "No logs available for export"
+    },
+    {
+      "name": "log_manage_clearing_confirm_title",
+      "value": "Confirm clearing"
+    },
+    {
+      "name": "log_manage_clearing_success",
+      "value": "Logs cleared"
+    },
+    {
+      "name": "log_manage_clearing_confirm_message",
+      "value": "Clear all %1$d logs? This operation cannot be undone."
+    },
+    {
+      "name": "log_manage_pagination_page_input_placeholder",
+      "value": "Page number"
+    },
+    {
+      "name": "log_manage_pagination_page_range",
+      "value": "%1$s / %2$d in total"
+    },
+    {
+      "name": "log_manage_pagination_page_size",
+      "value": "%1$d per page"
+    },
+    {
+      "name": "log_manage_csv_event_type",
+      "value": "Event type"
+    },
+    {
+      "name": "log_manage_csv_process_name",
+      "value": "Process name"
+    },
+    {
+      "name": "log_manage_event_type_crash",
+      "value": "Crash log"
+    },
+    {
+      "name": "log_manage_event_type_file",
+      "value": "File operation log"
+    },
+    {
+      "name": "log_manage_event_type_account",
+      "value": "User authentication log"
+    },
+    {
+      "name": "log_manage_event_type_permission",
+      "value": "Permission change log"
+    },
+    {
+      "name": "log_manage_event_type_power",
+      "value": "Power on/off log"
+    },
+    {
+      "name": "log_manage_event_type_system",
+      "value": "System log"
+    },
+    {
+      "name": "log_manage_event_type_kernel",
+      "value": "Kernel log"
+    },
+    {
+      "name": "log_manage_event_type_audit",
+      "value": "Audit log"
+    },
+    {
+      "name": "log_event_file_access",
+      "value": "File access"
+    },
+    {
+      "name": "log_event_file_intercepted",
+      "value": "File access intercepted"
+    },
+    {
+      "name": "log_event_file_create",
+      "value": "File created"
+    },
+    {
+      "name": "log_event_file_open",
+      "value": "File opened"
+    },
+    {
+      "name": "log_event_file_close",
+      "value": "File closed"
+    },
+    {
+      "name": "log_event_file_delete",
+      "value": "File deleted"
+    },
+    {
+      "name": "log_event_file_rename",
+      "value": "File renamed"
+    },
+    {
+      "name": "log_event_file_copy",
+      "value": "File copied"
+    },
+    {
+      "name": "log_event_file_write",
+      "value": "File written"
+    },
+    {
+      "name": "log_event_file_owner_change",
+      "value": "File owner changed"
+    },
+    {
+      "name": "log_event_file_mode_change",
+      "value": "File permission mode changed"
+    },
+    {
+      "name": "log_event_file_xattr_set",
+      "value": "File extended attribute set"
+    },
+    {
+      "name": "log_event_file_xattr_delete",
+      "value": "File extended attribute deleted"
+    },
+    {
+      "name": "log_event_account_authentication",
+      "value": "Account authentication"
+    },
+    {
+      "name": "log_event_permission_change",
+      "value": "Permission changed"
+    },
+    {
+      "name": "log_event_device_power_on",
+      "value": "Device started"
+    },
+    {
+      "name": "log_event_device_power_off",
+      "value": "Device shut down"
+    },
+    {
+      "name": "log_event_crash_runtime",
+      "value": "App crash"
+    },
+    {
+      "name": "log_event_crash_process_abnormal",
+      "value": "Process abnormal crash"
+    },
+    {
+      "name": "log_event_crash_app_freeze",
+      "value": "App freeze"
+    },
+    {
+      "name": "log_event_crash_javascript",
+      "value": "JavaScript crash"
+    },
+    {
+      "name": "log_event_crash_native",
+      "value": "Native crash"
+    },
+    {
+      "name": "log_event_app_lifecycle",
+      "value": "Application event"
+    },
+    {
+      "name": "log_event_app_start",
+      "value": "App started"
+    },
+    {
+      "name": "log_event_app_exit",
+      "value": "App exited"
+    },
+    {
+      "name": "log_event_process_lifecycle",
+      "value": "Process event"
+    },
+    {
+      "name": "log_event_process_create",
+      "value": "Process created"
+    },
+    {
+      "name": "log_event_process_exit",
+      "value": "Process exited"
+    },
+    {
+      "name": "log_event_network_dns",
+      "value": "DNS query"
+    },
+    {
+      "name": "log_event_network_intercepted",
+      "value": "Network access intercepted"
+    },
+    {
+      "name": "log_event_network_wifi_intercepted",
+      "value": "Wi-Fi access intercepted"
+    },
+    {
+      "name": "log_event_edm_policy_read",
+      "value": "Enterprise policy query"
+    },
+    {
+      "name": "log_event_edm_policy_change",
+      "value": "Enterprise policy change"
+    },
+    {
+      "name": "log_event_edm_policy_operation",
+      "value": "Enterprise policy operation"
+    },
+    {
+      "name": "log_event_process_debug_abnormal",
+      "value": "Process debug anomaly"
+    },
+    {
+      "name": "log_event_process_privilege_escalation",
+      "value": "Process privilege escalation"
+    },
+    {
+      "name": "log_event_device_camera",
+      "value": "Camera event"
+    },
+    {
+      "name": "log_event_device_printer",
+      "value": "Printer event"
+    },
+    {
+      "name": "log_event_device_print_intercepted",
+      "value": "Print operation intercepted"
+    },
+    {
+      "name": "log_event_data_clipboard",
+      "value": "Clipboard event"
+    },
+    {
+      "name": "log_event_debug_hdc",
+      "value": "HDC debugging"
+    },
+    {
+      "name": "log_event_debug_hdc_intercepted",
+      "value": "HDC debugging intercepted"
+    },
+    {
+      "name": "log_event_system_fallback",
+      "value": "System log"
+    },
+    {
+      "name": "log_event_kernel_fallback",
+      "value": "Kernel security event"
+    },
+    {
+      "name": "log_event_file_kia_fallback",
+      "value": "File security event"
+    },
+    {
+      "name": "log_event_app_intercepted_fallback",
+      "value": "App operation intercepted"
+    },
+    {
+      "name": "log_event_security_fallback",
+      "value": "Security anomaly event"
+    },
+    {
+      "name": "log_event_data_fallback",
+      "value": "Data operation event"
+    },
+    {
+      "name": "log_event_device_fallback",
+      "value": "Device security event"
+    },
+    {
+      "name": "log_event_media_fallback",
+      "value": "Screen media event"
+    },
+    {
+      "name": "log_event_storage_fallback",
+      "value": "Storage device event"
+    },
+    {
+      "name": "log_event_unknown",
+      "value": "Unknown log event"
+    },
+    {
+      "name": "log_field_event_action",
+      "value": "Action"
+    },
+    {
+      "name": "log_field_event_outcome",
+      "value": "Result"
+    },
+    {
+      "name": "log_field_event_risk_level",
+      "value": "Risk level"
+    },
+    {
+      "name": "log_field_event_duration",
+      "value": "Duration"
+    },
+    {
+      "name": "log_field_event_auth_type",
+      "value": "Authentication method"
+    },
+    {
+      "name": "log_field_event_category",
+      "value": "Event category"
+    },
+    {
+      "name": "log_field_event_crash_type",
+      "value": "Crash type"
+    },
+    {
+      "name": "log_field_event_summary",
+      "value": "Summary"
+    },
+    {
+      "name": "log_field_event_reason",
+      "value": "Reason"
+    },
+    {
+      "name": "log_field_event_error_name",
+      "value": "Error name"
+    },
+    {
+      "name": "log_field_event_error_message",
+      "value": "Error message"
+    },
+    {
+      "name": "log_field_object_application",
+      "value": "Application"
+    },
+    {
+      "name": "log_field_object_bundle_name",
+      "value": "Bundle name"
+    },
+    {
+      "name": "log_field_object_process_name",
+      "value": "Process"
+    },
+    {
+      "name": "log_field_object_file_path",
+      "value": "File path"
+    },
+    {
+      "name": "log_field_object_file_size",
+      "value": "File size"
+    },
+    {
+      "name": "log_field_object_file_mode",
+      "value": "File permission"
+    },
+    {
+      "name": "log_field_object_user_name",
+      "value": "User name"
+    },
+    {
+      "name": "log_field_object_user_id",
+      "value": "User ID"
+    },
+    {
+      "name": "log_field_object_domain",
+      "value": "Domain"
+    },
+    {
+      "name": "log_field_object_device",
+      "value": "Device"
+    },
+    {
+      "name": "log_field_object_policy",
+      "value": "Policy object"
+    },
+    {
+      "name": "log_field_actor_application",
+      "value": "Calling application"
+    },
+    {
+      "name": "log_field_actor_bundle_name",
+      "value": "Calling bundle name"
+    },
+    {
+      "name": "log_field_actor_process_name",
+      "value": "Executing process"
+    },
+    {
+      "name": "log_field_change_old_path",
+      "value": "Original file path"
+    },
+    {
+      "name": "log_field_change_new_path",
+      "value": "New file path"
+    },
+    {
+      "name": "log_field_change_new_mode",
+      "value": "New file permission"
+    },
+    {
+      "name": "log_field_change_permission_name",
+      "value": "Permission name"
+    },
+    {
+      "name": "log_field_change_permission_state",
+      "value": "Permission state"
+    },
+    {
+      "name": "log_field_change_owner_uid",
+      "value": "Original owner UID"
+    },
+    {
+      "name": "log_field_change_owner_gid",
+      "value": "Original group GID"
+    },
+    {
+      "name": "log_field_change_new_owner_uid",
+      "value": "New owner UID"
+    },
+    {
+      "name": "log_field_change_new_owner_gid",
+      "value": "New group GID"
+    },
+    {
+      "name": "log_field_change_xattr_name",
+      "value": "Extended attribute name"
+    },
+    {
+      "name": "log_field_edm_operation_type",
+      "value": "Operation type"
+    },
+    {
+      "name": "log_field_technical_rule_id",
+      "value": "Rule ID"
+    },
+    {
+      "name": "log_field_technical_source_file",
+      "value": "Source file"
+    },
+    {
+      "name": "log_field_technical_line_number",
+      "value": "Line number"
+    },
+    {
+      "name": "log_field_common_process_name",
+      "value": "Process name"
+    },
+    {
+      "name": "log_field_common_remote_addr",
+      "value": "Remote address"
+    },
+    {
+      "name": "log_field_common_event_id",
+      "value": "Source event ID"
+    },
+    {
+      "name": "log_field_common_event_name",
+      "value": "Event identifier"
+    },
+    {
+      "name": "log_section_overview",
+      "value": "Event overview"
+    },
+    {
+      "name": "log_section_object",
+      "value": "Operation object"
+    },
+    {
+      "name": "log_section_actor",
+      "value": "Operation subject"
+    },
+    {
+      "name": "log_section_change",
+      "value": "Impact and changes"
+    },
+    {
+      "name": "log_section_technical",
+      "value": "Technical information"
+    },
+    {
+      "name": "log_edm_operation_type_read",
+      "value": "Read/query policy state"
+    },
+    {
+      "name": "log_edm_operation_type_set",
+      "value": "Set/change policy state"
+    },
+    {
+      "name": "log_edm_policy_disallow_add_local_account",
+      "value": "Adding local accounts disallowed"
+    },
+    {
+      "name": "log_edm_policy_disallow_modify_datetime",
+      "value": "Modifying system time disallowed"
+    },
+    {
+      "name": "log_edm_policy_disallow_print",
+      "value": "Printing disallowed"
+    },
+    {
+      "name": "log_edm_policy_disallow_hdc",
+      "value": "HDC debugging disallowed"
+    },
+    {
+      "name": "log_edm_policy_disallow_usb",
+      "value": "USB disallowed"
+    },
+    {
+      "name": "log_edm_policy_disallow_bluetooth",
+      "value": "Bluetooth disallowed"
+    },
+    {
+      "name": "log_edm_policy_disallow_wifi",
+      "value": "WLAN disallowed"
+    },
+    {
+      "name": "log_manage_detail_event_name_label",
+      "value": "Event name"
+    },
+    {
+      "name": "log_import_category_system_service_timeout",
+      "value": "Service timeout anomaly"
+    },
+    {
+      "name": "log_import_category_system_window_exception",
+      "value": "Window exception detection"
+    },
+    {
+      "name": "log_import_category_system_hisi_diag",
+      "value": "Hardware/SoC diagnostics"
+    },
+    {
+      "name": "log_import_category_system_fsck",
+      "value": "File system check"
+    },
+    {
+      "name": "log_import_category_system_resize",
+      "value": "File system resize/maintenance"
+    },
+    {
+      "name": "log_import_category_system_meminfo",
+      "value": "Memory resource snapshot"
+    },
+    {
+      "name": "log_import_category_system_memview",
+      "value": "Memory view snapshot"
+    },
+    {
+      "name": "log_import_category_system_memory_leak",
+      "value": "Memory leak diagnostics"
+    },
+    {
+      "name": "log_import_category_system_updater_log",
+      "value": "System update/restore log"
+    },
+    {
+      "name": "log_import_category_system_updater_stage",
+      "value": "System update stage log"
+    },
+    {
+      "name": "log_import_category_system_installer",
+      "value": "System install/parameter update log"
+    },
+    {
+      "name": "log_import_category_system_hsld",
+      "value": "System service start/mount log"
+    },
+    {
+      "name": "peripheral_option_policy_allow",
+      "value": "Allow access"
+    },
+    {
+      "name": "peripheral_option_policy_deny",
+      "value": "Deny access"
+    },
+    {
+      "name": "peripheral_option_toggle_enabled",
+      "value": "Enabled"
+    },
+    {
+      "name": "peripheral_option_toggle_disabled",
+      "value": "Disabled"
+    },
+    {
+      "name": "peripheral_loading_usb_interface",
+      "value": "Setting the USB interface policy, please wait..."
+    },
+    {
+      "name": "peripheral_loading_usb_storage",
+      "value": "Setting the USB storage policy, please wait..."
+    },
+    {
+      "name": "peripheral_page_subtitle",
+      "value": "Manage peripheral interfaces such as USB, Bluetooth, and Wi-Fi, and configure device blacklist/whitelist policies"
+    },
+    {
+      "name": "peripheral_page_interface_tab",
+      "value": "Interface control"
+    },
+    {
+      "name": "peripheral_page_device_tab",
+      "value": "Device connection records"
+    },
+    {
+      "name": "peripheral_page_policy_tab",
+      "value": "Blacklist & whitelist"
+    },
+    {
+      "name": "peripheral_page_action_label",
+      "value": "Action"
+    },
+    {
+      "name": "peripheral_page_policy_label",
+      "value": "Policy"
+    },
+    {
+      "name": "peripheral_page_device_name_label",
+      "value": "Device name"
+    },
+    {
+      "name": "peripheral_page_device_type_label",
+      "value": "Device type"
+    },
+    {
+      "name": "peripheral_page_connection_time_label",
+      "value": "Connection time"
+    },
+    {
+      "name": "peripheral_page_latest_connection_time_label",
+      "value": "Last connection time"
+    },
+    {
+      "name": "peripheral_page_usb_default_policy_title",
+      "value": "Default USB device blacklist/whitelist policy"
+    },
+    {
+      "name": "peripheral_page_usb_default_policy_description",
+      "value": "Sets the default policy for newly connected USB devices; existing device policies are not changed."
+    },
+    {
+      "name": "peripheral_interface_usb_title",
+      "value": "USB interface"
+    },
+    {
+      "name": "peripheral_interface_usb_description",
+      "value": "Enable or disable the USB interface. When disabled, USB peripherals cannot connect."
+    },
+    {
+      "name": "peripheral_interface_bluetooth_title",
+      "value": "Bluetooth"
+    },
+    {
+      "name": "peripheral_interface_bluetooth_description",
+      "value": "Enable or disable the Bluetooth interface."
+    },
+    {
+      "name": "peripheral_interface_wifi_title",
+      "value": "Wi-Fi"
+    },
+    {
+      "name": "peripheral_interface_wifi_description",
+      "value": "Enable or disable the Wi-Fi interface."
+    },
+    {
+      "name": "peripheral_interface_ethernet_title",
+      "value": "Ethernet"
+    },
+    {
+      "name": "peripheral_interface_ethernet_description",
+      "value": "Enable or disable the wired network interface."
+    },
+    {
+      "name": "peripheral_interface_hdc_title",
+      "value": "HDC debugging"
+    },
+    {
+      "name": "peripheral_interface_hdc_description",
+      "value": "Enable or disable the HDC debugging interface."
+    },
+    {
+      "name": "peripheral_interface_network_sharing_title",
+      "value": "Network sharing"
+    },
+    {
+      "name": "peripheral_interface_network_sharing_description",
+      "value": "Enable or disable the network sharing interface."
+    },
+    {
+      "name": "peripheral_interface_printer_title",
+      "value": "Printer"
+    },
+    {
+      "name": "peripheral_interface_printer_description",
+      "value": "Enable or disable the printer interface."
+    },
+    {
+      "name": "peripheral_interface_microphone_title",
+      "value": "Microphone"
+    },
+    {
+      "name": "peripheral_interface_microphone_description",
+      "value": "Enable or disable the microphone interface."
+    },
+    {
+      "name": "peripheral_interface_camera_title",
+      "value": "Camera"
+    },
+    {
+      "name": "peripheral_interface_camera_description",
+      "value": "Enable or disable the camera interface."
+    },
+    {
+      "name": "peripheral_interface_usb_storage_description",
+      "value": "Set the access permission for USB storage devices: read-only, read/write, or blocked."
+    },
+    {
+      "name": "peripheral_matched_usb_disabled",
+      "value": "USB interface disabled"
+    },
+    {
+      "name": "peripheral_matched_usb_storage_disabled",
+      "value": "USB storage disabled"
+    },
+    {
+      "name": "peripheral_matched_usb_storage_read_only",
+      "value": "USB storage read-only"
+    },
+    {
+      "name": "peripheral_matched_device_deny",
+      "value": "Matched single-device deny"
+    },
+    {
+      "name": "peripheral_matched_bluetooth_disabled",
+      "value": "Bluetooth disabled"
+    },
+    {
+      "name": "peripheral_matched_bluetooth_connection",
+      "value": "Bluetooth connection event"
+    },
+    {
+      "name": "peripheral_matched_default_allow",
+      "value": "Allowed by default"
+    },
+    {
+      "name": "peripheral_matched_disconnect_event",
+      "value": "Device disconnected"
+    },
+    {
+      "name": "peripheral_matched_unknown_device",
+      "value": "Unknown device"
+    },
+    {
+      "name": "peripheral_record_bluetooth_device",
+      "value": "Bluetooth device"
+    },
+    {
+      "name": "peripheral_record_bluetooth_connected",
+      "value": "Bluetooth device connected"
+    },
+    {
+      "name": "peripheral_record_bluetooth_disconnected",
+      "value": "Bluetooth device disconnected"
+    },
+    {
+      "name": "peripheral_record_bluetooth_policy_snapshot_summary",
+      "value": "Connected device found when the Bluetooth disable policy changed"
+    },
+    {
+      "name": "peripheral_record_usb_disconnected",
+      "value": "Device disconnected"
+    },
+    {
+      "name": "peripheral_record_usb_storage_disabled_detail",
+      "value": "The USB storage policy is blocked; device access is prevented."
+    },
+    {
+      "name": "peripheral_record_usb_storage_read_only_detail",
+      "value": "The USB storage policy is read-only."
+    },
+    {
+      "name": "peripheral_record_default_allow",
+      "value": "Allowed under the current policy"
+    },
+    {
+      "name": "peripheral_record_default_allow_detail",
+      "value": "No higher-priority blocking policy matched; access is allowed by the default rule."
+    },
+    {
+      "name": "peripheral_record_usb_device",
+      "value": "USB device"
+    },
+    {
+      "name": "peripheral_record_unrecognized_usb_device",
+      "value": "Unrecognized USB device"
+    },
+    {
+      "name": "peripheral_record_policy_snapshot_summary",
+      "value": "USB device found when the policy changed"
+    },
+    {
+      "name": "peripheral_record_first_connect_auto_deny_detail",
+      "value": "Automatically blacklisted on first connection"
+    },
+    {
+      "name": "peripheral_record_first_connect_auto_deny_failed_prefix",
+      "value": "Failed to add to the blacklist automatically: "
+    },
+    {
+      "name": "peripheral_record_bluetooth_policy_snapshot_detail",
+      "value": "Device %1$s was found in the ACL connection cache when the Bluetooth disable policy changed; current policy: %2$s."
+    },
+    {
+      "name": "peripheral_record_policy_snapshot_detail",
+      "value": "Device %1$s was found by system enumeration when the policy changed; current policy: %2$s."
+    },
+    {
+      "name": "peripheral_record_device_deny_detail",
+      "value": "Device %1$s matched a deny policy and was blocked."
+    },
+    {
+      "name": "peripheral_record_disconnect_detail",
+      "value": "%1$s disconnected; the policy in effect before disconnection was: %2$s."
+    },
+    {
+      "name": "peripheral_export_download_path_prefix",
+      "value": "Downloads"
+    },
+    {
+      "name": "peripheral_export_success_prefix",
+      "value": "Exported successfully: "
+    },
+    {
+      "name": "peripheral_export_history_label",
+      "value": "Export records"
+    },
+    {
+      "name": "peripheral_export_clear_history_label",
+      "value": "Clear records"
+    },
+    {
+      "name": "peripheral_export_policy_label",
+      "value": "Export list"
+    },
+    {
+      "name": "peripheral_export_clear_policy_label",
+      "value": "Restore policies"
+    },
+    {
+      "name": "peripheral_export_clear_history_message",
+      "value": "This will clear all device connection records and cannot be undone. Continue?"
+    },
+    {
+      "name": "peripheral_export_clear_policy_message",
+      "value": "This will restore all blacklist/whitelist configurations; devices will be allowed to connect by default again. Continue?"
+    },
+    {
+      "name": "peripheral_export_csv_policy_hit",
+      "value": "Policy match"
+    },
+    {
+      "name": "peripheral_export_csv_last_seen_time",
+      "value": "Last seen"
+    },
+    {
+      "name": "peripheral_message_admin_required_set_interface",
+      "value": "Could not set the interface policy. Activate the enterprise admin permission first."
+    },
+    {
+      "name": "peripheral_message_admin_required_set_usb_storage",
+      "value": "Could not set the USB storage policy. Activate the enterprise admin permission first."
+    },
+    {
+      "name": "peripheral_message_admin_required_update_policy",
+      "value": "Could not modify the blacklist/whitelist. Activate the enterprise admin permission first."
+    },
+    {
+      "name": "peripheral_empty_clear_failed",
+      "value": "Clearing did not complete. Try again later."
+    },
+    {
+      "name": "peripheral_empty_clear_history_success",
+      "value": "Records cleared"
+    },
+    {
+      "name": "peripheral_empty_clear_policy_success",
+      "value": "Blacklist/whitelist restored; devices are allowed to connect by default again"
+    },
+    {
+      "name": "peripheral_reason_retry",
+      "value": "%1$s. Try again later."
+    },
+    {
+      "name": "peripheral_reason_admin_required",
+      "value": "Activate the enterprise admin permission first."
+    },
+    {
+      "name": "peripheral_reason_invalid_device_id",
+      "value": "Cannot identify the current device."
+    },
+    {
+      "name": "peripheral_reason_wired_network_not_connected",
+      "value": "No wired network connection. Connect one first."
+    },
+    {
+      "name": "peripheral_reason_usb_conflict_account_storage",
+      "value": "USB storage is currently blocked. Set the USB storage access mode to read-only or read/write first."
+    },
+    {
+      "name": "peripheral_reason_usb_global_disabled",
+      "value": "The USB interface is globally disabled. Enable the USB interface before adjusting device policies."
+    },
+    {
+      "name": "peripheral_reason_usb_dispatch_conflict_unresolved",
+      "value": "A USB conflict rule has not been resolved yet; single-device policies cannot be modified at the moment."
+    },
+    {
+      "name": "peripheral_reason_device_policy_offline",
+      "value": "The device has been unplugged; the blacklist/whitelist policy cannot be modified now."
+    },
+    {
+      "name": "peripheral_reason_set_usb_storage_policy_conflict",
+      "value": "The USB interface is enabled, but the device blacklist/whitelist restrictions conflict with the USB storage access mode. Restore the blacklist/whitelist policy before setting it."
+    },
+    {
+      "name": "peripheral_reason_empty_connection_history",
+      "value": "No device connection records to export"
+    },
+    {
+      "name": "peripheral_reason_empty_policy_records",
+      "value": "No blacklist/whitelist configurations to export"
+    },
+    {
+      "name": "peripheral_reason_prefix_init_failed",
+      "value": "Peripheral management initialization failed"
+    },
+    {
+      "name": "peripheral_reason_prefix_export_env_not_ready",
+      "value": "The export environment is not initialized"
+    },
+    {
+      "name": "peripheral_reason_prefix_toggle_interface_failed",
+      "value": "Failed to set interface control"
+    },
+    {
+      "name": "peripheral_reason_prefix_usb_storage_policy_failed",
+      "value": "Failed to set the USB storage policy"
+    },
+    {
+      "name": "peripheral_reason_prefix_policy_change_failed",
+      "value": "Failed to modify the blacklist/whitelist"
+    },
+    {
+      "name": "peripheral_reason_prefix_unsupported_policy_dispatch",
+      "value": "The current policy type cannot be dispatched"
+    },
+    {
+      "name": "peripheral_reason_prefix_unsupported_device_type_dispatch",
+      "value": "The current device type cannot be dispatched"
+    },
+    {
+      "name": "peripheral_reason_prefix_device_policy_dispatch_not_implemented",
+      "value": "Device policy dispatch is not yet available"
+    },
+    {
+      "name": "peripheral_reason_prefix_usb_dispatch_failed",
+      "value": "Failed to dispatch the single-device USB policy"
+    },
+    {
+      "name": "peripheral_reason_prefix_export_connection_history_failed",
+      "value": "Failed to export records"
+    },
+    {
+      "name": "peripheral_reason_prefix_export_policy_records_failed",
+      "value": "Failed to export policies"
+    },
+    {
+      "name": "peripheral_reason_prefix_read_usb_status_failed",
+      "value": "Failed to read the USB status"
+    },
+    {
+      "name": "peripheral_reason_prefix_read_usb_storage_policy_failed",
+      "value": "Failed to read the USB storage policy"
+    },
+    {
+      "name": "peripheral_reason_prefix_set_usb_interface_conflict",
+      "value": "A USB conflict rule still exists; the USB interface cannot be set at the moment"
+    },
+    {
+      "name": "device_detail_title",
+      "value": "Device details"
+    },
+    {
+      "name": "device_detail_key_info",
+      "value": "Key information"
+    },
+    {
+      "name": "device_detail_history_title",
+      "value": "Connection history"
+    },
+    {
+      "name": "device_detail_no_history",
+      "value": "No connection history"
+    },
+    {
+      "name": "device_detail_no_records",
+      "value": "No connection records to display"
+    },
+    {
+      "name": "device_detail_history_count_suffix",
+      "value": "entries"
+    },
+    {
+      "name": "device_detail_device_id",
+      "value": "Device ID"
+    },
+    {
+      "name": "device_detail_recent_time",
+      "value": "Last seen"
+    },
+    {
+      "name": "device_detail_connection_event",
+      "value": "Connection event"
+    },
+    {
+      "name": "device_detail_event_source",
+      "value": "Event source"
+    },
+    {
+      "name": "device_detail_policy_result",
+      "value": "Policy result"
+    },
+    {
+      "name": "device_detail_effective_policy",
+      "value": "Applied policy"
+    },
+    {
+      "name": "device_detail_match_type",
+      "value": "Match type"
+    },
+    {
+      "name": "device_detail_result_status",
+      "value": "Result status"
+    },
+    {
+      "name": "device_type_usb_storage",
+      "value": "USB storage device"
+    },
+    {
+      "name": "device_type_usb_camera",
+      "value": "USB camera"
+    },
+    {
+      "name": "device_type_usb_printer",
+      "value": "USB printer"
+    },
+    {
+      "name": "device_type_usb_hid",
+      "value": "USB HID device"
+    },
+    {
+      "name": "device_type_usb_other",
+      "value": "Other USB device"
+    },
+    {
+      "name": "device_type_bluetooth",
+      "value": "Bluetooth device"
+    },
+    {
+      "name": "peripheral_source_runtime_event",
+      "value": "Runtime event"
+    },
+    {
+      "name": "peripheral_source_audit_event",
+      "value": "Audit event"
+    },
+    {
+      "name": "peripheral_source_policy_snapshot",
+      "value": "Policy snapshot"
+    },
+    {
+      "name": "peripheral_source_unknown",
+      "value": "Unknown source"
+    },
+    {
+      "name": "peripheral_record_action_connect",
+      "value": "Connect"
+    },
+    {
+      "name": "peripheral_record_action_disconnect",
+      "value": "Disconnect"
+    },
+    {
+      "name": "peripheral_record_action_discover",
+      "value": "Discover"
+    },
+    {
+      "name": "peripheral_record_action_policy_change",
+      "value": "Policy change"
+    },
+    {
+      "name": "peripheral_record_action_intercept",
+      "value": "Intercept"
+    },
+    {
+      "name": "peripheral_record_action_unknown",
+      "value": "Unknown action"
+    },
+    {
+      "name": "peripheral_record_result_blocked",
+      "value": "Blocked"
+    },
+    {
+      "name": "firewall_page_subtitle",
+      "value": "Configure device firewall policies in one place, select a preset mode per network scenario, and maintain custom access rules"
+    },
+    {
+      "name": "firewall_page_rules_page",
+      "value": "Rules"
+    },
+    {
+      "name": "firewall_page_user_id_control_button",
+      "value": "Global policy"
+    },
+    {
+      "name": "firewall_toggle_failed",
+      "value": "Failed to toggle the firewall"
+    },
+    {
+      "name": "firewall_toggle_mode_apply_failed",
+      "value": "Failed to apply the policy; the mode was not switched"
+    },
+    {
+      "name": "firewall_rule_only_custom_mode",
+      "value": "Rules can only be maintained in custom mode"
+    },
+    {
+      "name": "firewall_rule_apply_failed",
+      "value": "Failed to apply custom rules"
+    },
+    {
+      "name": "firewall_rule_apply_failed_permission",
+      "value": "Failed to add the rule. Check permissions and the enterprise admin status"
+    },
+    {
+      "name": "firewall_rule_apply_failed_invalid_param",
+      "value": "Invalid rule parameters. Check the input"
+    },
+    {
+      "name": "firewall_rule_apply_failed_dns_duplicate",
+      "value": "Duplicate DNS rule: the primary or standby DNS duplicates an existing rule for the same user. Adjust the DNS address and try again"
+    },
+    {
+      "name": "firewall_rule_user_scope_changed",
+      "value": "The account list has changed. Select users again"
+    },
+    {
+      "name": "firewall_rule_duplicate",
+      "value": "An identical rule already exists"
+    },
+    {
+      "name": "firewall_rule_conflict_title",
+      "value": "Rule conflict"
+    },
+    {
+      "name": "firewall_rule_conflict_replace_message",
+      "value": "A conflicting record with an existing rule was found. Overwrite it with the new rule?"
+    },
+    {
+      "name": "firewall_rule_conflict_replace_and_save_message",
+      "value": "The modified rule conflicts with an existing rule. Overwrite the conflicting rule and save?"
+    },
+    {
+      "name": "firewall_rule_overlap_title",
+      "value": "Rule overlap"
+    },
+    {
+      "name": "firewall_rule_overlap_add_message",
+      "value": "Overlapping rule ranges were detected. Continue adding?"
+    },
+    {
+      "name": "firewall_rule_overlap_edit_message",
+      "value": "Overlapping rule ranges were detected. Continue saving?"
+    },
+    {
+      "name": "firewall_rule_add_success",
+      "value": "Rule added"
+    },
+    {
+      "name": "firewall_rule_update_success",
+      "value": "Rule updated"
+    },
+    {
+      "name": "firewall_rule_delete_title",
+      "value": "Delete rule"
+    },
+    {
+      "name": "firewall_rule_delete_message",
+      "value": "Delete this rule?"
+    },
+    {
+      "name": "firewall_rule_delete_success",
+      "value": "Rule deleted"
+    },
+    {
+      "name": "firewall_rule_warning_label",
+      "value": "Note"
+    },
+    {
+      "name": "firewall_rule_custom_mode_title",
+      "value": "Custom mode"
+    },
+    {
+      "name": "firewall_rule_custom_rules_subtitle",
+      "value": "Configure custom IP, domain, and DNS rules"
+    },
+    {
+      "name": "firewall_rule_add_button",
+      "value": "Add rule"
+    },
+    {
+      "name": "firewall_rule_inbound",
+      "value": "Inbound rules"
+    },
+    {
+      "name": "firewall_rule_outbound",
+      "value": "Outbound rules"
+    },
+    {
+      "name": "firewall_rule_inbound_description",
+      "value": "Custom inbound rules"
+    },
+    {
+      "name": "firewall_rule_outbound_description",
+      "value": "Custom outbound rules"
+    },
+    {
+      "name": "firewall_rule_default_policy_allowlist_users",
+      "value": "Allowlist users"
+    },
+    {
+      "name": "firewall_rule_default_policy_denylist_users",
+      "value": "Denylist users"
+    },
+    {
+      "name": "firewall_rule_default_policy_empty_users",
+      "value": "None"
+    },
+    {
+      "name": "firewall_rule_default_policy_custom",
+      "value": "Direction customized"
+    },
+    {
+      "name": "firewall_rule_default_policy_unknown",
+      "value": "Failed to read"
+    },
+    {
+      "name": "firewall_rule_default_policy_disabled",
+      "value": "Firewall is off; takes effect after it is enabled"
+    },
+    {
+      "name": "firewall_user_no_activated_users",
+      "value": "No available local users found"
+    },
+    {
+      "name": "firewall_mode_public_title",
+      "value": "Public network mode"
+    },
+    {
+      "name": "firewall_mode_public_description",
+      "value": "For open network environments; stricter access control policies are applied by default"
+    },
+    {
+      "name": "firewall_mode_private_title",
+      "value": "Private network mode"
+    },
+    {
+      "name": "firewall_mode_private_description",
+      "value": "For trusted network environments; prioritizes LAN connectivity and routine office access"
+    },
+    {
+      "name": "firewall_mode_custom_description",
+      "value": "Customize inbound, outbound, and domain access rules as needed"
+    },
+    {
+      "name": "firewall_toggle_reason_lockout",
+      "value": "Too many failed PIN attempts. Try again in %1$d seconds"
+    },
+    {
+      "name": "firewall_toggle_reason_pin_unavailable",
+      "value": "No PIN is configured on this device"
+    },
+    {
+      "name": "firewall_toggle_reason_pin_failed",
+      "value": "PIN verification failed"
+    },
+    {
+      "name": "firewall_toggle_reason_no_available_users",
+      "value": "No available system users were read"
+    },
+    {
+      "name": "firewall_toggle_reason_policy_apply_failed",
+      "value": "Failed to write the firewall state"
+    },
+    {
+      "name": "firewall_toggle_reason_default",
+      "value": "Failed to switch the firewall state"
+    },
+    {
+      "name": "firewall_conflict_notice",
+      "value": "The current custom rule set contains: %1$s"
+    },
+    {
+      "name": "firewall_conflict_duplicate",
+      "value": "%1$d duplicates"
+    },
+    {
+      "name": "firewall_conflict_hard",
+      "value": "%1$d hard conflicts"
+    },
+    {
+      "name": "firewall_conflict_overlap",
+      "value": "%1$d overlapping ranges"
+    },
+    {
+      "name": "firewall_rule_count",
+      "value": "%1$d rules"
+    },
+    {
+      "name": "firewall_user_count",
+      "value": "%1$d users"
+    },
+    {
+      "name": "firewall_user_fallback",
+      "value": "User %1$d"
+    },
+    {
+      "name": "firewall_user_current",
+      "value": "%1$s (current)"
+    },
+    {
+      "name": "firewall_preset_public_allow_icmpv4",
+      "value": "Allow ICMPv4"
+    },
+    {
+      "name": "firewall_preset_public_allow_service",
+      "value": "Allow external services"
+    },
+    {
+      "name": "firewall_preset_public_deny_remote_access",
+      "value": "Deny remote access"
+    },
+    {
+      "name": "firewall_preset_public_deny_smb",
+      "value": "Block SMB sharing"
+    },
+    {
+      "name": "firewall_preset_public_deny_netbios",
+      "value": "Block NetBIOS"
+    },
+    {
+      "name": "firewall_preset_private_allow_icmp",
+      "value": "Allow ICMP"
+    },
+    {
+      "name": "firewall_preset_private_allow_remote_manage",
+      "value": "Allow intranet service access"
+    },
+    {
+      "name": "firewall_preset_private_allow_share",
+      "value": "Allow intranet sharing"
+    },
+    {
+      "name": "firewall_preset_private_allow_discovery",
+      "value": "Allow intranet discovery"
+    },
+    {
+      "name": "firewall_preset_private_allow_tcp",
+      "value": "Allow intranet application TCP"
+    },
+    {
+      "name": "firewall_preset_private_allow_udp",
+      "value": "Allow intranet application UDP"
+    },
+    {
+      "name": "firewall_rule_label_all",
+      "value": "All rules"
+    },
+    {
+      "name": "firewall_rule_label_ip",
+      "value": "IP rules"
+    },
+    {
+      "name": "firewall_rule_label_domain",
+      "value": "Domain rules"
+    },
+    {
+      "name": "firewall_rule_label_dns",
+      "value": "DNS rules"
+    },
+    {
+      "name": "firewall_dialog_rule_name",
+      "value": "Rule name"
+    },
+    {
+      "name": "firewall_dialog_rule_type",
+      "value": "Rule type"
+    },
+    {
+      "name": "firewall_dialog_rule_direction",
+      "value": "Direction"
+    },
+    {
+      "name": "firewall_dialog_user_scope",
+      "value": "User list"
+    },
+    {
+      "name": "firewall_dialog_local_address",
+      "value": "Local address"
+    },
+    {
+      "name": "firewall_dialog_remote_address",
+      "value": "Remote address"
+    },
+    {
+      "name": "firewall_dialog_local_port",
+      "value": "Local port"
+    },
+    {
+      "name": "firewall_dialog_remote_port",
+      "value": "Remote port"
+    },
+    {
+      "name": "firewall_dialog_primary_dns",
+      "value": "Primary DNS"
+    },
+    {
+      "name": "firewall_dialog_standby_dns",
+      "value": "Standby DNS"
+    },
+    {
+      "name": "firewall_dialog_protocol",
+      "value": "Protocol"
+    },
+    {
+      "name": "firewall_dialog_action",
+      "value": "Action"
+    },
+    {
+      "name": "firewall_dialog_target_user",
+      "value": "Target user"
+    },
+    {
+      "name": "firewall_dialog_current_status",
+      "value": "Current policy"
+    },
+    {
+      "name": "firewall_dialog_target_mode",
+      "value": "Target mode"
+    },
+    {
+      "name": "firewall_dialog_ip_placeholder",
+      "value": "e.g. 110.110.110.110, 8.8.8.0/24, or 110.110.110.1-110.110.110.254"
+    },
+    {
+      "name": "firewall_dialog_domain_placeholder",
+      "value": "e.g. *.example.com"
+    },
+    {
+      "name": "firewall_dialog_dns_placeholder",
+      "value": "e.g. 8.8.8.8"
+    },
+    {
+      "name": "firewall_dialog_standby_dns_placeholder",
+      "value": "Optional, e.g. 1.1.1.1"
+    },
+    {
+      "name": "firewall_dialog_port_placeholder",
+      "value": "e.g. 80,443,1000-2000"
+    },
+    {
+      "name": "firewall_dialog_rule_name_placeholder",
+      "value": "Enter a rule name"
+    },
+    {
+      "name": "firewall_dialog_direction_inbound",
+      "value": "Inbound"
+    },
+    {
+      "name": "firewall_dialog_direction_outbound",
+      "value": "Outbound"
+    },
+    {
+      "name": "firewall_dialog_user_scope_placeholder",
+      "value": "Select users"
+    },
+    {
+      "name": "firewall_dialog_user_scope_empty",
+      "value": "No users to select"
+    },
+    {
+      "name": "firewall_dialog_action_allow",
+      "value": "Allow"
+    },
+    {
+      "name": "firewall_dialog_action_deny",
+      "value": "Block"
+    },
+    {
+      "name": "firewall_dialog_apply_mode_failed",
+      "value": "Failed to apply the policy"
+    },
+    {
+      "name": "firewall_dialog_mode_allowlist",
+      "value": "Allowlist mode"
+    },
+    {
+      "name": "firewall_dialog_mode_denylist",
+      "value": "Denylist mode"
+    },
+    {
+      "name": "firewall_dialog_error_domain_required",
+      "value": "Enter a domain"
+    },
+    {
+      "name": "firewall_dialog_error_dns_required",
+      "value": "Enter a DNS address"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_ip",
+      "value": "Invalid IP format"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_ip_range",
+      "value": "Invalid IP range format"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_cidr_mask",
+      "value": "The CIDR mask must be 0-32"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_local_port",
+      "value": "Invalid local port format. Enter a single port, a range, or a comma-separated combination"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_remote_port",
+      "value": "Invalid remote port format. Enter a single port, a range, or a comma-separated combination"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_port_token",
+      "value": "Invalid port format"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_port_range",
+      "value": "Invalid port range format. Ensure the start port is not greater than the end port"
+    },
+    {
+      "name": "firewall_dialog_error_port_item_limit",
+      "value": "Too many port items"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_domain",
+      "value": "Invalid domain format"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_dns",
+      "value": "Invalid DNS address format"
+    },
+    {
+      "name": "firewall_dialog_error_invalid_standby_dns",
+      "value": "Invalid standby DNS address format"
+    },
+    {
+      "name": "firewall_dialog_error_user_scope_required",
+      "value": "Select at least one user"
+    },
+    {
+      "name": "firewall_dialog_error_cannot_get_status",
+      "value": "Cannot get the current firewall policy for this user"
+    },
+    {
+      "name": "firewall_dialog_apply_mode_success",
+      "value": "The global policy has been applied to the selected users"
+    },
+    {
+      "name": "firewall_dialog_user_scope_summary",
+      "value": "%1$d users selected"
+    },
+    {
+      "name": "permission_page_subtitle",
+      "value": "View app-level install, running, directory, and network control status by account"
+    },
+    {
+      "name": "permission_section_applications",
+      "value": "Managed applications"
+    },
+    {
+      "name": "permission_section_target_application",
+      "value": "Target application"
+    },
+    {
+      "name": "permission_section_target_application_desc",
+      "value": "After selection, the policies below apply to this app"
+    },
+    {
+      "name": "permission_section_target_application_placeholder",
+      "value": "Select an application"
+    },
+    {
+      "name": "permission_section_current_policies",
+      "value": "Current policies"
+    },
+    {
+      "name": "permission_section_application_control",
+      "value": "Application policies"
+    },
+    {
+      "name": "permission_account_select_title",
+      "value": "Current account"
+    },
+    {
+      "name": "permission_account_select_desc",
+      "value": "Policy reads and writes are isolated by account"
+    },
+    {
+      "name": "permission_account_no_accounts",
+      "value": "No manageable accounts found"
+    },
+    {
+      "name": "permission_summary_accounts_title",
+      "value": "Accounts"
+    },
+    {
+      "name": "permission_summary_accounts_desc",
+      "value": "Currently manageable accounts"
+    },
+    {
+      "name": "permission_summary_applications_title",
+      "value": "Apps"
+    },
+    {
+      "name": "permission_summary_applications_desc",
+      "value": "Manageable apps"
+    },
+    {
+      "name": "permission_summary_policies_title",
+      "value": "Policies"
+    },
+    {
+      "name": "permission_summary_policies_desc",
+      "value": "Currently in effect"
+    },
+    {
+      "name": "permission_empty_applications",
+      "value": "No manageable non-system apps"
+    },
+    {
+      "name": "permission_empty_select_application_first",
+      "value": "Select an application before applying policies"
+    },
+    {
+      "name": "permission_empty_policies",
+      "value": "No policies in effect for the current account"
+    },
+    {
+      "name": "permission_loading_account_switch",
+      "value": "Loading account policies"
+    },
+    {
+      "name": "permission_application_uninstall_protected",
+      "value": "Uninstall protection"
+    },
+    {
+      "name": "permission_application_running_policy",
+      "value": "Running policy"
+    },
+    {
+      "name": "permission_application_network_policy",
+      "value": "Network policy"
+    },
+    {
+      "name": "permission_application_install_block_target",
+      "value": "Block app installation"
+    },
+    {
+      "name": "permission_application_install_block_target_desc",
+      "value": "Enter the appId or appIdentifier of an app that is not installed"
+    },
+    {
+      "name": "permission_application_install_block_action",
+      "value": "Block install"
+    },
+    {
+      "name": "permission_application_policy_type_install_deny",
+      "value": "Install blocked"
+    },
+    {
+      "name": "permission_application_policy_type_install_allow",
+      "value": "Install allowed"
+    },
+    {
+      "name": "permission_application_policy_type_uninstall",
+      "value": "Uninstall protection"
+    },
+    {
+      "name": "permission_application_policy_type_running",
+      "value": "Running policy"
+    },
+    {
+      "name": "permission_application_policy_type_network",
+      "value": "Network policy"
+    },
+    {
+      "name": "permission_application_policy_table_type",
+      "value": "Policy type"
+    },
+    {
+      "name": "permission_application_policy_table_target",
+      "value": "Target"
+    },
+    {
+      "name": "permission_application_policy_table_status",
+      "value": "Status"
+    },
+    {
+      "name": "permission_application_policy_table_scope",
+      "value": "Scope"
+    },
+    {
+      "name": "permission_application_policy_table_action",
+      "value": "Action"
+    },
+    {
+      "name": "permission_application_delete_policy_action",
+      "value": "Delete"
+    },
+    {
+      "name": "permission_application_delete_policy_confirm_title",
+      "value": "Delete current policy"
+    },
+    {
+      "name": "permission_application_delete_policy_confirm_message",
+      "value": "The system policy will be cleaned up after deletion. Continue?"
+    },
+    {
+      "name": "permission_application_policy_target_not_installed",
+      "value": "App not installed"
+    },
+    {
+      "name": "permission_application_policy_scope_account_prefix",
+      "value": "Account"
+    },
+    {
+      "name": "permission_application_uninstall_protected_desc",
+      "value": "Prevent the current account from uninstalling this app"
+    },
+    {
+      "name": "permission_application_running_policy_desc",
+      "value": "Control whether the app is allowed to start"
+    },
+    {
+      "name": "permission_application_network_policy_desc",
+      "value": "Control all network access of the app"
+    },
+    {
+      "name": "permission_application_refresh",
+      "value": "Refresh"
+    },
+    {
+      "name": "permission_application_current_state_prefix",
+      "value": "Current"
+    },
+    {
+      "name": "permission_application_three_d_group_desc",
+      "value": "Manageable"
+    },
+    {
+      "name": "permission_application_three_d_full_file_desc",
+      "value": "Full-disk permission coverage"
+    },
+    {
+      "name": "permission_application_policy_default",
+      "value": "Default"
+    },
+    {
+      "name": "permission_application_policy_allowed",
+      "value": "Allow"
+    },
+    {
+      "name": "permission_application_policy_denied",
+      "value": "Deny"
+    },
+    {
+      "name": "permission_application_enabled",
+      "value": "Enabled"
+    },
+    {
+      "name": "permission_application_disabled",
+      "value": "Not enabled"
+    },
+    {
+      "name": "permission_application_set_success",
+      "value": "Policy applied."
+    },
+    {
+      "name": "permission_application_set_failed",
+      "value": "Failed to apply the policy. Confirm that the enterprise admin permission is activated."
+    },
+    {
+      "name": "permission_application_policy_read_failed",
+      "value": "Failed to read app policies. Confirm the enterprise admin activation state, signing permissions, and device capabilities."
+    },
+    {
+      "name": "permission_application_account_context_changed",
+      "value": "The account list has changed. Select an account again."
+    },
+    {
+      "name": "permission_application_application_context_changed",
+      "value": "The app was uninstalled or the app list changed. Select an application again."
+    },
+    {
+      "name": "permission_application_policy_context_changed",
+      "value": "Policies have changed. Refresh and try again."
+    },
+    {
+      "name": "permission_application_install_block_empty",
+      "value": "Enter the appId or appIdentifier to block from installing."
+    },
+    {
+      "name": "permission_application_install_block_invalid",
+      "value": "Enter a valid appId or appIdentifier."
+    },
+    {
+      "name": "permission_application_missing_uid",
+      "value": "No valid UID was read; the network policy cannot be set."
+    },
+    {
+      "name": "permission_application_three_d_undeclared",
+      "value": "Permission not declared"
+    },
+    {
+      "name": "permission_application_three_d_unsupported",
+      "value": "Unavailable"
+    },
+    {
+      "name": "permission_three_d_downloads",
+      "value": "Downloads directory"
+    },
+    {
+      "name": "permission_three_d_downloads_desc",
+      "value": "Access authorization for files in the managed app's downloads directory"
+    },
+    {
+      "name": "permission_three_d_desktop",
+      "value": "Desktop directory"
+    },
+    {
+      "name": "permission_three_d_desktop_desc",
+      "value": "Access authorization for files in the managed app's desktop directory"
+    },
+    {
+      "name": "permission_three_d_documents",
+      "value": "Documents directory"
+    },
+    {
+      "name": "permission_three_d_documents_desc",
+      "value": "Access authorization for files in the managed app's documents directory"
+    },
+    {
+      "name": "permission_three_d_no_declared",
+      "value": "Not declared"
+    },
+    {
+      "name": "permission_three_d_detail_loading",
+      "value": "Loading permission details"
+    },
+    {
+      "name": "permission_three_d_detail_failed",
+      "value": "Failed to read permission details"
+    },
+    {
+      "name": "common_app_name",
+      "value": "Security Management Center"
+    },
+    {
+      "name": "common_about",
+      "value": "About"
+    },
+    {
+      "name": "common_version",
+      "value": "Version"
+    },
+    {
+      "name": "common_module_dashboard",
+      "value": "Dashboard"
+    },
+    {
+      "name": "common_module_firewall",
+      "value": "Firewall"
+    },
+    {
+      "name": "common_module_log_manage",
+      "value": "Logs"
+    },
+    {
+      "name": "common_module_peripheral_manage",
+      "value": "Peripherals"
+    },
+    {
+      "name": "common_module_permission_manage",
+      "value": "Permissions"
+    },
+    {
+      "name": "common_module_identity",
+      "value": "Identity"
+    },
+    {
+      "name": "common_module_tool_settings",
+      "value": "Settings"
+    },
+    {
+      "name": "common_module_help_feedback",
+      "value": "Help & feedback"
+    },
+    {
+      "name": "common_status_activated",
+      "value": "Activated"
+    },
+    {
+      "name": "common_status_current_mode",
+      "value": "Current mode"
+    },
+    {
+      "name": "common_status_effective",
+      "value": "In effect"
+    },
+    {
+      "name": "common_status_enabled",
+      "value": "Enabled"
+    },
+    {
+      "name": "common_status_disabled",
+      "value": "Disabled"
+    },
+    {
+      "name": "common_action_save_config",
+      "value": "Save configuration"
+    },
+    {
+      "name": "common_action_save_settings",
+      "value": "Save settings"
+    },
+    {
+      "name": "common_action_save",
+      "value": "Save"
+    },
+    {
+      "name": "common_action_cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "common_action_continue",
+      "value": "Continue"
+    },
+    {
+      "name": "common_action_delete",
+      "value": "Delete"
+    },
+    {
+      "name": "common_action_clear",
+      "value": "Clear"
+    },
+    {
+      "name": "common_action_restore",
+      "value": "Restore"
+    },
+    {
+      "name": "common_action_override",
+      "value": "Overwrite"
+    },
+    {
+      "name": "common_action_acknowledge",
+      "value": "Got it"
+    },
+    {
+      "name": "common_action_confirm",
+      "value": "OK"
+    },
+    {
+      "name": "common_action_close",
+      "value": "Close"
+    },
+    {
+      "name": "common_action_add",
+      "value": "Add"
+    },
+    {
+      "name": "common_action_previous_page",
+      "value": "Previous"
+    },
+    {
+      "name": "common_action_next_page",
+      "value": "Next"
+    },
+    {
+      "name": "common_action_jump",
+      "value": "Go"
+    },
+    {
+      "name": "common_message_no_changes",
+      "value": "No changes to save"
+    },
+    {
+      "name": "common_message_save_failed",
+      "value": "Save failed. Try again later."
+    },
+    {
+      "name": "common_message_retry_later",
+      "value": "Try again later"
+    },
+    {
+      "name": "common_message_success_title",
+      "value": "Success"
+    },
+    {
+      "name": "common_message_failure_title",
+      "value": "Failure"
+    },
+    {
+      "name": "common_label_unknown",
+      "value": "Unknown"
+    },
+    {
+      "name": "common_label_time",
+      "value": "Time"
+    },
+    {
+      "name": "common_label_detail",
+      "value": "Details"
+    },
+    {
+      "name": "common_label_auth_method",
+      "value": "Authentication method"
+    },
+    {
+      "name": "common_result_success",
+      "value": "Success"
+    },
+    {
+      "name": "common_result_failed",
+      "value": "Failed"
+    },
+    {
+      "name": "common_result_save_failed",
+      "value": "Save failed"
+    },
+    {
+      "name": "common_theme_section_title",
+      "value": "Display mode"
+    },
+    {
+      "name": "common_theme_follow_system",
+      "value": "Follow system"
+    },
+    {
+      "name": "common_theme_light",
+      "value": "Light mode"
+    },
+    {
+      "name": "common_theme_dark",
+      "value": "Dark mode"
+    },
+    {
+      "name": "common_storage_read_write",
+      "value": "Read-write"
+    },
+    {
+      "name": "common_storage_read_only",
+      "value": "Read-only"
+    },
+    {
+      "name": "common_storage_blocked",
+      "value": "Blocked"
+    },
+    {
+      "name": "common_admin_not_activated",
+      "value": "Enterprise admin not activated"
+    },
+    {
+      "name": "common_admin_check_failed",
+      "value": "Admin status check failed"
+    },
+    {
+      "name": "common_admin_check_failed_with_code",
+      "value": "Admin status check failed (error code %1$d)"
+    },
+    {
+      "name": "common_loading",
+      "value": "Loading..."
+    },
+    {
+      "name": "common_loading_users",
+      "value": "Loading user list..."
+    },
+    {
+      "name": "common_loading_rules",
+      "value": "Loading rules..."
+    },
+    {
+      "name": "common_applying_mode",
+      "value": "Applying firewall mode..."
+    },
+    {
+      "name": "common_empty_no_users",
+      "value": "No users to select"
+    },
+    {
+      "name": "common_empty_no_records",
+      "value": "No connection records"
+    },
+    {
+      "name": "common_empty_no_rules",
+      "value": "No custom rules"
+    },
+    {
+      "name": "common_empty_no_devices",
+      "value": "No manageable devices"
+    },
+    {
+      "name": "common_empty_no_results",
+      "value": "No results found"
+    },
+    {
+      "name": "common_operation_failed",
+      "value": "%1$s failed"
+    },
+    {
+      "name": "common_operation_check_hint",
+      "value": "Check permissions, signature, and device policy state before retrying"
+    },
+    {
+      "name": "common_operation_enable_admin_hint",
+      "value": "Activate the enterprise admin first: %1$s"
+    }
+  ]
+}

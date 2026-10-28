@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { usbManager } from '@kit.BasicServicesKit'
 import { SecurityEventResult } from '../../main/ets/models/CommonModels'
+import { PeripheralConnectionRecordStrings } from '../../main/ets/constants/modules/PeripheralStrings'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   PeripheralDevicePolicySnapshotRequest,
@@ -167,7 +168,7 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(1)
-      expect(savedRecords[0].deviceName).assertEqual('USB 设备')
+      expect(savedRecords[0].deviceName).assertEqual(PeripheralConnectionRecordStrings.USB_DEVICE)
     })
 
     it('should fallback snapshot name when only product is present', 0, async () => {
@@ -180,7 +181,7 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(1)
-      expect(savedRecords[0].deviceName).assertEqual('USB 设备')
+      expect(savedRecords[0].deviceName).assertEqual(PeripheralConnectionRecordStrings.USB_DEVICE)
     })
 
     it('should skip hub devices and avoid appending empty snapshots', 0, async () => {

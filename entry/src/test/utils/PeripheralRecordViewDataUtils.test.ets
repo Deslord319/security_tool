@@ -1,10 +1,13 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { SecurityEventResult } from '../../main/ets/models/CommonModels'
+import { StatusText, ResultText } from '../../main/ets/constants/StringCatalog'
 import {
   PeripheralConnectionRecord,
   PeripheralType,
   UsbDevicePolicyStateRecord
 } from '../../main/ets/models/PeripheralModels'
+import { PeripheralMatchedPolicyStrings, PeripheralRecordResultPresentationStrings } from '../../main/ets/constants/modules/PeripheralStrings'
+import { FirewallDialogStrings } from '../../main/ets/constants/modules/FirewallStrings'
 import {
   buildConnectionHistoryItems,
   formatPeripheralTimestamp,
@@ -59,10 +62,10 @@ export default function peripheralRecordViewDataUtilsTest() {
 
       const history = buildConnectionHistoryItems([record, blockedRecord, differentDeviceRecord], record)
       expect(history.length).assertEqual(2)
-      expect(history[0].policy).assertEqual('允许')
-      expect(history[0].result).assertEqual('成功')
-      expect(history[1].policy).assertEqual('命中单设备禁止接入')
-      expect(history[1].result).assertEqual('已阻止')
+      expect(history[0].policy).assertEqual(FirewallDialogStrings.ACTION_ALLOW)
+      expect(history[0].result).assertEqual(ResultText.SUCCESS)
+      expect(history[1].policy).assertEqual(PeripheralMatchedPolicyStrings.DEVICE_DENY)
+      expect(history[1].result).assertEqual(PeripheralRecordResultPresentationStrings.BLOCKED)
     })
 
     it('should skip records with invalid timestamps when building history', 0, () => {
@@ -83,7 +86,7 @@ export default function peripheralRecordViewDataUtilsTest() {
 
       const label = getPeripheralConnectionListPolicyLabel(record)
 
-      expect(label).assertEqual('已禁用')
+      expect(label).assertEqual(StatusText.DISABLED)
     })
 
     it('should map bluetooth records without explicit label to enabled list policy label', 0, () => {
@@ -94,16 +97,16 @@ export default function peripheralRecordViewDataUtilsTest() {
 
       const label = getPeripheralConnectionListPolicyLabel(record)
 
-      expect(label).assertEqual('已启用')
+      expect(label).assertEqual(StatusText.ENABLED)
     })
 
     it('should use explicit effective policy label for list policy label', 0, () => {
       const record = createConnectionRecord('record-explicit', 302)
-      record.effectivePolicyLabel = '已禁用'
+      record.effectivePolicyLabel = StatusText.DISABLED
 
       const label = getPeripheralConnectionListPolicyLabel(record)
 
-      expect(label).assertEqual('已禁用')
+      expect(label).assertEqual(StatusText.DISABLED)
     })
 
     it('should build usb policy records only from usb policy state records', 0, () => {

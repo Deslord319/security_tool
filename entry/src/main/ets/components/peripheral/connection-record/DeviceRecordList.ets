@@ -159,7 +159,7 @@ export struct DeviceRecordList {
       .justifyContent(FlexAlign.Center)
 
       Row() {
-        Text(LabelText.DETAIL)
+        Text($r('app.string.common_label_detail'))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Regular)
           .fontColor(this.getDetailButtonForeground())

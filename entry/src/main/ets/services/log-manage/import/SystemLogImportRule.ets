@@ -15,17 +15,27 @@ type SystemParseStrategy = 'whole_failed' | 'time_blocks' | 'title_blocks' | 'sn
 
 type SystemPathMatcher = (path: string) => boolean
 
+// 分类文案以资源名为稳定键；本规则运行在任务线程，文案必须由主线程解析后
+// 经 categoryLabels 注入，parse() 入口解析出带文案的规则副本供下游使用。
 class SystemRuleDefinition {
   id: string
+  categoryKey: string
   category: string
   strategy: SystemParseStrategy
   matcher: SystemPathMatcher
 
-  constructor(id: string, category: string, strategy: SystemParseStrategy, matcher: SystemPathMatcher) {
+  constructor(id: string, categoryKey: string, strategy: SystemParseStrategy, matcher: SystemPathMatcher) {
     this.id = id
-    this.category = category
+    this.categoryKey = categoryKey
+    this.category = categoryKey
     this.strategy = strategy
     this.matcher = matcher
+  }
+
+  resolveCategory(labels: Record<string, string>): SystemRuleDefinition {
+    let resolved = new SystemRuleDefinition(this.id, this.categoryKey, this.strategy, this.matcher)
+    resolved.category = labels[this.categoryKey] ?? this.categoryKey
+    return resolved
   }
 
   match(path: string): boolean {
@@ -54,35 +64,40 @@ const EPOCH_MILLIS_THRESHOLD = 100000000000
 const FUTURE_SKEW_TOLERANCE_MS = TimeConstants.DAY_IN_MS
 
 const SYSTEM_RULES: SystemRuleDefinition[] = [
-  new SystemRuleDefinition('system_service_timeout', '服务超时异常', 'whole_failed',
+  new SystemRuleDefinition('system_service_timeout', 'log_import_category_system_service_timeout', 'whole_failed',
     (path: string): boolean => path.includes('/eventlog/service_timeout_warning-') && path.endsWith('.log')),
-  new SystemRuleDefinition('system_window_exception', '窗口异常检测', 'whole_failed',
+  new SystemRuleDefinition('system_window_exception', 'log_import_category_system_window_exception', 'whole_failed',
     (path: string): boolean => path.includes('/eventlog/window_exception_detection-') && path.endsWith('.log')),
-  new SystemRuleDefinition('system_hisi_diag', '硬件/SoC 诊断', 'time_blocks',
+  new SystemRuleDefinition('system_hisi_diag', 'log_import_category_system_hisi_diag', 'time_blocks',
     (path: string): boolean => path.endsWith('/hisi_logs/hisi_diaginfo.log')),
-  new SystemRuleDefinition('system_fsck', '文件系统检查', 'title_blocks',
+  new SystemRuleDefinition('system_fsck', 'log_import_category_system_fsck', 'title_blocks',
     (path: string): boolean => path.endsWith('/f2fs-tools/fsck.log')),
-  new SystemRuleDefinition('system_resize', '文件系统扩容/维护', 'title_blocks',
+  new SystemRuleDefinition('system_resize', 'log_import_category_system_resize', 'title_blocks',
     (path: string): boolean => path.endsWith('/f2fs-tools/resize.log')),
-  new SystemRuleDefinition('system_meminfo', '内存资源快照', 'snapshot',
+  new SystemRuleDefinition('system_meminfo', 'log_import_category_system_meminfo', 'snapshot',
     (path: string): boolean => path.includes('/memory/proc_meminfo') && path.endsWith('.txt')),
-  new SystemRuleDefinition('system_memview', '内存视图快照', 'snapshot',
+  new SystemRuleDefinition('system_memview', 'log_import_category_system_memview', 'snapshot',
     (path: string): boolean => path.includes('/memory/proc_memview') && path.endsWith('.txt')),
-  new SystemRuleDefinition('system_memory_leak', '内存泄漏诊断', 'memory_leak',
+  new SystemRuleDefinition('system_memory_leak', 'log_import_category_system_memory_leak', 'memory_leak',
     (path: string): boolean => path.includes('/memory_leak/') && path.endsWith('.txt')),
-  new SystemRuleDefinition('system_updater_log', '系统升级/恢复日志', 'key_lines',
+  new SystemRuleDefinition('system_updater_log', 'log_import_category_system_updater_log', 'key_lines',
     (path: string): boolean => path.endsWith('/updater/updater_log')),
-  new SystemRuleDefinition('system_updater_stage', '系统升级阶段日志', 'key_lines',
+  new SystemRuleDefinition('system_updater_stage', 'log_import_category_system_updater_stage', 'key_lines',
     (path: string): boolean => path.endsWith('/updater/updater_stage_log')),
-  new SystemRuleDefinition('system_installer', '系统安装/参数更新日志', 'key_lines',
+  new SystemRuleDefinition('system_installer', 'log_import_category_system_installer', 'key_lines',
     (path: string): boolean => path.endsWith('/log/sys_installer.log')),
-  new SystemRuleDefinition('system_hsld', '系统服务启动/挂载日志', 'key_lines',
+  new SystemRuleDefinition('system_hsld', 'log_import_category_system_hsld', 'key_lines',
     (path: string): boolean => path.endsWith('/log/hsld.log'))
 ]
 
 export class SystemLogImportRule implements LogImportRule {
   readonly name: string = 'system'
   private static lineReaderForTest: SystemLogLineReader | null = null
+  private readonly categoryLabels: Record<string, string>
+
+  constructor(categoryLabels: Record<string, string> = {}) {
+    this.categoryLabels = categoryLabels
+  }
 
   static setLineReaderForTest(reader: SystemLogLineReader): void {
     SystemLogImportRule.lineReaderForTest = reader
@@ -98,10 +113,11 @@ export class SystemLogImportRule implements LogImportRule {
 
   async parse(file: ImportedLogFile): Promise<LogImportRuleResult> {
     let result = createEmptyLogImportRuleResult()
-    let rule = SystemLogImportRule.findRule(file)
-    if (!rule) {
+    let matchedRule = SystemLogImportRule.findRule(file)
+    if (!matchedRule) {
       return result
     }
+    let rule = matchedRule.resolveCategory(this.categoryLabels)
     let startedAt = Date.now()
     LogUtils.info(TAG, `parse start: rule=${rule.id}, file=${file.relativePath}, path=${file.path}`)
     try {

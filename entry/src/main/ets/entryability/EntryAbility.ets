@@ -11,6 +11,7 @@ import { BusinessError, commonEventManager, emitter } from '@kit.BasicServicesKi
 import { statusBarManager } from '@kit.DeskTopExtensionKit';
 import { loadStatusBar, holdStatusBar } from '../utils/StatusBarUtil';
 import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager';
+import { AppStrings } from '../constants/AppStrings';
 import { LooseRecord } from '../types/LooseValueTypes';
 
 const ENTRYABILITY_TAG = 'entryAbility'
@@ -29,6 +30,9 @@ export default class EntryAbility extends UIAbility {
     }
 
   onCreate(_want: Want, _launchParam: AbilityConstant.LaunchParam): void {
+    // 初始化文案资源取值器（必须先于任何业务逻辑和页面加载）
+    AppStrings.init(this.context);
+
     // 初始化主题管理器
     ThemeManager.getInstance().init(this.context);
 

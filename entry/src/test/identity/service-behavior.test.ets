@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
+import { IdentityRequirementStrings } from '../../main/ets/constants/modules/IdentityStrings'
 import { PasswordComplexityConfig } from '../../main/ets/models/IdentityModels'
 import { IdentityPasswordPolicyMapper } from '../../main/ets/services/identity/settings/IdentityPasswordPolicyMapper'
 import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
@@ -21,9 +22,9 @@ export default function identityServiceBehaviorTest() {
       let description = IdentityPasswordPolicyMapper.buildDescription(config)
 
       expect(regex).assertEqual('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{10,}$')
-      expect(description.indexOf('至少10个字符') >= 0).assertTrue()
-      expect(description.indexOf('包含大写字母') >= 0).assertTrue()
-      expect(description.indexOf('包含数字') >= 0).assertTrue()
+      expect(description.indexOf(IdentityRequirementStrings.buildPasswordMinLengthRequirement(10)) >= 0).assertTrue()
+      expect(description.indexOf(IdentityRequirementStrings.UPPERCASE) >= 0).assertTrue()
+      expect(description.indexOf(IdentityRequirementStrings.DIGIT) >= 0).assertTrue()
     })
 
     it('should return an operation result when setting password policy in unit test env', 0, () => {

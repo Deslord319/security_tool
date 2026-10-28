@@ -1,88 +1,222 @@
+import { AppStrings } from './AppStrings'
+
+/**
+ * 公共文案资源门面
+ *
+ * 文案唯一来源为 resources/{base,en_US}/element/string.json 中的 common_* 资源，
+ * 经 AppStrings 资源管理器按当前 locale 解析。版权声明等 locale 无关字面量保留常量。
+ *
+ * 单元测试环境（AppStrings 未初始化）下门面返回资源名；相关断言必须经门面
+ * 构造，不得断言中文或英文字面量。模块顶层常量不得在 AppStrings.init 之前
+ * 读取本门面（如侧边栏 NAV_ITEMS 已改为惰性函数）。
+ */
 export class AppText {
-  static readonly NAME: string = '安全管理中心'
-  static readonly ABOUT: string = '关于'
-  static readonly VERSION: string = '版本'
+  static get NAME(): string {
+    return AppStrings.get('common_app_name')
+  }
+
+  static get ABOUT(): string {
+    return AppStrings.get('common_about')
+  }
+
+
   static readonly COPYRIGHT: string = 'Copyright 2026'
 }
 
 export const PLACEHOLDER_TEXT: string = '--'
 
 export class ModuleText {
-  static readonly DASHBOARD: string = '安全总览'
-  static readonly FIREWALL: string = '防火墙管理'
-  static readonly LOG_MANAGE: string = '日志管理'
-  static readonly PERIPHERAL_MANAGE: string = '外设管理'
-  static readonly PERMISSION_MANAGE: string = '权限管理'
-  static readonly IDENTITY: string = '身份鉴别'
-  static readonly TOOL_SETTINGS: string = '工具设置'
-  static readonly HELP_FEEDBACK: string = '帮助与反馈'
+  static get DASHBOARD(): string {
+    return AppStrings.get('common_module_dashboard')
+  }
+
+  static get FIREWALL(): string {
+    return AppStrings.get('common_module_firewall')
+  }
+
+  static get LOG_MANAGE(): string {
+    return AppStrings.get('common_module_log_manage')
+  }
+
+  static get PERIPHERAL_MANAGE(): string {
+    return AppStrings.get('common_module_peripheral_manage')
+  }
+
+  static get PERMISSION_MANAGE(): string {
+    return AppStrings.get('common_module_permission_manage')
+  }
+
+  static get IDENTITY(): string {
+    return AppStrings.get('common_module_identity')
+  }
+
+  static get TOOL_SETTINGS(): string {
+    return AppStrings.get('common_module_tool_settings')
+  }
+
+  static get HELP_FEEDBACK(): string {
+    return AppStrings.get('common_module_help_feedback')
+  }
 }
 
 export class StatusText {
-  static readonly ACTIVATED: string = '已激活'
-  static readonly CURRENT_MODE: string = '当前模式'
-  static readonly EFFECTIVE: string = '已生效'
-  static readonly ENABLED: string = '已启用'
-  static readonly DISABLED: string = '已禁用'
+  static get ACTIVATED(): string {
+    return AppStrings.get('common_status_activated')
+  }
+
+
+
+  static get ENABLED(): string {
+    return AppStrings.get('common_status_enabled')
+  }
+
+  static get DISABLED(): string {
+    return AppStrings.get('common_status_disabled')
+  }
 }
 
 export class ActionText {
-  static readonly SAVE_CONFIG: string = '保存配置'
-  static readonly SAVE_SETTINGS: string = '保存设置'
-  static readonly SAVE: string = '保存'
-  static readonly CANCEL: string = '取消'
-  static readonly CONTINUE: string = '继续'
-  static readonly DELETE: string = '删除'
-  static readonly CLEAR: string = '清理'
-  static readonly RESTORE: string = '还原'
-  static readonly OVERRIDE: string = '覆盖'
-  static readonly ACKNOWLEDGE: string = '我知道了'
-  static readonly CONFIRM: string = '确定'
-  static readonly CLOSE: string = '关闭'
-  static readonly ADD: string = '添加'
-  static readonly PREVIOUS_PAGE: string = '上一页'
-  static readonly NEXT_PAGE: string = '下一页'
-  static readonly JUMP: string = '跳转'
+  static get SAVE_CONFIG(): string {
+    return AppStrings.get('common_action_save_config')
+  }
+
+
+  static get SAVE(): string {
+    return AppStrings.get('common_action_save')
+  }
+
+  static get CANCEL(): string {
+    return AppStrings.get('common_action_cancel')
+  }
+
+  static get CONTINUE(): string {
+    return AppStrings.get('common_action_continue')
+  }
+
+  static get DELETE(): string {
+    return AppStrings.get('common_action_delete')
+  }
+
+  static get CLEAR(): string {
+    return AppStrings.get('common_action_clear')
+  }
+
+  static get RESTORE(): string {
+    return AppStrings.get('common_action_restore')
+  }
+
+  static get OVERRIDE(): string {
+    return AppStrings.get('common_action_override')
+  }
+
+  static get ACKNOWLEDGE(): string {
+    return AppStrings.get('common_action_acknowledge')
+  }
+
+  static get CONFIRM(): string {
+    return AppStrings.get('common_action_confirm')
+  }
+
+
+  static get ADD(): string {
+    return AppStrings.get('common_action_add')
+  }
+
+
+
 }
 
 export class MessageText {
-  static readonly NO_CHANGES: string = '当前没有需要保存的更改'
-  static readonly SAVE_FAILED: string = '保存失败，请稍后重试'
-  static readonly RETRY_LATER: string = '请稍后重试'
-  static readonly SUCCESS_TITLE: string = '操作成功'
-  static readonly FAILURE_TITLE: string = '操作失败'
+  static get NO_CHANGES(): string {
+    return AppStrings.get('common_message_no_changes')
+  }
+
+  static get SAVE_FAILED(): string {
+    return AppStrings.get('common_message_save_failed')
+  }
+
+  static get RETRY_LATER(): string {
+    return AppStrings.get('common_message_retry_later')
+  }
+
+  static get SUCCESS_TITLE(): string {
+    return AppStrings.get('common_message_success_title')
+  }
+
+  static get FAILURE_TITLE(): string {
+    return AppStrings.get('common_message_failure_title')
+  }
 }
 
 export class LabelText {
-  static readonly UNKNOWN: string = '未知'
-  static readonly TIME: string = '时间'
-  static readonly DETAIL: string = '详情'
-  static readonly AUTH_METHOD: string = '认证方式'
+  static get UNKNOWN(): string {
+    return AppStrings.get('common_label_unknown')
+  }
+
+  static get TIME(): string {
+    return AppStrings.get('common_label_time')
+  }
+
+  static get DETAIL(): string {
+    return AppStrings.get('common_label_detail')
+  }
+
+  static get AUTH_METHOD(): string {
+    return AppStrings.get('common_label_auth_method')
+  }
 }
 
 export class ResultText {
-  static readonly SUCCESS: string = '成功'
-  static readonly FAILED: string = '失败'
-  static readonly SAVE_FAILED: string = '保存失败'
+  static get SUCCESS(): string {
+    return AppStrings.get('common_result_success')
+  }
+
+  static get FAILED(): string {
+    return AppStrings.get('common_result_failed')
+  }
+
+  static get SAVE_FAILED(): string {
+    return AppStrings.get('common_result_save_failed')
+  }
 }
 
 export class ThemeText {
-  static readonly SECTION_TITLE: string = '显示模式'
-  static readonly FOLLOW_SYSTEM: string = '跟随系统'
-  static readonly LIGHT_MODE: string = '浅色模式'
-  static readonly DARK_MODE: string = '深色模式'
+
+  static get FOLLOW_SYSTEM(): string {
+    return AppStrings.get('common_theme_follow_system')
+  }
+
+  static get LIGHT_MODE(): string {
+    return AppStrings.get('common_theme_light')
+  }
+
+  static get DARK_MODE(): string {
+    return AppStrings.get('common_theme_dark')
+  }
 }
 
 export class StorageAccessText {
-  static readonly READ_WRITE: string = '读写'
-  static readonly READ_ONLY: string = '只读'
-  static readonly BLOCKED: string = '禁止访问'
+  static get READ_WRITE(): string {
+    return AppStrings.get('common_storage_read_write')
+  }
+
+  static get READ_ONLY(): string {
+    return AppStrings.get('common_storage_read_only')
+  }
+
+  static get BLOCKED(): string {
+    return AppStrings.get('common_storage_blocked')
+  }
 }
 
 export class AdminText {
-  static readonly NOT_ACTIVATED: string = '企业管理员未激活'
+  static get NOT_ACTIVATED(): string {
+    return AppStrings.get('common_admin_not_activated')
+  }
 
   static buildCheckFailed(code?: number): string {
-    return code !== undefined ? `管理员状态检查失败（错误码 ${code}）` : '管理员状态检查失败'
+    return code !== undefined ?
+      AppStrings.format('common_admin_check_failed_with_code', code) :
+      AppStrings.get('common_admin_check_failed')
   }
 }

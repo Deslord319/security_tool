@@ -161,7 +161,7 @@ export class DashboardViewModel {
       RouteIds.LOG_MANAGE,
       DashboardLogCardStrings.TITLE,
       `${todayCount}`,
-      `${DashboardLogCardStrings.TODAY_DETAIL_PREFIX}${totalCount}${DashboardLogCardStrings.TODAY_DETAIL_SUFFIX}`,
+      DashboardLogCardStrings.buildTodayDetail(totalCount),
       DashboardGradientPalette.logManageGradient.start,
       DashboardGradientPalette.logManageGradient.end,
       AppResources.LOG_ICON
@@ -189,7 +189,7 @@ export class DashboardViewModel {
       RouteIds.PERIPHERAL_MANAGE,
       DashboardPeripheralCardStrings.TITLE,
       `${total}`,
-      `${DashboardPeripheralCardStrings.DETAIL_PREFIX}${connects}${DashboardPeripheralCardStrings.DETAIL_MIDDLE}${disconnects}${DashboardPeripheralCardStrings.DETAIL_POLICY_MIDDLE}${policyChanges}${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
+      DashboardPeripheralCardStrings.buildDetail(connects, disconnects, policyChanges),
       DashboardGradientPalette.peripheralGradient.start,
       DashboardGradientPalette.peripheralGradient.end,
       AppResources.PERIPHERAL_ICON
@@ -229,7 +229,7 @@ export class DashboardViewModel {
         RouteIds.LOG_MANAGE,
         DashboardLogCardStrings.TITLE,
         '0',
-        `${DashboardLogCardStrings.TODAY_DETAIL_PREFIX}0${DashboardLogCardStrings.TODAY_DETAIL_SUFFIX}`,
+        DashboardLogCardStrings.buildTodayDetail(0),
         DashboardGradientPalette.logManageGradient.start,
         DashboardGradientPalette.logManageGradient.end,
         AppResources.LOG_ICON
@@ -238,7 +238,7 @@ export class DashboardViewModel {
         RouteIds.PERIPHERAL_MANAGE,
         DashboardPeripheralCardStrings.TITLE,
         '0',
-        `${DashboardPeripheralCardStrings.DETAIL_PREFIX}0${DashboardPeripheralCardStrings.DETAIL_MIDDLE}0${DashboardPeripheralCardStrings.DETAIL_POLICY_MIDDLE}0${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
+        DashboardPeripheralCardStrings.buildDetail(0, 0, 0),
         DashboardGradientPalette.peripheralGradient.start,
         DashboardGradientPalette.peripheralGradient.end,
         AppResources.PERIPHERAL_ICON

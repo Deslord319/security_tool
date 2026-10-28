@@ -6,7 +6,7 @@ type IconTextActionButtonKind = 'primary' | 'info' | 'danger'
 
 @ComponentV2
 export struct IconTextActionButton {
-  @Param label: string = ''
+  @Param label: ResourceStr = ''
   @Param icon: Resource = AppResources.SAVE_ICON
   @Param showIcon: boolean = true
   @Param kind: IconTextActionButtonKind = 'primary'

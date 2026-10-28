@@ -48,7 +48,7 @@ export struct FirewallRuleList {
           .layoutWeight(1)
       } else if (this.rules.length === 0) {
         Column({ space: 10 }) {
-          Text(EmptyStateStrings.NO_RULES)
+          Text($r('app.string.common_empty_no_rules'))
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -324,7 +324,7 @@ struct FirewallRuleCard {
           .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
           .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
 
-        Text(FirewallRuleStrings.DELETE_TITLE)
+        Text($r('app.string.firewall_rule_delete_title'))
           .fontSize(ActionButtonStyles.FONT_SIZE)
           .fontColor(ActionButtonStyles.getDangerForeground(this.currentTheme))
           .fontWeight(FontWeight.Regular)
@@ -340,7 +340,7 @@ struct FirewallRuleCard {
       .alignItems(VerticalAlign.Center)
     } else {
       IconTextActionButton({
-        label: FirewallRuleStrings.DELETE_TITLE,
+        label: $r('app.string.firewall_rule_delete_title'),
         icon: AppResources.TRASH_ICON,
         kind: 'danger',
         currentTheme: this.currentTheme,

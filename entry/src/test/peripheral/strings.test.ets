@@ -7,6 +7,7 @@ import {
   resolvePeripheralReason
 } from '../../main/ets/constants/modules/PeripheralStrings'
 import { MessageText } from '../../main/ets/constants/StringCatalog'
+import { AppStrings } from '../../main/ets/constants/AppStrings'
 
 export default function peripheralStringsTest() {
   describe('PeripheralStrings', () => {
@@ -29,9 +30,9 @@ export default function peripheralStringsTest() {
       expect(resolvePeripheralReason(PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED).length > 0).assertTrue()
       expect(resolvePeripheralReason(PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT).length > 0).assertTrue()
       expect(resolvePeripheralReason(PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE))
-        .assertEqual('USB 存储当前已禁止访问，请先将 USB 存储访问模式设置为只读或读写')
+        .assertEqual(AppStrings.get('peripheral_reason_usb_conflict_account_storage'))
       expect(resolvePeripheralReason(PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT))
-        .assertEqual('USB 接口当前已开启，但设备黑白名单限制与 USB 存储访问模式冲突，请先还原黑白名单策略后再设置')
+        .assertEqual(AppStrings.get('peripheral_reason_set_usb_storage_policy_conflict'))
       expect(resolvePeripheralReason('custom error')).assertEqual('custom error')
       expect(resolvePeripheralReason('')).assertEqual(MessageText.RETRY_LATER)
     })

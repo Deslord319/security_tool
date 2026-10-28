@@ -8,8 +8,8 @@ const TAG = 'AsyncSelectRow'
 
 @ComponentV2
 export struct AsyncSelectRow {
-  @Param label: string = ''
-  @Param description: string = ''
+  @Param label: ResourceStr = ''
+  @Param description: ResourceStr = ''
   @Param options: string[] = []
   @Param selectedIndex: number = 0
   @Param selectWidth: number = AppStyles.SELECT_WIDTH_DEFAULT

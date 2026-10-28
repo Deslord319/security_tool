@@ -9,6 +9,10 @@ import {
   LogImportRuleResult
 } from './LogImportRule'
 import { SystemLogImportRule } from './SystemLogImportRule'
+import {
+  LogManageKernelImportStrings,
+  LogManageSystemImportStrings
+} from '../../../constants/modules/LogManageStrings'
 
 export interface LogImportPrepareTaskResult {
   success: boolean
@@ -16,6 +20,31 @@ export interface LogImportPrepareTaskResult {
   extractedFileCount: number
   scannedFileCount: number
   files: ImportedLogFile[]
+}
+
+/**
+ * 在主线程构建导入分类文案映射（键为资源名），任务线程内静态文案门面不可见，
+ * 文案必须由此解析后作为可序列化数据传入解析任务。
+ */
+export function buildLogImportCategoryLabels(): Record<string, string> {
+  return {
+    'log_manage_kernel_import_category_security_denied': LogManageKernelImportStrings.CATEGORY_SECURITY_DENIED,
+    'log_manage_kernel_import_category_binder_permission': LogManageKernelImportStrings.CATEGORY_BINDER_PERMISSION,
+    'log_manage_kernel_import_category_hmdec': LogManageKernelImportStrings.CATEGORY_HMDEC,
+    'log_manage_kernel_import_category_fs_devfs': LogManageKernelImportStrings.CATEGORY_FS_DEVFS,
+    'log_import_category_system_service_timeout': LogManageSystemImportStrings.CATEGORY_SERVICE_TIMEOUT,
+    'log_import_category_system_window_exception': LogManageSystemImportStrings.CATEGORY_WINDOW_EXCEPTION,
+    'log_import_category_system_hisi_diag': LogManageSystemImportStrings.CATEGORY_HISI_DIAG,
+    'log_import_category_system_fsck': LogManageSystemImportStrings.CATEGORY_FSCK,
+    'log_import_category_system_resize': LogManageSystemImportStrings.CATEGORY_RESIZE,
+    'log_import_category_system_meminfo': LogManageSystemImportStrings.CATEGORY_MEMINFO,
+    'log_import_category_system_memview': LogManageSystemImportStrings.CATEGORY_MEMVIEW,
+    'log_import_category_system_memory_leak': LogManageSystemImportStrings.CATEGORY_MEMORY_LEAK,
+    'log_import_category_system_updater_log': LogManageSystemImportStrings.CATEGORY_UPDATER_LOG,
+    'log_import_category_system_updater_stage': LogManageSystemImportStrings.CATEGORY_UPDATER_STAGE,
+    'log_import_category_system_installer': LogManageSystemImportStrings.CATEGORY_INSTALLER,
+    'log_import_category_system_hsld': LogManageSystemImportStrings.CATEGORY_HSLD
+  }
 }
 
 @Concurrent
@@ -75,13 +104,16 @@ export async function runLogImportPrepareTask(
 }
 
 @Concurrent
-export async function runLogImportFileParseTask(file: ImportedLogFile): Promise<LogImportRuleResult> {
+export async function runLogImportFileParseTask(
+  file: ImportedLogFile,
+  categoryLabels: Record<string, string>
+): Promise<LogImportRuleResult> {
   let tag = 'LogImportBackgroundTask'
   let startedAt = Date.now()
   let rules: LogImportRule[] = [
-    new KernelLogImportRule(),
+    new KernelLogImportRule(categoryLabels),
     new CrashLogImportRule(),
-    new SystemLogImportRule()
+    new SystemLogImportRule(categoryLabels)
   ]
   for (let rule of rules) {
     if (!rule.canHandle(file)) {

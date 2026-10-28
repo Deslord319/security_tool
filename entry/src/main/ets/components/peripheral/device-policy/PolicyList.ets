@@ -99,7 +99,7 @@ export struct PolicyList {
       Divider()
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-      Text(EmptyStateStrings.NO_DEVICES)
+      Text($r('app.string.common_empty_no_devices'))
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .textAlign(TextAlign.Center)
@@ -219,8 +219,8 @@ export struct PolicyList {
   @Builder
   private defaultPolicyRow() {
     AsyncSelectRow({
-      label: PeripheralPageStrings.USB_DEFAULT_POLICY_TITLE,
-      description: PeripheralPageStrings.USB_DEFAULT_POLICY_DESCRIPTION,
+      label: $r('app.string.peripheral_page_usb_default_policy_title'),
+      description: $r('app.string.peripheral_page_usb_default_policy_description'),
       options: this.policyListOptions.map((item: SelectOption) => `${item.value}`),
       selectedIndex: this.usbDefaultPolicyIndex,
       enabledValue: !this.usbGloballyDisabled,

@@ -6,10 +6,16 @@ export interface AuthMethodOption {
   value: AuthMethod
 }
 
-export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = SUPPORTED_TOOL_AUTH_METHODS.map((value: AuthMethod): AuthMethodOption => ({
-  label: resolveAuthMethodLabel(value),
-  value: value
-}))
+/**
+ * 认证方式下拉展示配置以惰性函数提供：认证方式标签经身份鉴别模块
+ * identity_auth_method_* 资源解析，不得在模块顶层常量中读取文案门面。
+ */
+export function getAuthMethodOptions(): AuthMethodOption[] {
+  return SUPPORTED_TOOL_AUTH_METHODS.map((value: AuthMethod): AuthMethodOption => ({
+    label: resolveAuthMethodLabel(value),
+    value: value
+  }))
+}
 
 function resolveAuthMethodLabel(value: AuthMethod): string {
   switch (value) {

@@ -9,8 +9,9 @@ import {
 import {
   formatLogTimestamp,
   getLogEventTypeLabel,
-  LOG_EVENT_TYPE_OPTIONS
+  getLogEventTypeOptions
 } from '../../main/ets/presentation/log-manage/LogPresentationMapper'
+import { LogEventPresentationStrings } from '../../main/ets/constants/modules/LogManageStrings'
 
 export default function logManageDataModelsTest() {
   describe('LogManage DataModels', () => {
@@ -27,14 +28,14 @@ export default function logManageDataModelsTest() {
     })
 
     it('should return stable labels for final event types', 0, () => {
-      expect(getLogEventTypeLabel(LogEventType.CRASH)).assertEqual('崩溃日志')
-      expect(getLogEventTypeLabel(LogEventType.FILE)).assertEqual('文件操作日志')
-      expect(getLogEventTypeLabel(LogEventType.ACCOUNT)).assertEqual('用户认证日志')
-      expect(getLogEventTypeLabel(LogEventType.PERMISSION)).assertEqual('权限变更日志')
-      expect(getLogEventTypeLabel(LogEventType.POWER)).assertEqual('开关机日志')
-      expect(getLogEventTypeLabel(LogEventType.SYSTEM)).assertEqual('系统日志')
-      expect(getLogEventTypeLabel(LogEventType.KERNEL)).assertEqual('内核日志')
-      expect(getLogEventTypeLabel(LogEventType.AUDIT)).assertEqual('审计日志')
+      expect(getLogEventTypeLabel(LogEventType.CRASH)).assertEqual(LogEventPresentationStrings.CRASH)
+      expect(getLogEventTypeLabel(LogEventType.FILE)).assertEqual(LogEventPresentationStrings.FILE)
+      expect(getLogEventTypeLabel(LogEventType.ACCOUNT)).assertEqual(LogEventPresentationStrings.ACCOUNT)
+      expect(getLogEventTypeLabel(LogEventType.PERMISSION)).assertEqual(LogEventPresentationStrings.PERMISSION)
+      expect(getLogEventTypeLabel(LogEventType.POWER)).assertEqual(LogEventPresentationStrings.POWER)
+      expect(getLogEventTypeLabel(LogEventType.SYSTEM)).assertEqual(LogEventPresentationStrings.SYSTEM)
+      expect(getLogEventTypeLabel(LogEventType.KERNEL)).assertEqual(LogEventPresentationStrings.KERNEL)
+      expect(getLogEventTypeLabel(LogEventType.AUDIT)).assertEqual(LogEventPresentationStrings.AUDIT)
     })
 
     it('should format timestamps and generate unique ids', 0, () => {
@@ -47,8 +48,9 @@ export default function logManageDataModelsTest() {
     })
 
     it('should keep options aligned with final event types and storage defaults', 0, () => {
-      expect(LOG_EVENT_TYPE_OPTIONS.length).assertEqual(8)
-      expect(LOG_EVENT_TYPE_OPTIONS.map((item) => item.value).every((item) => ALL_LOG_EVENT_TYPES.includes(item))).assertTrue()
+      let eventTypeOptions = getLogEventTypeOptions()
+      expect(eventTypeOptions.length).assertEqual(8)
+      expect(eventTypeOptions.map((item) => item.value).every((item) => ALL_LOG_EVENT_TYPES.includes(item))).assertTrue()
       expect(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries).assertEqual(20000)
       expect(DEFAULT_LOG_STORAGE_CONFIG.retentionDays).assertEqual(30)
       expect(LOG_MAX_ENTRIES_OPTIONS.length).assertEqual(5)

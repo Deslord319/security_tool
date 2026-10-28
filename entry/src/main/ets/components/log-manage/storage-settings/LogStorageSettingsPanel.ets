@@ -1,4 +1,4 @@
-import { LogManagePageStrings, LogManageSettingStrings } from '../../../constants/modules/LogManageStrings'
+import { LogManageSettingStrings } from '../../../constants/modules/LogManageStrings'
 import {
   DEFAULT_LOG_STORAGE_CONFIG,
   LOG_MAX_ENTRIES_OPTIONS,
@@ -38,8 +38,8 @@ export struct LogStorageSettingsPanel {
   @Builder
   private settingsContent() {
     SectionSelectRow({
-      title: LogManageSettingStrings.MAX_ENTRIES_LABEL,
-      description: LogManageSettingStrings.MAX_ENTRIES_DESCRIPTION,
+      title: $r('app.string.log_manage_setting_max_entries_label'),
+      description: $r('app.string.log_manage_setting_max_entries_description'),
       options: this.buildMaxEntriesOptions(),
       selectedIndex: this.getSelectedMaxEntriesIndex(),
       value: `${this.maxLocalEntries}`,
@@ -51,8 +51,8 @@ export struct LogStorageSettingsPanel {
     Divider()
 
     SectionSelectRow({
-      title: LogManageSettingStrings.RETENTION_DAYS_LABEL,
-      description: LogManageSettingStrings.RETENTION_DAYS_DESCRIPTION,
+      title: $r('app.string.log_manage_setting_retention_days_label'),
+      description: $r('app.string.log_manage_setting_retention_days_description'),
       options: this.buildRetentionOptions(),
       selectedIndex: this.getSelectedRetentionIndex(),
       value: `${this.retentionDays}`,
@@ -64,7 +64,7 @@ export struct LogStorageSettingsPanel {
 
   build() {
     SectionCard({
-      title: LogManagePageStrings.SETTINGS_TITLE,
+      title: $r('app.string.log_manage_page_settings_title'),
       currentTheme: this.currentTheme,
       content: () => {
         this.settingsContent()

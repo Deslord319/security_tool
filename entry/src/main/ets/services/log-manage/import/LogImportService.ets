@@ -10,6 +10,7 @@ import { buildLogStorageNaturalDayCutoff, LogStorageMaintenanceService } from '.
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
 import { LogSettingsRepository } from '../repository/LogSettingsRepository'
 import {
+  buildLogImportCategoryLabels,
   LogImportPrepareTaskResult,
   runLogImportFileParseTask,
   runLogImportPrepareTask
@@ -107,7 +108,7 @@ class DefaultLogImportTasks implements LogImportTaskPort {
 
   async parse(file: ImportedLogFile): Promise<LogImportRuleResult> {
     try {
-      return await taskpool.execute(runLogImportFileParseTask, file) as LogImportRuleResult
+      return await taskpool.execute(runLogImportFileParseTask, file, buildLogImportCategoryLabels()) as LogImportRuleResult
     } catch (err) {
       LogUtils.warn(TAG, `execute file task failed: file=${file.relativePath}, err=${JSON.stringify(err)}`)
       throw err as Error

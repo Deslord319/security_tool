@@ -1,7 +1,6 @@
 import zlib from '@ohos.zlib'
 import fileIo from '@ohos.file.fs'
 import { LogEntry, LogEventType, LogField } from '../../../models/LogModels'
-import { LogManageKernelImportStrings } from '../../../constants/modules/LogManageStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogImportHash } from './LogImportHash'
 import {
@@ -17,7 +16,7 @@ import {
 
 interface KernelRuleDefinition {
   id: string
-  category: string
+  categoryKey: string
 }
 
 interface ParsedKernelLine {
@@ -38,21 +37,23 @@ interface PreparedKernelTextFile {
   temporary: boolean
 }
 
+// 分类文案以资源名为稳定键；本规则可运行在任务线程，文案必须由主线程
+// 解析后经 categoryLabels 注入，不得在模块顶层或任务线程读取文案门面。
 const KERNEL_RULE_HMSEH_DENIED: KernelRuleDefinition = {
   id: 'kernel_hmseh_denied',
-  category: LogManageKernelImportStrings.CATEGORY_SECURITY_DENIED
+  categoryKey: 'log_manage_kernel_import_category_security_denied'
 }
 const KERNEL_RULE_BINDER_PERMISSION: KernelRuleDefinition = {
   id: 'kernel_binder_perm_failed',
-  category: LogManageKernelImportStrings.CATEGORY_BINDER_PERMISSION
+  categoryKey: 'log_manage_kernel_import_category_binder_permission'
 }
 const KERNEL_RULE_HMDEC: KernelRuleDefinition = {
   id: 'kernel_hmdec_rule',
-  category: LogManageKernelImportStrings.CATEGORY_HMDEC
+  categoryKey: 'log_manage_kernel_import_category_hmdec'
 }
 const KERNEL_RULE_FS_DEVFS: KernelRuleDefinition = {
   id: 'kernel_fs_devfs_dec',
-  category: LogManageKernelImportStrings.CATEGORY_FS_DEVFS
+  categoryKey: 'log_manage_kernel_import_category_fs_devfs'
 }
 const TAG = 'KernelLogImportRule'
 const READ_CHUNK_SIZE = 64 * 1024
@@ -64,6 +65,11 @@ export class KernelLogImportRule implements LogImportRule {
   readonly name: string = 'kernel'
   private static lineReaderForTest: KernelLogLineReader | null = null
   private static gunzipTargetSequence: number = 0
+  private readonly categoryLabels: Record<string, string>
+
+  constructor(categoryLabels: Record<string, string> = {}) {
+    this.categoryLabels = categoryLabels
+  }
 
   static setLineReaderForTest(reader: KernelLogLineReader): void {
     KernelLogImportRule.lineReaderForTest = reader
@@ -89,7 +95,7 @@ export class KernelLogImportRule implements LogImportRule {
     LogUtils.info(TAG, `parse start: file=${file.relativePath}, path=${file.path}`)
     if (KernelLogImportRule.lineReaderForTest) {
       await KernelLogImportRule.lineReaderForTest(file, async (rawLine: string, lineNumber: number): Promise<void> => {
-        KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
+        KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result, this.categoryLabels)
       })
       LogUtils.info(TAG, `parse done(test): file=${file.relativePath}, entries=${result.entries.length}, dropped=${result.droppedCount}, failed=${result.failedCount}, elapsedMs=${Date.now() - startedAt}`)
       return result
@@ -97,7 +103,7 @@ export class KernelLogImportRule implements LogImportRule {
     let textFile = await KernelLogImportRule.prepareTextFile(file)
     try {
       await KernelLogImportRule.forEachLine(textFile.path, async (rawLine: string, lineNumber: number): Promise<void> => {
-        KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
+        KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result, this.categoryLabels)
       }, file, result, startedAt)
     } finally {
       if (textFile.temporary) {
@@ -112,7 +118,8 @@ export class KernelLogImportRule implements LogImportRule {
     rawLine: string,
     lineNumber: number,
     file: ImportedLogFile,
-    result: LogImportRuleResult
+    result: LogImportRuleResult,
+    categoryLabels: Record<string, string>
   ): void {
     let line = rawLine.trim()
     if (line.length === 0 || !line.includes('comm=')) {
@@ -129,7 +136,7 @@ export class KernelLogImportRule implements LogImportRule {
       result.droppedCount++
       return
     }
-    let entry = KernelLogImportRule.buildEntry(line, parsed, rule, file, lineNumber)
+    let entry = KernelLogImportRule.buildEntry(line, parsed, rule, file, lineNumber, categoryLabels)
     entry.id = LogImportHash.buildId(entry)
     result.entries.push(entry)
   }
@@ -274,7 +281,8 @@ export class KernelLogImportRule implements LogImportRule {
     parsed: ParsedKernelLine,
     rule: KernelRuleDefinition,
     file: ImportedLogFile,
-    lineNumber: number
+    lineNumber: number,
+    categoryLabels: Record<string, string>
   ): LogEntry {
     return {
       id: '',
@@ -287,18 +295,19 @@ export class KernelLogImportRule implements LogImportRule {
       uid: parsed.uid,
       filePath: parsed.path,
       rawEventName: rule.id,
-      fields: KernelLogImportRule.buildFields(rule, file, lineNumber)
+      fields: KernelLogImportRule.buildFields(rule, file, lineNumber, categoryLabels)
     }
   }
 
   private static buildFields(
     rule: KernelRuleDefinition,
     file: ImportedLogFile,
-    lineNumber: number
+    lineNumber: number,
+    categoryLabels: Record<string, string>
   ): LogField[] {
     return [
       { key: 'technical.rule_id', value: rule.id },
-      { key: 'event.category', value: rule.category },
+      { key: 'event.category', value: categoryLabels[rule.categoryKey] ?? rule.categoryKey },
       { key: 'technical.source_file', value: file.relativePath },
       { key: 'technical.line_number', value: lineNumber }
     ]

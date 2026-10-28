@@ -3,16 +3,7 @@ import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
 import { ActionText, ModuleText, ResultText, MessageText } from '../../../constants/StringCatalog'
 import { LoadingStrings } from '../../../constants/modules/DialogStrings'
-import {
-  LogManageActionStrings,
-  LogManageClearingStrings,
-  LogManageDetailStrings,
-  LogManageFilterStrings,
-  LogManageImportStrings,
-  LogManagePageStrings,
-  LogManageSettingStrings,
-  LogManageStatStrings
-} from '../../../constants/modules/LogManageStrings'
+import { LogManageClearingStrings, LogManageDetailStrings, LogManageFilterStrings, LogManageImportStrings, LogManageSettingStrings, LogManageStatStrings } from '../../../constants/modules/LogManageStrings'
 import { ExportActionResult } from '../../../models/CommonModels'
 import {
   LogEntry,
@@ -21,8 +12,8 @@ import {
 } from '../../../models/LogModels'
 import { LOG_PAGE_SIZE_OPTIONS } from '../../../models/LogManageModels'
 import {
-  LOG_EVENT_TYPE_OPTIONS,
-  LOG_TIME_RANGE_OPTIONS
+  getLogEventTypeOptions,
+  getLogTimeRangeOptions
 } from '../../../presentation/log-manage/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
@@ -56,10 +47,10 @@ export struct LogManagePage {
   private detailDialogController?: CustomDialogController
 
   private eventTypeFilterOptions: SelectOption[] = [
-    { value: LogManageFilterStrings.ALL_EVENT_TYPES } as SelectOption,
-    ...LOG_EVENT_TYPE_OPTIONS.map((option) => ({ value: option.label } as SelectOption))
+    { value: $r('app.string.log_manage_filter_all_event_types') } as SelectOption,
+    ...getLogEventTypeOptions().map((option) => ({ value: option.label } as SelectOption))
   ]
-  private timeRangeFilterOptions: SelectOption[] = LOG_TIME_RANGE_OPTIONS.map((option) => ({ value: option.label } as SelectOption))
+  private timeRangeFilterOptions: SelectOption[] = getLogTimeRangeOptions().map((option) => ({ value: option.label } as SelectOption))
 
   aboutToAppear() {
     this.initializeViewModels()
@@ -316,7 +307,7 @@ export struct LogManagePage {
     Row({ space: 8 }) {
       if (this.getActiveViewModel().state.mode === 'list') {
         IconTextActionButton({
-          label: LogManageActionStrings.EXPORT_LOGS,
+          label: $r('app.string.log_manage_action_export_logs'),
           icon: AppResources.SAVE_ICON,
           currentTheme: this.currentTheme,
           onTap: () => {
@@ -324,7 +315,7 @@ export struct LogManagePage {
           }
         })
         IconTextActionButton({
-          label: LogManageActionStrings.IMPORT_LOGS,
+          label: $r('app.string.log_manage_action_import_logs'),
           icon: AppResources.LOG_ICON,
           currentTheme: this.currentTheme,
           isEnabled: !this.isImportProcessing,
@@ -333,14 +324,14 @@ export struct LogManagePage {
           }
         })
         IconTextActionButton({
-          label: LogManageActionStrings.CLEAR_LOGS,
+          label: $r('app.string.log_manage_action_clear_logs'),
           icon: AppResources.TRASH_ICON,
           kind: 'danger',
           currentTheme: this.currentTheme,
           onTap: () => this.handleClearLogs()
         })
         IconTextActionButton({
-          label: LogManageActionStrings.OPEN_STORAGE_SETTINGS,
+          label: $r('app.string.log_manage_action_open_storage_settings'),
           icon: AppResources.SETTINGS_ICON,
           currentTheme: this.currentTheme,
           onTap: () => {
@@ -349,7 +340,7 @@ export struct LogManagePage {
         })
       } else {
         IconTextActionButton({
-          label: ActionText.SAVE_SETTINGS,
+          label: $r('app.string.common_action_save_settings'),
           icon: AppResources.SAVE_ICON,
           currentTheme: this.currentTheme,
           isEnabled: this.getActiveViewModel().settingsViewModel.state.dirty &&
@@ -359,7 +350,7 @@ export struct LogManagePage {
           }
         })
         IconTextActionButton({
-          label: LogManageActionStrings.BACK_TO_LOG_LIST,
+          label: $r('app.string.log_manage_action_back_to_log_list'),
           icon: AppResources.LOG_ICON,
           currentTheme: this.currentTheme,
           onTap: () => {
@@ -399,7 +390,7 @@ export struct LogManagePage {
         options: this.eventTypeFilterOptions,
         selectedIndex: this.getActiveViewModel().state.filter.eventTypeIndex,
         value: (this.eventTypeFilterOptions[this.getActiveViewModel().state.filter.eventTypeIndex]?.value as string) ??
-          LogManageFilterStrings.ALL_EVENT_TYPES,
+          $r('app.string.log_manage_filter_all_event_types'),
         controlWidth: 120,
         controlHeight: 36,
         radius: AppStyles.RADIUS_SM,
@@ -411,7 +402,7 @@ export struct LogManagePage {
         options: this.timeRangeFilterOptions,
         selectedIndex: this.getActiveViewModel().state.filter.timeRangeIndex,
         value: (this.timeRangeFilterOptions[this.getActiveViewModel().state.filter.timeRangeIndex]?.value as string) ??
-          LogManageFilterStrings.ALL_TIME,
+          $r('app.string.log_manage_filter_all_time'),
         controlWidth: 128,
         controlHeight: 36,
         radius: AppStyles.RADIUS_SM,
@@ -420,7 +411,7 @@ export struct LogManagePage {
       })
 
       StyledTextInput({
-        placeholder: LogManageFilterStrings.SEARCH_PLACEHOLDER,
+        placeholder: $r('app.string.log_manage_filter_search_placeholder'),
         text: this.getActiveViewModel().state.filter.keyword,
         controlHeight: 36,
         radius: AppStyles.RADIUS_SM,
@@ -437,9 +428,9 @@ export struct LogManagePage {
     Stack({ alignContent: Alignment.TopStart }) {
       Column() {
         SubPageHeader({
-          title: this.getActiveViewModel().state.mode === 'settings' ? LogManagePageStrings.SETTINGS_TITLE : ModuleText.LOG_MANAGE,
+          title: this.getActiveViewModel().state.mode === 'settings' ? $r('app.string.log_manage_page_settings_title') : $r('app.string.common_module_log_manage'),
           subtitle: this.getActiveViewModel().state.mode === 'settings' ?
-            LogManagePageStrings.SETTINGS_SUBTITLE : LogManagePageStrings.SUBTITLE,
+            $r('app.string.log_manage_page_settings_subtitle') : $r('app.string.log_manage_page_subtitle'),
           currentTheme: this.currentTheme,
           onBack: this.onBack,
           actions: () => {

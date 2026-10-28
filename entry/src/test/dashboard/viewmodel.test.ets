@@ -358,7 +358,7 @@ export default function dashboardViewModelTest() {
       let peripheralCard = await internal.buildPeripheralCard() as Record<string, string>
 
       expect(peripheralCard.primaryText).assertEqual('10')
-      expect(peripheralCard.secondaryText).assertEqual('连接 5 次，断开 3 次，策略变更 2 次')
+      expect(peripheralCard.secondaryText).assertEqual(DashboardPeripheralCardStrings.buildDetail(5, 3, 2))
       expect(capturedQuery.indexOf('runtime_event') > -1).assertTrue()
       expect(capturedQuery.indexOf('policy_snapshot') > -1).assertTrue()
       expect(capturedQuery.indexOf('connect') > -1).assertTrue()

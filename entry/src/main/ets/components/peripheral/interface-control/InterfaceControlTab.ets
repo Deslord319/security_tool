@@ -185,8 +185,8 @@ export struct InterfaceControlTab {
   @Builder
   private usbInterfaceItem() {
     AsyncSelectRow({
-      label: PeripheralInterfaceStrings.USB_INTERFACE_TITLE,
-      description: PeripheralInterfaceStrings.USB_INTERFACE_DESCRIPTION,
+      label: $r('app.string.peripheral_interface_usb_title'),
+      description: $r('app.string.peripheral_interface_usb_description'),
       options: PeripheralOptionStrings.INTERFACE_TOGGLE_OPTIONS,
       selectedIndex: this.usbDisabled ?
         PeripheralInterfaceToggleOptionIndexes.DISABLED :
@@ -205,8 +205,8 @@ export struct InterfaceControlTab {
   @Builder
   private storageItem() {
     AsyncSelectRow({
-      label: DeviceTypeLabels.USB_STORAGE,
-      description: PeripheralInterfaceStrings.USB_STORAGE_DESCRIPTION,
+      label: $r('app.string.device_type_usb_storage'),
+      description: $r('app.string.peripheral_interface_usb_storage_description'),
       options: PeripheralOptionStrings.USB_STORAGE_OPTIONS,
       selectedIndex: this.usbStoragePolicyIndex,
       processing: this.interfaceControlProcessingKey === this.usbStorageControlKey,

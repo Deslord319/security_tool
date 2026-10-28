@@ -70,7 +70,7 @@ export default function authServiceBehaviorTest() {
     })
 
     it('should map auth method labels correctly', 0, () => {
-      expect(AuthService.getAuthMethodLabel(AuthMethod.PIN)).assertEqual('PIN')
+      expect(AuthService.getAuthMethodLabel(AuthMethod.PIN)).assertEqual(IdentityAuthStrings.METHOD_PIN)
       expect(AuthService.getAuthMethodLabel(AuthMethod.FINGERPRINT)).assertEqual(IdentityAuthStrings.METHOD_FINGERPRINT)
       expect(AuthService.getAuthMethodLabel(999 as AuthMethod)).assertEqual(LabelText.AUTH_METHOD)
     })

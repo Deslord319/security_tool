@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { PeripheralConnectionRecordStrings } from '../../main/ets/constants/modules/PeripheralStrings'
+import { StatusText } from '../../main/ets/constants/StringCatalog'
 import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import { PeripheralTraceRecord, PeripheralType } from '../../main/ets/models/PeripheralModels'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordBluetoothAclConsumer'
@@ -56,9 +58,9 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record?.action).assertEqual('connect')
       expect(record?.decision).assertEqual('allow')
       expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
-      expect(record?.summary).assertEqual('蓝牙设备已连接')
+      expect(record?.summary).assertEqual(PeripheralConnectionRecordStrings.BLUETOOTH_CONNECTED)
       expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection')
-      expect(record?.effectivePolicyLabel).assertEqual('已启用')
+      expect(record?.effectivePolicyLabel).assertEqual(StatusText.ENABLED)
       expect(record?.deviceType).assertEqual(PeripheralType.BLUETOOTH)
       expect(record?.deviceName).assertEqual('Bluetooth Keyboard')
       expect(record?.deviceId).assertEqual('MAC: 11:22:33:44:55:66')
@@ -87,7 +89,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
       expect(record !== null).assertTrue()
       expect(record?.action).assertEqual('disconnect')
-      expect(record?.summary).assertEqual('蓝牙设备已断开')
+      expect(record?.summary).assertEqual(PeripheralConnectionRecordStrings.BLUETOOTH_DISCONNECTED)
       expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=--')
       expect(snapshots.length).assertEqual(0)
     })
@@ -175,15 +177,15 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
         expect(record !== null).assertTrue()
         expect(record?.action).assertEqual('disconnect')
-        expect(record?.summary).assertEqual('蓝牙设备已断开')
+        expect(record?.summary).assertEqual(PeripheralConnectionRecordStrings.BLUETOOTH_DISCONNECTED)
         expect(record?.decision).assertEqual('deny')
         expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
-        expect(record?.effectivePolicyLabel).assertEqual('已禁用')
+        expect(record?.effectivePolicyLabel).assertEqual(StatusText.DISABLED)
         expect(record?.matchedPolicyKind).assertEqual('bluetooth_disabled')
 
         const repeatedRecord = await consumer.consume(buildBluetoothAclEvent({ action: 'disconnect' }))
         expect(repeatedRecord?.decision).assertEqual('allow')
-        expect(repeatedRecord?.effectivePolicyLabel).assertEqual('已启用')
+        expect(repeatedRecord?.effectivePolicyLabel).assertEqual(StatusText.ENABLED)
 
         BluetoothRuntimeConnectionStore.markDisabledDisconnectPending('MAC: 11:22:33:44:55:66')
         BluetoothRuntimeConnectionStore.trackConnectedDevice(
@@ -194,7 +196,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
         await consumer.consume(buildBluetoothAclEvent({ action: 'connect' }))
         const disconnectAfterReconnect = await consumer.consume(buildBluetoothAclEvent({ action: 'disconnect' }))
         expect(disconnectAfterReconnect?.decision).assertEqual('allow')
-        expect(disconnectAfterReconnect?.effectivePolicyLabel).assertEqual('已启用')
+        expect(disconnectAfterReconnect?.effectivePolicyLabel).assertEqual(StatusText.ENABLED)
       } finally {
         BluetoothPolicySnapshotTraceService.resetForTest()
         mockKit.clearAll()

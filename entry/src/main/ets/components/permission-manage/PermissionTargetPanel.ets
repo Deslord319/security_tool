@@ -66,8 +66,8 @@ export struct PermissionTargetPanel {
   @Builder
   private targetContent() {
     AsyncSelectRow({
-      label: PermissionAccountStrings.SELECT_TITLE,
-      description: PermissionAccountStrings.SELECT_DESC,
+      label: $r('app.string.permission_account_select_title'),
+      description: $r('app.string.permission_account_select_desc'),
       options: this.getAccountOptions(),
       selectedIndex: this.getSelectedAccountIndex(),
       selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
@@ -103,8 +103,8 @@ export struct PermissionTargetPanel {
   @Builder
   private targetApplicationSelectRow() {
     AsyncSelectRow({
-      label: PermissionSectionStrings.TARGET_APPLICATION,
-      description: PermissionSectionStrings.TARGET_APPLICATION_DESC,
+      label: $r('app.string.permission_section_target_application'),
+      description: $r('app.string.permission_section_target_application_desc'),
       options: this.getApplicationOptions(),
       selectedIndex: this.getSelectedApplicationIndex(),
       selectWidth: TARGET_APPLICATION_SELECT_WIDTH,
@@ -125,8 +125,8 @@ export struct PermissionTargetPanel {
   private installBlockInputRow() {
     Row() {
       SectionLabel({
-        title: PermissionApplicationStrings.INSTALL_BLOCK_TARGET,
-        description: PermissionApplicationStrings.INSTALL_BLOCK_TARGET_DESC,
+        title: $r('app.string.permission_application_install_block_target'),
+        description: $r('app.string.permission_application_install_block_target_desc'),
         currentTheme: this.currentTheme
       })
 
@@ -152,7 +152,7 @@ export struct PermissionTargetPanel {
         }
 
         IconTextActionButton({
-          label: PermissionApplicationStrings.INSTALL_BLOCK_ACTION,
+          label: $r('app.string.permission_application_install_block_action'),
           icon: AppResources.ALERT_ICON,
           kind: 'danger',
           isEnabled: this.canSubmitInstallBlock(),
