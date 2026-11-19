@@ -11,8 +11,8 @@ export struct CompactSummaryCard {
   @Param valueText: string = ''
   @Param description: string = ''
   @Param icon: Resource = AppResources.SHIELD_ICON
-  @Param accentStart: string = AppColors.BRAND_PRIMARY
-  @Param accentEnd: string = AppColors.GRADIENT_FIREWALL_END
+  @Param accentStart: ResourceColor = AppColors.BRAND_PRIMARY
+  @Param accentEnd: ResourceColor = AppColors.GRADIENT_FIREWALL_END
   @Param clickable: boolean = false
   @Param hoverable: boolean = true
   @Param disabled: boolean = false

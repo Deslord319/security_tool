@@ -10,8 +10,8 @@ export struct MetricSummaryCard {
   @Param primaryText: string = ''
   @Param secondaryText: string = ''
   @Param icon: Resource = AppResources.SHIELD_ICON
-  @Param accentStart: string = AppColors.BRAND_PRIMARY
-  @Param accentEnd: string = AppColors.GRADIENT_FIREWALL_END
+  @Param accentStart: ResourceColor = AppColors.BRAND_PRIMARY
+  @Param accentEnd: ResourceColor = AppColors.GRADIENT_FIREWALL_END
   @Param cardHeight: number = 108
   @Param horizontalSpace: number = 16
   @Param textSpace: number = 6

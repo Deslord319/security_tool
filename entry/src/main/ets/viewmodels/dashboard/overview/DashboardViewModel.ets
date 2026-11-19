@@ -304,8 +304,8 @@ export class DashboardViewModel {
     title: string,
     primaryText: string,
     secondaryText: string,
-    accentStart: string,
-    accentEnd: string,
+    accentStart: ResourceColor,
+    accentEnd: ResourceColor,
     icon: Resource
   ): DashboardModuleCardState {
     return {
@@ -323,8 +323,8 @@ export class DashboardViewModel {
     id: DashboardQuickEntryId,
     title: string,
     icon: Resource,
-    accentStart: string,
-    accentEnd: string,
+    accentStart: ResourceColor,
+    accentEnd: ResourceColor,
     route: string
   ): DashboardQuickEntryState {
     return {

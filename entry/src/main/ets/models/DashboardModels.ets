@@ -8,8 +8,8 @@ export interface DashboardModuleCardState {
   title: string
   primaryText: string
   secondaryText: string
-  accentStart: string
-  accentEnd: string
+  accentStart: ResourceColor
+  accentEnd: ResourceColor
   icon: Resource
 }
 
@@ -17,7 +17,7 @@ export interface DashboardQuickEntryState {
   id: DashboardQuickEntryId
   title: string
   icon: Resource
-  accentStart: string
-  accentEnd: string
+  accentStart: ResourceColor
+  accentEnd: ResourceColor
   route: string
 }

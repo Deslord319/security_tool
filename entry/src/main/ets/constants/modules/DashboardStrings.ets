@@ -2,8 +2,8 @@ import { AppColors } from '../AppConstants'
 import { AppStrings } from '../AppStrings'
 
 export interface DashboardGradient {
-  start: string
-  end: string
+  start: ResourceColor
+  end: ResourceColor
 }
 
 /**

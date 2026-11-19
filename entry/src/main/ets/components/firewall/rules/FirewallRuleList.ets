@@ -119,7 +119,7 @@ struct FirewallRuleCard {
     }
   }
 
-  private getRuleTypeTextColor(type: netFirewall.NetFirewallRuleType): string {
+  private getRuleTypeTextColor(type: netFirewall.NetFirewallRuleType): ResourceColor {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
         return AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT
@@ -155,7 +155,7 @@ struct FirewallRuleCard {
     return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? FirewallDialogStrings.ACTION_ALLOW : FirewallDialogStrings.ACTION_DENY
   }
 
-  private getActionTextColor(action: netFirewall.FirewallRuleAction): string {
+  private getActionTextColor(action: netFirewall.FirewallRuleAction): ResourceColor {
     return action === netFirewall.FirewallRuleAction.RULE_ALLOW
       ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
       : AppColors.getColors(this.currentTheme).TAG_RED_TEXT

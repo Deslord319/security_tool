@@ -8,8 +8,8 @@ import { HoverUtils } from '../utils/HoverUtils'
 export struct ToolCard {
   @Param label: string = ''
   @Param icon: Resource = AppResources.SHIELD_ICON
-  @Param gradientStart: string = AppColors.BRAND_PRIMARY
-  @Param gradientEnd: string = AppColors.GRADIENT_FIREWALL_END
+  @Param gradientStart: ResourceColor = AppColors.BRAND_PRIMARY
+  @Param gradientEnd: ResourceColor = AppColors.GRADIENT_FIREWALL_END
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onPress: () => void = () => {}
   @Local isHovered: boolean = false

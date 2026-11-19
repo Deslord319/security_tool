@@ -38,6 +38,8 @@ APP_STRINGS_REF_RE = re.compile(r"AppStrings\.(?:get|format)\(\s*['\"]([A-Za-z0-
 R_REF_RE = re.compile(r"\$r\(\s*'app\.string\.([a-z0-9_]+)'")
 STRING_LITERAL_RE = re.compile(r"['\"]([A-Za-z0-9_]+)['\"]")
 PLACEHOLDER_RE = re.compile(r"%(?:\d+\$)?[dsf]")
+COLOR_RES_RE = re.compile(r"\$r\(\s*'app\.color\.([a-z0-9_]+)'")
+COLOR_JSON_PATH = PROJECT_ROOT / "entry" / "src" / "main" / "resources" / "base" / "element" / "color.json"
 
 
 def add_error(errors: list[str], message: str) -> None:
@@ -140,6 +142,35 @@ def check_inline_chinese(errors: list[str]) -> None:
                 add_error(errors, f"生产源码包含行内中文字符串: {relative}:{line_no}")
 
 
+def check_color_resources(errors: list[str]) -> None:
+    """color.json 是颜色唯一来源：校验资源可解析、无重复，且业务代码 $r('app.color.*')
+    引用的资源名都存在（颜色值不再散落在业务代码）。"""
+    if not COLOR_JSON_PATH.exists():
+        add_error(errors, f"资源文件不存在: {COLOR_JSON_PATH.relative_to(PROJECT_ROOT)}")
+        return
+    try:
+        data = json.loads(COLOR_JSON_PATH.read_text(encoding="utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as err:
+        add_error(errors, f"color.json 解析失败: {err}")
+        return
+    defined: set[str] = set()
+    for item in data.get("color", []):
+        name = item.get("name")
+        if not isinstance(name, str) or not isinstance(item.get("value"), str):
+            add_error(errors, "color.json 存在缺少 name/value 的条目")
+            continue
+        if name in defined:
+            add_error(errors, f"color.json 资源名重复: {name}")
+            continue
+        defined.add(name)
+    referenced: set[str] = set()
+    for path in sorted(SOURCE_ROOT.rglob("*.ets")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        referenced.update(COLOR_RES_RE.findall(text))
+    for name in sorted(referenced - defined):
+        add_error(errors, f"代码引用的颜色资源在 color.json 中不存在: {name}")
+
+
 def main() -> int:
     errors: list[str] = []
     warnings: list[str] = []
@@ -169,6 +200,7 @@ def main() -> int:
 
     check_placeholder_consistency(base_entries, en_us_entries, errors)
     check_inline_chinese(errors)
+    check_color_resources(errors)
 
     unreferenced = set(base_entries) - any_literals
     for name in sorted(unreferenced):

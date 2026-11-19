@@ -107,7 +107,7 @@ export struct FirewallPage {
     }
   }
 
-  private getModeAccent(mode: FirewallPresetMode): string {
+  private getModeAccent(mode: FirewallPresetMode): ResourceColor {
     return getFirewallModeAccent(mode)
   }
 
@@ -135,14 +135,14 @@ export struct FirewallPage {
     return this.overviewViewModel.state.enabled && !this.isToggleSwitching() && !this.isModeSwitching()
   }
 
-  private getModeCardBackground(mode: FirewallPresetMode): string {
+  private getModeCardBackground(mode: FirewallPresetMode): ResourceColor {
     if (this.isModeSelected(mode)) {
       return this.currentTheme === ThemeMode.DARK ? AppColors.FIREWALL_SELECTED_CARD_BG_DARK : AppColors.FIREWALL_SELECTED_CARD_BG_LIGHT
     }
     return this.getThemeColors().BG_CARD
   }
 
-  private getModeCardBorder(mode: FirewallPresetMode): string {
+  private getModeCardBorder(mode: FirewallPresetMode): ResourceColor {
     return this.isModeSelected(mode) ? this.getModeAccent(mode) : this.getThemeColors().BORDER
   }
 
@@ -174,7 +174,7 @@ export struct FirewallPage {
     }
   }
 
-  private getModeTitleColor(mode: FirewallPresetMode): string {
+  private getModeTitleColor(mode: FirewallPresetMode): ResourceColor {
     return this.isModeSelected(mode) ? this.getModeAccent(mode) : this.getThemeColors().TEXT_PRIMARY
   }
 
@@ -186,11 +186,11 @@ export struct FirewallPage {
     return this.isModeSelected(mode) ? this.getThemeColors().TEXT_SECONDARY_OPACITY : this.getThemeColors().TEXT_TERTIARY_OPACITY
   }
 
-  private getModeStatusBackground(mode: FirewallPresetMode): string {
+  private getModeStatusBackground(mode: FirewallPresetMode): ResourceColor {
     return this.currentTheme === ThemeMode.DARK ? `${this.getModeAccent(mode)}33` : this.getModeAccent(mode)
   }
 
-  private getModeStatusTextColor(mode: FirewallPresetMode): string {
+  private getModeStatusTextColor(mode: FirewallPresetMode): ResourceColor {
     return this.currentTheme === ThemeMode.DARK ? this.getModeAccent(mode) : AppColors.FIREWALL_SELECTED_ICON_BORDER_LIGHT
   }
 
