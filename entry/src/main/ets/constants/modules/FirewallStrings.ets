@@ -153,7 +153,7 @@ export class FirewallUserStrings {
   }
 }
 
-export function getFirewallModeAccent(mode: FirewallPresetMode): string {
+export function getFirewallModeAccent(mode: FirewallPresetMode): ResourceColor {
   switch (mode) {
     case 'public':
       return AppColors.BRAND_PRIMARY

@@ -214,7 +214,7 @@ export struct ThemeMenuPopup {
     })
   }
 
-  private resolveMenuBackground(isHovered: boolean, isPressed: boolean): string {
+  private resolveMenuBackground(isHovered: boolean, isPressed: boolean): ResourceColor {
     return InteractiveItemStyles.getMenuItemBackground(this.currentTheme, isHovered, isPressed)
   }
 
@@ -222,7 +222,7 @@ export struct ThemeMenuPopup {
     return InteractiveItemStyles.getMenuIconColor(this.currentTheme)
   }
 
-  private resolveMenuIconTileBackground(): string {
+  private resolveMenuIconTileBackground(): ResourceColor {
     return InteractiveItemStyles.getMenuIconTileBackground(this.currentTheme)
   }
 

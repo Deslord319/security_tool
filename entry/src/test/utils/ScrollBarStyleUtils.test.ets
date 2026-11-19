@@ -19,13 +19,13 @@ export default function scrollBarStyleUtilsTest() {
     it('should return correct color for light theme', 0, () => {
       let color = getScrollBarColor(ThemeMode.LIGHT)
 
-      expect(color).assertEqual('#9CA3AF')
+      expect((color as Resource).id).assertEqual($r('app.color.app_scroll_bar_light').id)
     })
 
     it('should return correct color for dark theme', 0, () => {
       let color = getScrollBarColor(ThemeMode.DARK)
 
-      expect(color).assertEqual('#6B7280')
+      expect((color as Resource).id).assertEqual($r('app.color.app_scroll_bar_dark').id)
     })
   })
 }

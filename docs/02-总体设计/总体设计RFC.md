@@ -180,7 +180,7 @@ EntryAbility
 | 模型层 | `entry/src/main/ets/models/**` | 页面、ViewModel 与 Service 共享的业务实体、状态和结果契约；不得依赖具体 Service 实现取得跨层 DTO |
 | 领域层 | `entry/src/main/ets/services/**` | 系统能力编排、策略下发、采集、导出、认证等业务动作 |
 | 持久化层 | `entry/src/main/ets/storage/**`、模块 Repository | Preferences / RDB 访问、表结构、配置读写、查询和裁剪 |
-| 公共能力 | `entry/src/main/ets/components/**`、`services/common/**`、`utils/**`、`constants/**`、`theme/**` | UI 复用、应用信息等公共系统能力封装、日志、弹窗、导出文案、路径处理、主题和文案常量；组件不直接访问非 UI 系统能力 |
+| 公共能力 | `entry/src/main/ets/components/**`、`services/common/**`、`utils/**`、`constants/**`、`theme/**`、`resources/base/element/color.json` | UI 复用、应用信息等公共系统能力封装、日志、弹窗、导出文案、路径处理、主题和文案常量；组件不直接访问非 UI 系统能力。颜色值唯一来源为 `color.json`：主题色按 `theme_light_*` / `theme_dark_*` 双套显式资源名组织（不使用资源目录深色限定词，因为应用内主题为手动切换、不随系统深浅色变化），业务色直接定义 `app_*` 资源名；`ThemeColors.ets` 与 `AppColors` 只持 `$r('app.color.*')` 引用，不得在业务代码中硬编码 hex |
 
 跨模块依赖边界：
 

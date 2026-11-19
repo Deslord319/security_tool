@@ -9,82 +9,82 @@ export class AppColors {
     return getThemeColors(theme)
   }
 
-  static readonly BRAND_PRIMARY: string = '#0A84FF'
-  static readonly MENU_ICON_COLOR_DARK: string = '#A9C7FF'
-  static readonly THEME_MODE_ICON_COLOR_DARK: string = '#8E8E93'
-  static readonly THEME_MODE_ICON_COLOR_LIGHT: string = '#FFD60A'
-  static readonly OVERLAY_BACKGROUND: string = '#66000000'
-  static readonly INTERACTIVE_BUTTON_HOVER_LIGHT: string = 'rgba(0,0,0,0.05)'
-  static readonly INTERACTIVE_BUTTON_PRESSED_LIGHT: string = 'rgba(0,0,0,0.08)'
-  static readonly INTERACTIVE_BUTTON_HOVER_DARK: string = 'rgba(255,255,255,0.10)'
-  static readonly INTERACTIVE_BUTTON_PRESSED_DARK: string = 'rgba(255,255,255,0.14)'
-  static readonly INTERACTIVE_SECONDARY_BG_DARK: string = 'rgba(255,255,255,0.08)'
-  static readonly TRANSPARENT: string = 'rgba(0,0,0,0)'
-  static readonly MODAL_SHADOW_LIGHT: string = 'rgba(0,0,0,0.14)'
-  static readonly MODAL_SHADOW_DARK: string = 'rgba(0,0,0,0.32)'
-  static readonly POPUP_SHADOW_LIGHT: string = 'rgba(0,0,0,0.15)'
-  static readonly POPUP_SHADOW_DARK: string = 'rgba(0,0,0,0.4)'
-  static readonly CARD_OVERLAY_START: string = 'rgba(255,255,255,0.03)'
-  static readonly CARD_OVERLAY_HOVER_START: string = 'rgba(255,255,255,0.10)'
-  static readonly CARD_OVERLAY_END: string = 'rgba(255,255,255,0.00)'
-  static readonly HOVER_SHADOW_LIGHT: string = 'rgba(15,23,42,0.15)'
-  static readonly HOVER_SHADOW_STRONG_LIGHT: string = 'rgba(15,23,42,0.20)'
-  static readonly HOVER_SHADOW_REST_LIGHT: string = 'rgba(15,23,42,0.06)'
-  static readonly HOVER_SHADOW_DARK: string = 'rgba(148,163,184,0.12)'
-  static readonly HOVER_SHADOW_STRONG_DARK: string = 'rgba(148,163,184,0.16)'
-  static readonly HOVER_SHADOW_REST_DARK: string = 'rgba(148,163,184,0.04)'
-  static readonly SCROLL_BAR_LIGHT: string = '#9CA3AF'
-  static readonly SCROLL_BAR_DARK: string = '#6B7280'
-  static readonly ACTION_PRIMARY_BG_DARK: string = 'rgba(94,161,255,0.24)'
-  static readonly ACTION_PRIMARY_HOVER_DARK: string = 'rgba(94,161,255,0.32)'
-  static readonly ACTION_PRIMARY_PRESSED_DARK: string = 'rgba(94,161,255,0.42)'
-  static readonly ACTION_PRIMARY_HOVER_LIGHT: string = 'rgba(10,132,255,0.14)'
-  static readonly ACTION_PRIMARY_PRESSED_LIGHT: string = 'rgba(10,132,255,0.20)'
-  static readonly ACTION_DANGER_BG_DARK: string = 'rgba(255,59,48,0.24)'
-  static readonly ACTION_DANGER_HOVER_DARK: string = 'rgba(255,59,48,0.32)'
-  static readonly ACTION_DANGER_PRESSED_DARK: string = 'rgba(255,59,48,0.42)'
-  static readonly ACTION_DANGER_HOVER_LIGHT: string = 'rgba(255,59,48,0.14)'
-  static readonly ACTION_DANGER_PRESSED_LIGHT: string = 'rgba(255,59,48,0.20)'
-  static readonly SIDEBAR_SELECTED_HOVER_LIGHT: string = 'rgba(10,132,255,0.84)'
-  static readonly SIDEBAR_SELECTED_PRESSED_LIGHT: string = 'rgba(10,132,255,0.92)'
-  static readonly SIDEBAR_SELECTED_HOVER_DARK: string = 'rgba(94,161,255,0.82)'
-  static readonly SIDEBAR_SELECTED_PRESSED_DARK: string = 'rgba(94,161,255,0.90)'
-  static readonly SIDEBAR_ICON_TILE_BG_LIGHT: string = 'rgba(10,132,255,0.08)'
-  static readonly SIDEBAR_ICON_TILE_BG_DARK: string = 'rgba(10,132,255,0.14)'
-  static readonly THEME_MODE_ICON_TILE_BG_LIGHT: string = 'rgba(255,214,10,0.14)'
-  static readonly THEME_MODE_ICON_TILE_BG_DARK: string = 'rgba(142,142,147,0.18)'
+  static readonly BRAND_PRIMARY: ResourceColor = $r('app.color.app_brand_primary')
+  static readonly MENU_ICON_COLOR_DARK: ResourceColor = $r('app.color.app_menu_icon_color_dark')
+  static readonly THEME_MODE_ICON_COLOR_DARK: ResourceColor = $r('app.color.app_theme_mode_icon_color_dark')
+  static readonly THEME_MODE_ICON_COLOR_LIGHT: ResourceColor = $r('app.color.app_theme_mode_icon_color_light')
+  static readonly OVERLAY_BACKGROUND: ResourceColor = $r('app.color.app_overlay_background')
+  static readonly INTERACTIVE_BUTTON_HOVER_LIGHT: ResourceColor = $r('app.color.app_interactive_button_hover_light')
+  static readonly INTERACTIVE_BUTTON_PRESSED_LIGHT: ResourceColor = $r('app.color.app_interactive_button_pressed_light')
+  static readonly INTERACTIVE_BUTTON_HOVER_DARK: ResourceColor = $r('app.color.app_interactive_button_hover_dark')
+  static readonly INTERACTIVE_BUTTON_PRESSED_DARK: ResourceColor = $r('app.color.app_interactive_button_pressed_dark')
+  static readonly INTERACTIVE_SECONDARY_BG_DARK: ResourceColor = $r('app.color.app_interactive_secondary_bg_dark')
+  static readonly TRANSPARENT: ResourceColor = $r('app.color.app_transparent')
+  static readonly MODAL_SHADOW_LIGHT: ResourceColor = $r('app.color.app_modal_shadow_light')
+  static readonly MODAL_SHADOW_DARK: ResourceColor = $r('app.color.app_modal_shadow_dark')
+  static readonly POPUP_SHADOW_LIGHT: ResourceColor = $r('app.color.app_popup_shadow_light')
+  static readonly POPUP_SHADOW_DARK: ResourceColor = $r('app.color.app_popup_shadow_dark')
+  static readonly CARD_OVERLAY_START: ResourceColor = $r('app.color.app_card_overlay_start')
+  static readonly CARD_OVERLAY_HOVER_START: ResourceColor = $r('app.color.app_card_overlay_hover_start')
+  static readonly CARD_OVERLAY_END: ResourceColor = $r('app.color.app_card_overlay_end')
+  static readonly HOVER_SHADOW_LIGHT: ResourceColor = $r('app.color.app_hover_shadow_light')
+  static readonly HOVER_SHADOW_STRONG_LIGHT: ResourceColor = $r('app.color.app_hover_shadow_strong_light')
+  static readonly HOVER_SHADOW_REST_LIGHT: ResourceColor = $r('app.color.app_hover_shadow_rest_light')
+  static readonly HOVER_SHADOW_DARK: ResourceColor = $r('app.color.app_hover_shadow_dark')
+  static readonly HOVER_SHADOW_STRONG_DARK: ResourceColor = $r('app.color.app_hover_shadow_strong_dark')
+  static readonly HOVER_SHADOW_REST_DARK: ResourceColor = $r('app.color.app_hover_shadow_rest_dark')
+  static readonly SCROLL_BAR_LIGHT: ResourceColor = $r('app.color.app_scroll_bar_light')
+  static readonly SCROLL_BAR_DARK: ResourceColor = $r('app.color.app_scroll_bar_dark')
+  static readonly ACTION_PRIMARY_BG_DARK: ResourceColor = $r('app.color.app_action_primary_bg_dark')
+  static readonly ACTION_PRIMARY_HOVER_DARK: ResourceColor = $r('app.color.app_action_primary_hover_dark')
+  static readonly ACTION_PRIMARY_PRESSED_DARK: ResourceColor = $r('app.color.app_action_primary_pressed_dark')
+  static readonly ACTION_PRIMARY_HOVER_LIGHT: ResourceColor = $r('app.color.app_action_primary_hover_light')
+  static readonly ACTION_PRIMARY_PRESSED_LIGHT: ResourceColor = $r('app.color.app_action_primary_pressed_light')
+  static readonly ACTION_DANGER_BG_DARK: ResourceColor = $r('app.color.app_action_danger_bg_dark')
+  static readonly ACTION_DANGER_HOVER_DARK: ResourceColor = $r('app.color.app_action_danger_hover_dark')
+  static readonly ACTION_DANGER_PRESSED_DARK: ResourceColor = $r('app.color.app_action_danger_pressed_dark')
+  static readonly ACTION_DANGER_HOVER_LIGHT: ResourceColor = $r('app.color.app_action_danger_hover_light')
+  static readonly ACTION_DANGER_PRESSED_LIGHT: ResourceColor = $r('app.color.app_action_danger_pressed_light')
+  static readonly SIDEBAR_SELECTED_HOVER_LIGHT: ResourceColor = $r('app.color.app_sidebar_selected_hover_light')
+  static readonly SIDEBAR_SELECTED_PRESSED_LIGHT: ResourceColor = $r('app.color.app_sidebar_selected_pressed_light')
+  static readonly SIDEBAR_SELECTED_HOVER_DARK: ResourceColor = $r('app.color.app_sidebar_selected_hover_dark')
+  static readonly SIDEBAR_SELECTED_PRESSED_DARK: ResourceColor = $r('app.color.app_sidebar_selected_pressed_dark')
+  static readonly SIDEBAR_ICON_TILE_BG_LIGHT: ResourceColor = $r('app.color.app_sidebar_icon_tile_bg_light')
+  static readonly SIDEBAR_ICON_TILE_BG_DARK: ResourceColor = $r('app.color.app_sidebar_icon_tile_bg_dark')
+  static readonly THEME_MODE_ICON_TILE_BG_LIGHT: ResourceColor = $r('app.color.app_theme_mode_icon_tile_bg_light')
+  static readonly THEME_MODE_ICON_TILE_BG_DARK: ResourceColor = $r('app.color.app_theme_mode_icon_tile_bg_dark')
 
-  static readonly SUCCESS: string = '#34C759'
-  static readonly WARNING: string = '#FF9500'
-  static readonly DANGER: string = '#FF3B30'
-  static readonly MENU_ICON_TILE_LIGHT: string = 'rgba(242,242,247,1)'
-  static readonly MENU_ICON_TILE_DARK: string = 'rgba(58,58,60,1)'
-  static readonly SIDEBAR_SELECTED_TILE: string = '#3B9BFF'
-  static readonly SIDEBAR_SELECTED_ICON: string = '#EAF4FF'
+  static readonly SUCCESS: ResourceColor = $r('app.color.app_success')
+  static readonly WARNING: ResourceColor = $r('app.color.app_warning')
+  static readonly DANGER: ResourceColor = $r('app.color.app_danger')
+  static readonly MENU_ICON_TILE_LIGHT: ResourceColor = $r('app.color.app_menu_icon_tile_light')
+  static readonly MENU_ICON_TILE_DARK: ResourceColor = $r('app.color.app_menu_icon_tile_dark')
+  static readonly SIDEBAR_SELECTED_TILE: ResourceColor = $r('app.color.app_sidebar_selected_tile')
+  static readonly SIDEBAR_SELECTED_ICON: ResourceColor = $r('app.color.app_sidebar_selected_icon')
 
   // Dashboard 渐变色 end 值
-  static readonly GRADIENT_FIREWALL_END: string = '#00C6FF'
-  static readonly GRADIENT_LOG_END: string = '#30D158'
-  static readonly GRADIENT_PERIPHERAL_START: string = '#5856D6'
-  static readonly GRADIENT_PERIPHERAL_END: string = '#AF52DE'
-  static readonly GRADIENT_PERMISSION_START: string = '#00A870'
-  static readonly GRADIENT_PERMISSION_END: string = '#4CD4B0'
-  static readonly GRADIENT_IDENTITY_END: string = '#FFCC00'
-  static readonly GRADIENT_TOOL_START: string = '#9095A1'
-  static readonly GRADIENT_TOOL_END: string = '#D8DCE3'
+  static readonly GRADIENT_FIREWALL_END: ResourceColor = $r('app.color.app_gradient_firewall_end')
+  static readonly GRADIENT_LOG_END: ResourceColor = $r('app.color.app_gradient_log_end')
+  static readonly GRADIENT_PERIPHERAL_START: ResourceColor = $r('app.color.app_gradient_peripheral_start')
+  static readonly GRADIENT_PERIPHERAL_END: ResourceColor = $r('app.color.app_gradient_peripheral_end')
+  static readonly GRADIENT_PERMISSION_START: ResourceColor = $r('app.color.app_gradient_permission_start')
+  static readonly GRADIENT_PERMISSION_END: ResourceColor = $r('app.color.app_gradient_permission_end')
+  static readonly GRADIENT_IDENTITY_END: ResourceColor = $r('app.color.app_gradient_identity_end')
+  static readonly GRADIENT_TOOL_START: ResourceColor = $r('app.color.app_gradient_tool_start')
+  static readonly GRADIENT_TOOL_END: ResourceColor = $r('app.color.app_gradient_tool_end')
   
   // Firewall 主题颜色
-  static readonly FIREWALL_SELECTED_CARD_BG_DARK: string = '#243140'
-  static readonly FIREWALL_SELECTED_CARD_BG_LIGHT: string = '#EEF6FF'
-  static readonly FIREWALL_SELECTED_ICON_BORDER_DARK: string = '#0F1720'
-  static readonly FIREWALL_SELECTED_ICON_BORDER_LIGHT: string = '#FFFFFF'
-  static readonly FIREWALL_SELECTED_SHADOW_DARK: string = '#66000000'
-  static readonly FIREWALL_SELECTED_SHADOW_LIGHT: string = '#22000000'
+  static readonly FIREWALL_SELECTED_CARD_BG_DARK: ResourceColor = $r('app.color.app_firewall_selected_card_bg_dark')
+  static readonly FIREWALL_SELECTED_CARD_BG_LIGHT: ResourceColor = $r('app.color.app_firewall_selected_card_bg_light')
+  static readonly FIREWALL_SELECTED_ICON_BORDER_DARK: ResourceColor = $r('app.color.app_firewall_selected_icon_border_dark')
+  static readonly FIREWALL_SELECTED_ICON_BORDER_LIGHT: ResourceColor = $r('app.color.app_firewall_selected_icon_border_light')
+  static readonly FIREWALL_SELECTED_SHADOW_DARK: ResourceColor = $r('app.color.app_firewall_selected_shadow_dark')
+  static readonly FIREWALL_SELECTED_SHADOW_LIGHT: ResourceColor = $r('app.color.app_firewall_selected_shadow_light')
   
   // Firewall 规则冲突 UI 颜色
-  static readonly FIREWALL_CONFLICT_BG: string = '#FFE8B3'
-  static readonly FIREWALL_CONFLICT_PANEL_BG: string = '#FFF7E6'
-  static readonly FIREWALL_CONFLICT_BORDER: string = '#FFD591'
+  static readonly FIREWALL_CONFLICT_BG: ResourceColor = $r('app.color.app_firewall_conflict_bg')
+  static readonly FIREWALL_CONFLICT_PANEL_BG: ResourceColor = $r('app.color.app_firewall_conflict_panel_bg')
+  static readonly FIREWALL_CONFLICT_BORDER: ResourceColor = $r('app.color.app_firewall_conflict_border')
 }
 
 export class AppStyles {
@@ -215,7 +215,7 @@ export class ActionButtonStyles {
 
   static getDangerIconColor(theme: ThemeMode): ResourceColor {
     if (theme === ThemeMode.DARK) {
-      return '#FFB4AE'
+      return $r('app.color.app_danger_icon_dark')
     }
     return AppColors.DANGER
   }
@@ -230,7 +230,7 @@ export class InteractiveItemStyles {
   static readonly ICON_TILE_RADIUS: number = 10
   static readonly ICON_SIZE: number = 18
 
-  static getMenuItemBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): string {
+  static getMenuItemBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): ResourceColor {
     if (!isHovered && !isPressed) {
       return AppColors.TRANSPARENT
     }
@@ -244,15 +244,15 @@ export class InteractiveItemStyles {
     return theme === ThemeMode.DARK ? AppColors.MENU_ICON_COLOR_DARK : AppColors.BRAND_PRIMARY
   }
 
-  static getMenuIconTileBackground(theme: ThemeMode): string {
+  static getMenuIconTileBackground(theme: ThemeMode): ResourceColor {
     return theme === ThemeMode.DARK ? AppColors.MENU_ICON_TILE_DARK : AppColors.MENU_ICON_TILE_LIGHT
   }
 
-  static getBackButtonBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): string {
+  static getBackButtonBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): ResourceColor {
     return InteractiveItemStyles.getMenuItemBackground(theme, isHovered, isPressed)
   }
 
-  static getSidebarItemBackground(theme: ThemeMode, isSelected: boolean, isHovered: boolean, isPressed: boolean = false): string {
+  static getSidebarItemBackground(theme: ThemeMode, isSelected: boolean, isHovered: boolean, isPressed: boolean = false): ResourceColor {
     if (isSelected) {
       if (theme === ThemeMode.DARK) {
         return isPressed ? AppColors.SIDEBAR_SELECTED_PRESSED_DARK : (isHovered ? AppColors.SIDEBAR_SELECTED_HOVER_DARK : AppColors.BRAND_PRIMARY)
@@ -262,7 +262,7 @@ export class InteractiveItemStyles {
     return InteractiveItemStyles.getMenuItemBackground(theme, isHovered, isPressed)
   }
 
-  static getSidebarIconTileBackground(theme: ThemeMode, isSelected: boolean): string {
+  static getSidebarIconTileBackground(theme: ThemeMode, isSelected: boolean): ResourceColor {
     if (isSelected) {
       return AppColors.SIDEBAR_SELECTED_TILE
     }
@@ -277,11 +277,11 @@ export class InteractiveItemStyles {
     return isSelected ? Color.White : AppColors.getColors(theme).TEXT_PRIMARY
   }
 
-  static getThemeModeIconColor(theme: ThemeMode): string {
+  static getThemeModeIconColor(theme: ThemeMode): ResourceColor {
     return theme === ThemeMode.DARK ? AppColors.THEME_MODE_ICON_COLOR_DARK : AppColors.THEME_MODE_ICON_COLOR_LIGHT
   }
 
-  static getThemeModeIconTileBackground(theme: ThemeMode): string {
+  static getThemeModeIconTileBackground(theme: ThemeMode): ResourceColor {
     return theme === ThemeMode.DARK ? AppColors.THEME_MODE_ICON_TILE_BG_DARK : AppColors.THEME_MODE_ICON_TILE_BG_LIGHT
   }
 }

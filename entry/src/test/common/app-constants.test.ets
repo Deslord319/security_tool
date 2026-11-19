@@ -36,9 +36,9 @@ export default function appConstantsTest() {
     })
 
     it('should map action button colors for light and dark themes', 0, () => {
-      expect(ActionButtonStyles.getPrimaryBackground(ThemeMode.DARK, false)).assertEqual('rgba(94,161,255,0.24)')
-      expect(ActionButtonStyles.getPrimaryBackground(ThemeMode.LIGHT, true)).assertEqual('rgba(10,132,255,0.14)')
-      expect(ActionButtonStyles.getDangerBackground(ThemeMode.DARK, true)).assertEqual('rgba(255,59,48,0.32)')
+      expect((ActionButtonStyles.getPrimaryBackground(ThemeMode.DARK, false) as Resource).id).assertEqual($r('app.color.app_action_primary_bg_dark').id)
+      expect((ActionButtonStyles.getPrimaryBackground(ThemeMode.LIGHT, true) as Resource).id).assertEqual($r('app.color.app_action_primary_hover_light').id)
+      expect((ActionButtonStyles.getDangerBackground(ThemeMode.DARK, true) as Resource).id).assertEqual($r('app.color.app_action_danger_hover_dark').id)
       expect(ActionButtonStyles.getDangerForeground(ThemeMode.LIGHT)).assertEqual(AppColors.DANGER)
     })
 
@@ -51,14 +51,16 @@ export default function appConstantsTest() {
     })
 
     it('should expose expected palette constants and theme colors', 0, () => {
-      expect(AppColors.BRAND_PRIMARY).assertEqual('#0A84FF')
-      expect(AppColors.GRADIENT_PERMISSION_END).assertEqual('#4CD4B0')
-      expect(AppColors.FIREWALL_CONFLICT_BORDER).assertEqual('#FFD591')
-      expect(AppColors.MODAL_SHADOW_DARK).assertEqual('rgba(0,0,0,0.32)')
-      expect(AppColors.INTERACTIVE_SECONDARY_BG_DARK).assertEqual('rgba(255,255,255,0.08)')
-      expect(AppColors.SCROLL_BAR_DARK).assertEqual('#6B7280')
-      expect(AppColors.getColors(ThemeMode.LIGHT).TEXT_PRIMARY.length > 0).assertTrue()
-      expect(AppColors.getColors(ThemeMode.DARK).TEXT_PRIMARY.length > 0).assertTrue()
+      // 颜色值唯一来源为 color.json；此处断言常量与主题色集合持有资源引用
+      // $r() 每次返回新对象，按资源 id 断言同一资源
+      expect((AppColors.BRAND_PRIMARY as Resource).id).assertEqual($r('app.color.app_brand_primary').id)
+      expect((AppColors.GRADIENT_PERMISSION_END as Resource).id).assertEqual($r('app.color.app_gradient_permission_end').id)
+      expect((AppColors.FIREWALL_CONFLICT_BORDER as Resource).id).assertEqual($r('app.color.app_firewall_conflict_border').id)
+      expect((AppColors.MODAL_SHADOW_DARK as Resource).id).assertEqual($r('app.color.app_modal_shadow_dark').id)
+      expect((AppColors.INTERACTIVE_SECONDARY_BG_DARK as Resource).id).assertEqual($r('app.color.app_interactive_secondary_bg_dark').id)
+      expect((AppColors.SCROLL_BAR_DARK as Resource).id).assertEqual($r('app.color.app_scroll_bar_dark').id)
+      expect((AppColors.getColors(ThemeMode.LIGHT).TEXT_PRIMARY as Resource).id).assertEqual($r('app.color.theme_light_text_primary').id)
+      expect((AppColors.getColors(ThemeMode.DARK).TEXT_PRIMARY as Resource).id).assertEqual($r('app.color.theme_dark_text_primary').id)
     })
 
     it('should expose shared time constants', 0, () => {

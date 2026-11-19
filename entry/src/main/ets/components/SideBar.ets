@@ -16,11 +16,11 @@ export struct SideBar {
   @Local activeNavId: string = ''
   @Local themeTogglePressed: boolean = false
 
-  private getNavIconBackground(itemId: string): string {
+  private getNavIconBackground(itemId: string): ResourceColor {
     return InteractiveItemStyles.getSidebarIconTileBackground(this.currentTheme, this.selectedId === itemId)
   }
 
-  private getNavItemBackground(itemId: string): string {
+  private getNavItemBackground(itemId: string): ResourceColor {
     return InteractiveItemStyles.getSidebarItemBackground(
       this.currentTheme,
       this.selectedId === itemId,
@@ -37,11 +37,11 @@ export struct SideBar {
     return this.currentTheme === ThemeMode.DARK ? ThemeText.DARK_MODE : ThemeText.LIGHT_MODE
   }
 
-  private getThemeModeIconColor(): string {
+  private getThemeModeIconColor(): ResourceColor {
     return InteractiveItemStyles.getThemeModeIconColor(this.currentTheme)
   }
 
-  private getThemeModeIconBackground(): string {
+  private getThemeModeIconBackground(): ResourceColor {
     return InteractiveItemStyles.getThemeModeIconTileBackground(this.currentTheme)
   }
 
