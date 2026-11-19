@@ -9,6 +9,7 @@ import dashboardViewModelTest from './dashboard/viewmodel.test'
 import enterpriseAdminAbilityTest from './enterprise/admin-ability.test'
 import entryAbilityTest from './entryability/entryability.test'
 import adminServiceTest from './enterprise/admin-service.test'
+import managedPermissionServiceTest from './enterprise/managed-permission-service.test'
 import firewallAccountChangeCoordinatorTest from './firewall/account-change-coordinator.test'
 import firewallAccountChangeHandlerTest from './firewall/account-change-handler.test'
 import firewallModelsTest from './firewall/models.test'
@@ -105,6 +106,7 @@ export default function testsuite() {
   dashboardViewModelTest()
   enterpriseAdminAbilityTest()
   adminServiceTest()
+  managedPermissionServiceTest()
   firewallAccountChangeCoordinatorTest()
   firewallModelsTest()
   firewallLocalRepositoryTest()

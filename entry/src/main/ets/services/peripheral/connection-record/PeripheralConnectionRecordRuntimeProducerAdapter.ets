@@ -3,6 +3,7 @@ import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import { connection } from '@kit.ConnectivityKit'
 import { LogUtils } from '../../../utils/LogUtils'
 import { CommonSystemErrorCodes } from '../../../constants/SystemErrorCodes'
+import { ManagedPermissionService } from '../../admin/activation/ManagedPermissionService'
 import {
   PeripheralConnectionRecordProducer,
   PeripheralConnectionRecordProducerEvent,
@@ -300,6 +301,14 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
         LogUtils.info(TAG, `bluetooth permission recovered: trigger=${trigger}`)
       }
       this.bluetoothPermissionBlocked = false
+      return true
+    }
+
+    // 首选 EDM managed-state 预授权：管理员激活时静默授予，无用户弹窗（设计见外设管理 1.0.64）
+    const managedGranted = await ManagedPermissionService.ensureSelfGranted(BLUETOOTH_RUNTIME_PERMISSION)
+    if (managedGranted && this.hasBluetoothRuntimePermission()) {
+      this.bluetoothPermissionBlocked = false
+      LogUtils.info(TAG, `bluetooth permission granted via managed state: trigger=${trigger}`)
       return true
     }
 
