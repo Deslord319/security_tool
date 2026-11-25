@@ -171,7 +171,7 @@ EntryAbility
 
 | 架构节点 | 当前落点 | 职责 |
 |---|---|---|
-| 应用启动 | `entry/src/main/ets/entryability/EntryAbility.ets` | 初始化主题、执行启动认证、加载 `pages/MainPage`、处理生命周期事件 |
+| 应用启动 | `entry/src/main/ets/entryability/EntryAbility.ets`、`entry/src/main/ets/entryability/EntryAbilityStage.ets` | 初始化主题、执行启动认证、加载 `pages/MainPage`、注册状态栏托盘（主进程持有）、处理生命周期事件；窗口关闭与应用级退出（Dock/托盘）统一只隐藏窗口保持常驻，后台采集与托盘不中断，真正的进程退出仅由系统关机或强制停止完成 |
 | 运行时服务 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` | 管理跨页面运行态，如日志采集、外设连接记录采集、共享 ViewModel |
 | 路由壳层 | `entry/src/main/ets/pages/MainPage.ets` | 持有当前路由，装配侧边栏、顶部菜单和模块页面，不承载模块内部业务 |
 | 页面层 | `entry/src/main/ets/views/**` | 展示、交互转发、弹窗、局部 UI 状态 |
@@ -223,7 +223,7 @@ EntryAbility
 
 | RFC 分层 | RFC 预期职责 | 当前实现落点 | 走样检查结论 |
 |---|---|---|---|
-| 应用启动层 | 负责主题初始化、启动认证、加载 `pages/MainPage`、拉起应用级运行时 | `entry/src/main/ets/entryability/EntryAbility.ets`、`ToolSettingsRepository.ets`、`AuthService.ets`、`ApplicationRuntimeManager.ets` | 一致。启动认证由工具设置配置驱动，认证失败/不可用分支有降级或终止处理。 |
+| 应用启动层 | 负责主题初始化、启动认证、加载 `pages/MainPage`、拉起应用级运行时、持有状态栏托盘并统一关闭语义（窗口/Dock/托盘关闭一律隐藏窗口保持常驻） | `entry/src/main/ets/entryability/EntryAbility.ets`、`EntryAbilityStage.ets`、`StatusBarUtil.ets`、`ToolSettingsRepository.ets`、`AuthService.ets`、`ApplicationRuntimeManager.ets` | 一致。启动认证由工具设置配置驱动，认证失败/不可用分支有降级或终止处理；不再有独立后台进程（BackGroundAbility 已删除），托盘由主进程持有，应用级退出经 AbilityStage 拦截并隐藏。 |
 | 运行时服务层 | 管理跨页面运行态和后台采集，不让页面直接启动采集管线 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` 管理日志采集、外设运行时、共享身份/日志/外设/工具设置 ViewModel | 基本一致。防火墙和权限管理 ViewModel 由 `MainPage` 持有是路由状态需要，不涉及系统能力直接下发。 |
 | 路由壳层 | 持有当前路由、装配侧边栏/顶部菜单/模块页面，不承载模块业务 | `entry/src/main/ets/pages/MainPage.ets`、`RouteStateUtils.ets`、`RouteIds.ets` | 一致。`MainPage` 只做路由、主题、弹窗入口和 ViewModel 注入；防火墙子路由恢复通过 `lastFirewallRoute` 收口。 |
 | 页面层 | 负责展示、交互转发、弹窗和局部 UI 状态 | `entry/src/main/ets/views/**`、`entry/src/main/ets/components/**` | 一致。页面消费 ViewModel state 和回调；`FirewallRulesPage` 引入 `netFirewall` 仅用于规则类型/枚举展示和弹窗参数，新增/编辑/删除仍经 `FirewallRulesViewModel`，不是页面直接下发系统能力。 |

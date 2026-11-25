@@ -5,11 +5,10 @@ import { ThemeManager } from '../theme/ThemeManager';
 import { AuthService } from '../services/identity/auth/AuthService';
 import { AuthMethod } from '../models/AuthModels'
 import { DialogService } from '../utils/DialogService';
-import { AppInfo } from '../constants/AppConstants'
 import { PreferencesToolSettingsRepository } from '../services/tool-settings/system-settings/ToolSettingsRepository';
-import { BusinessError, commonEventManager, emitter } from '@kit.BasicServicesKit';
+import { BusinessError, emitter } from '@kit.BasicServicesKit';
 import { statusBarManager } from '@kit.DeskTopExtensionKit';
-import { loadStatusBar, holdStatusBar } from '../utils/StatusBarUtil';
+import { loadStatusBar } from '../utils/StatusBarUtil';
 import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager';
 import { AppStrings } from '../constants/AppStrings';
 import { LooseRecord } from '../types/LooseValueTypes';
@@ -23,7 +22,6 @@ interface EntryLoggableError {
 
 export default class EntryAbility extends UIAbility {
   private toolSettingsRepository: PreferencesToolSettingsRepository = new PreferencesToolSettingsRepository()
-  private terminateSubscriber: commonEventManager.CommonEventSubscriber | null = null
   private readonly statusBarIconClickHandler: (eventData: emitter.EventData) => void =
     (eventData: emitter.EventData) => {
       this.handleStatusBarIconClick(eventData)
@@ -41,21 +39,12 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       LogUtils.error(ENTRYABILITY_TAG, 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
-    this.createTerminateSubscriber()
     this.initStatusBar()
   }
 
   onDestroy(): void {
     ApplicationRuntimeManager.getInstance().release()
     statusBarManager.off('statusBarIconClick', this.statusBarIconClickHandler)
-    if (this.terminateSubscriber) {
-      commonEventManager.unsubscribe(this.terminateSubscriber, (err?: BusinessError) => {
-        if (err) {
-          LogUtils.warn(ENTRYABILITY_TAG, 'unsubscribe terminate event failed: %{public}s', JSON.stringify(err))
-        }
-      })
-      this.terminateSubscriber = null
-    }
   }
 
   onNewWant(_want: Want): void {
@@ -161,40 +150,10 @@ export default class EntryAbility extends UIAbility {
       await loadStatusBar(this.context)
       statusBarManager.off('statusBarIconClick', this.statusBarIconClickHandler)
       statusBarManager.on('statusBarIconClick', this.statusBarIconClickHandler)
-      await holdStatusBar(this.context)
       LogUtils.info(ENTRYABILITY_TAG, 'initStatusBar success')
     } catch (err) {
       LogUtils.warn(ENTRYABILITY_TAG, 'initStatusBar failed: %{public}s', JSON.stringify(err))
     }
-  }
-
-  private createTerminateSubscriber(): void {
-    if (this.terminateSubscriber) {
-      return
-    }
-    let subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
-      events: [AppInfo.BACKGROUND_ABILITY_TERMINATE_EVENT]
-    }
-    commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
-      if (err) {
-        LogUtils.warn(ENTRYABILITY_TAG, 'createTerminateSubscriber failed: %{public}s', JSON.stringify(err))
-        return
-      }
-      this.terminateSubscriber = subscriber
-      commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, _data: commonEventManager.CommonEventData) => {
-        if (callbackErr) {
-          LogUtils.warn(ENTRYABILITY_TAG, 'terminate event callback failed: %{public}s', JSON.stringify(callbackErr))
-          return
-        }
-        statusBarManager.removeFromStatusBar(this.context)
-        setTimeout(() => {
-          this.context.terminateSelf().catch((terminateErr: Error) => {
-            LogUtils.warn(ENTRYABILITY_TAG, 'terminateSelf failed after tray removal: %{public}s',
-              JSON.stringify(terminateErr))
-          })
-        }, 200)
-      });
-    })
   }
 
   private showEntryAbilityFromStatusBar(): void {

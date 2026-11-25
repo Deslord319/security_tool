@@ -7,6 +7,7 @@
     "deviceTypes": [
       "2in1"
     ],
+    "srcEntry": "./ets/entryability/EntryAbilityStage.ets",
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
@@ -131,16 +132,6 @@
           }
         ]
       },
-      {
-        "name": "BackGroundAbility",
-        "srcEntry": "./ets/backgroundability/BackGroundAbility.ets",
-        "description": "$string:EntryAbility_desc",
-        "icon": "$media:layered_image",
-        "label": "$string:EntryAbility_label",
-        "startWindowIcon": "$media:startIcon",
-        "startWindowBackground": "$color:start_window_background",
-        "exported": false
-      }
     ],
     "extensionAbilities": [
       {
