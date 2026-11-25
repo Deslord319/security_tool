@@ -4,11 +4,11 @@ import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'AccountChangeEventBus'
 
-export const ACCOUNT_CHANGE_COMMON_EVENT: string = 'com.huawei.securitytool.ACCOUNT_CHANGE'
-export const ACCOUNT_CHANGE_PARAM_SOURCE: string = 'accountChangeSource'
-export const ACCOUNT_CHANGE_PARAM_TRIGGER_USER_ID: string = 'accountChangeTriggerUserId'
-export const ACCOUNT_CHANGE_PARAM_SIGNATURE: string = 'accountChangeSignature'
-export const ACCOUNT_CHANGE_PARAM_TIMESTAMP: string = 'accountChangeTimestamp'
+const ACCOUNT_CHANGE_COMMON_EVENT: string = 'com.huawei.securitytool.ACCOUNT_CHANGE'
+const ACCOUNT_CHANGE_PARAM_SOURCE: string = 'accountChangeSource'
+const ACCOUNT_CHANGE_PARAM_TRIGGER_USER_ID: string = 'accountChangeTriggerUserId'
+const ACCOUNT_CHANGE_PARAM_SIGNATURE: string = 'accountChangeSignature'
+const ACCOUNT_CHANGE_PARAM_TIMESTAMP: string = 'accountChangeTimestamp'
 
 export interface AccountChangeEventPayload {
   source: AccountChangeSource

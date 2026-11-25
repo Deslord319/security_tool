@@ -34,7 +34,7 @@ import { PeripheralService } from '../../../services/peripheral/interface-contro
 const TAG = 'PeripheralPolicyViewModel'
 
 @ObservedV2
-export class PeripheralPolicyState {
+class PeripheralPolicyState {
   @Trace records: PeripheralPolicyRecord[] = []
   @Trace updatingKeys: string[] = []
   @Trace hasRestorableRecords: boolean = false

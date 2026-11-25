@@ -25,7 +25,7 @@ function define(
   return { eventId, eventType, defaultEventKey, parserKind, filterPolicy }
 }
 
-export const LOG_AUDIT_EVENT_DEFINITIONS: AuditEventDefinition[] = [
+const LOG_AUDIT_EVENT_DEFINITIONS: AuditEventDefinition[] = [
   define(securityAudit.NotifyEvent.FILE, LogEventType.FILE, 'file.access', 'file', 'user_file_prefix'),
   define(securityAudit.NotifyEvent.FILE_INTERCEPTED, LogEventType.FILE, 'file.intercepted', 'file', 'user_file_prefix'),
   define(securityAudit.NotifyEvent.KIA_CREATE, LogEventType.FILE, 'file.kia_create', 'file', 'user_file_prefix'),

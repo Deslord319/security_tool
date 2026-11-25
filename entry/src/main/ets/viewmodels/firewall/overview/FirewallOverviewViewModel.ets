@@ -7,7 +7,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 const TAG = 'FirewallOverviewVM'
 
 @ObservedV2
-export class FirewallOverviewViewModelState {
+class FirewallOverviewViewModelState {
   @Trace enabled: boolean = false
   @Trace currentMode: FirewallPresetMode = 'custom'
   @Trace initialized: boolean = false

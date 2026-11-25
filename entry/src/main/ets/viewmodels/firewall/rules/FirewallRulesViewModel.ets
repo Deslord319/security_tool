@@ -32,7 +32,7 @@ export interface FirewallRulesConflictInfo {
   existingRule: netFirewall.NetFirewallRule | null
 }
 
-export function isFirewallRuleAllUsers(userIds: number[], availableUsers: UserFirewallOption[]): boolean {
+function isFirewallRuleAllUsers(userIds: number[], availableUsers: UserFirewallOption[]): boolean {
   let normalizedUserIds = normalizeFirewallRuleUserIds(userIds)
   let normalizedAvailableUserIds = normalizeFirewallRuleUserIds(
     availableUsers.map((item: UserFirewallOption): number => item.userId)
@@ -46,7 +46,7 @@ export function isFirewallRuleAllUsers(userIds: number[], availableUsers: UserFi
   return normalizedUserIds.every((userId: number, index: number): boolean => userId === normalizedAvailableUserIds[index])
 }
 
-export function buildFirewallRuleUserScopeLabel(
+function buildFirewallRuleUserScopeLabel(
   rule: netFirewall.NetFirewallRule,
   availableUsers: UserFirewallOption[]
 ): string {

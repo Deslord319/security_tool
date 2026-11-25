@@ -44,7 +44,7 @@ export class LogListState {
 }
 
 @ObservedV2
-export class LogDetailState {
+class LogDetailState {
   @Trace visible: boolean = false
   @Trace entryId: string = ''
 }

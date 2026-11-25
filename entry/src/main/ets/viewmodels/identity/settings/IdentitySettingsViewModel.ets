@@ -45,7 +45,7 @@ interface IdentitySettingsSnapshot {
 }
 
 @ObservedV2
-export class IdentitySettingsState {
+class IdentitySettingsState {
   @Trace initialized: boolean = false
   @Trace loading: boolean = false
   @Trace adminActivated: boolean = false

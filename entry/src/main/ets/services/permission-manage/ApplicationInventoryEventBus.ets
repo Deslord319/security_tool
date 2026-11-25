@@ -4,7 +4,7 @@ import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'AppInventoryEventBus'
 
-export const APPLICATION_INVENTORY_CHANGE_COMMON_EVENT: string =
+const APPLICATION_INVENTORY_CHANGE_COMMON_EVENT: string =
   'com.huawei.securitytool.APPLICATION_INVENTORY_CHANGE'
 const PARAM_SOURCE: string = 'applicationInventoryChangeSource'
 const PARAM_BUNDLE_NAME: string = 'applicationInventoryBundleName'
