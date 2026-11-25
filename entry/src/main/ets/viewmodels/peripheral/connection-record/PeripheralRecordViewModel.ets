@@ -20,14 +20,14 @@ import { CsvFileExportService } from '../../../services/common/export/CsvFileExp
 const TAG = 'PeripheralRecordViewModel'
 
 @ObservedV2
-export class ConnectionDetailDialogStateModel {
+class ConnectionDetailDialogStateModel {
   @Trace visible: boolean = false
   @Trace record: PeripheralConnectionRecord | null = null
   @Trace historyItems: PeripheralConnectionHistoryItem[] = []
 }
 
 @ObservedV2
-export class PeripheralRecordState {
+class PeripheralRecordState {
   @Trace records: PeripheralConnectionRecord[] = []
   @Trace connectionDetailDialog: ConnectionDetailDialogStateModel = new ConnectionDetailDialogStateModel()
 }

@@ -29,7 +29,7 @@ export interface ToolSettingsActionRequest {
 }
 
 @ObservedV2
-export class ToolSettingsConfigState {
+class ToolSettingsConfigState {
   @Trace startupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
   @Trace authMethod: AuthMethod = DEFAULT_TOOL_SETTINGS.authMethod
 }

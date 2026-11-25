@@ -35,7 +35,7 @@ const USB_STORAGE_POLICY_OPTIONS: UsbStoragePolicyOption[] = [
 ]
 
 @ObservedV2
-export class InterfaceControlStateModel {
+class InterfaceControlStateModel {
   @Trace usbDisabled: boolean = false
   @Trace btDisabled: boolean = false
   @Trace wifiDisabled: boolean = false

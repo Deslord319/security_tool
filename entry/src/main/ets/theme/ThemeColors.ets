@@ -63,7 +63,7 @@ export interface ThemeColorSet {
 }
 
 // 浅色主题颜色
-export const LightThemeColors: ThemeColorSet = {
+const LightThemeColors: ThemeColorSet = {
   // 背景色
   BG_PAGE: $r('app.color.theme_light_bg_page'),
   BG_CARD: $r('app.color.theme_light_bg_card'),

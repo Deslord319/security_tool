@@ -17,7 +17,7 @@ export interface PermissionAccountPolicySnapshotTaskResult {
 }
 
 @Concurrent
-export function loadAccountPolicySnapshotTask(accountId: number): PermissionAccountPolicySnapshotTaskResult {
+function loadAccountPolicySnapshotTask(accountId: number): PermissionAccountPolicySnapshotTaskResult {
   try {
     return {
       success: true,
