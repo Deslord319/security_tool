@@ -292,9 +292,7 @@ export class AppInfo {
   static readonly ENTRY_MODULE_NAME: string = 'entry'
   static readonly ENTRY_ABILITY_NAME: string = 'EntryAbility'
   static readonly ADMIN_ABILITY_NAME: string = 'EnterpriseAdminAbility'
-  static readonly BACKGROUND_ABILITY_NAME: string = 'BackGroundAbility'
   static readonly STATUS_BAR_TITLE: string = 'SecurityTool'
-  static readonly BACKGROUND_ABILITY_TERMINATE_EVENT: string = 'security_tool_onPrepareToTerminate_event'
   static readonly DB_NAME: string = 'security_tool.db'
 }
 
